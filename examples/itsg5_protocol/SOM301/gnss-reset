@@ -1,0 +1,17 @@
+#!/bin/sh
+ 
+# Copyright (C) Unex Technology Corporation - All Rights Reserved
+# Unauthorized copying of this file, via any medium is strictly prohibited
+# Proprietary and confidential
+
+# make sure boot pin is low
+#echo 0 > /sys/class/gpio/gpio99/value
+
+# [export gpio_s 15: external => value:0, internal => value:1]
+if [ ! -e /sys/class/gpio/gpio111 ]; then
+    echo 111 > /sys/class/gpio/export
+    echo out > /sys/class/gpio/gpio111/direction
+fi
+
+echo 0 > /sys/class/gpio/gpio111/value
+echo 1 > /sys/class/gpio/gpio111/value

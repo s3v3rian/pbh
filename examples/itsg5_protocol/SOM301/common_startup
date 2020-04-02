@@ -1,0 +1,44 @@
+#!/bin/sh
+
+# Start eth0
+#ifconfig eth0 hw ether 00:00:00:00:00:02
+#ifconfig eth0 up
+#udhcpc -i eth0
+USB_CDC=/home/root/ext-fs/usr/bin/usb_cdc.sh
+
+# Set the internal pps
+echo 100 > /sys/class/gpio/export
+echo out > /sys/class/gpio/gpio100/direction
+echo 1 > /sys/class/gpio/gpio100/value
+
+# IP over USB
+echo HOST > /sys/devices/platform/soc/48440000.usb-phy/usb_mode
+echo 0 > /sys/devices/platform/soc/48440000.usb-phy/usb_id
+echo DEVICE > /sys/devices/platform/soc/48440000.usb-phy/usb_mode
+
+if [ -x $USB_CDC ]; then
+LD_LIBRARY_PATH=/lib:/usr/lib:/home/root/ext-fs/lib:/home/root/ext-fs/usr/lib $USB_CDC
+else
+LD_LIBRARY_PATH=/lib:/usr/lib:/home/root/ext-fs/lib:/home/root/ext-fs/usr/lib /home/root/ext-fs/usr/bin/a5_usb_gadget.sh -d 48400000.usb rndis enable
+fi
+
+ifup usb0 2>/dev/null
+# backward compatible for old BSP
+if [ x$? != x0 ]; then
+ifconfig usb0 192.168.1.3 up
+route add default gw 192.168.1.1 dev usb0
+fi
+
+# start dhcp server
+# allot IP(the only one choice: 192.168.1.1) to host
+if [ -f /etc/network/udhcpd.conf ]; then
+DHCP_CONF=/etc/network/udhcpd.conf
+else
+# backward compatible for old BSP
+DHCP_CONF=/home/root/ext-fs/home/unex/conf/udhcpd.conf
+fi
+LD_LIBRARY_PATH=/lib:/usr/lib:/home/root/ext-fs/lib:/home/root/ext-fs/usr/lib /usr/sbin/udhcpd $DHCP_CONF
+
+# SSH and SCP service
+LD_LIBRARY_PATH=/lib:/usr/lib:/home/root/ext-fs/lib:/home/root/ext-fs/usr/lib /home/root/ext-fs/usr/sbin/dropbear -R -B
+

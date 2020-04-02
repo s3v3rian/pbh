@@ -1,0 +1,15 @@
+<kml xmlns="http://www.opengis.net/kml/2.2">
+	<NetworkLink>
+		<name>V2X Radar</name>
+		<flyToView>1</flyToView>
+		<Link>
+			<href>/home/rdev/V2X/pbh/target_data/tgt_positional_data_T0.kml</href>
+			<refreshMode>onInterval</refreshMode>
+			<refreshInterval>0.1</refreshInterval>
+    			<viewFormat>BBOX=[bboxWest],[bboxSouth],[bboxEast],[bboxNorth];CAMERA=\
+      			[lookatLon],[lookatLat],[lookatRange],[lookatTilt],[lookatHeading];VIEW=\
+      			[horizFov],[vertFov],[horizPixels],[vertPixels],[terrainEnabled]</viewFormat>
+		</Link>
+	</NetworkLink>
+</kml>
+

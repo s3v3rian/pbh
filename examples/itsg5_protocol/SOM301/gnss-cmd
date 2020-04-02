@@ -1,0 +1,81 @@
+#!/bin/sh
+
+# Copyright (C) Unex Technology Corporation - All Rights Reserved
+# Unauthorized copying of this file, via any medium is strictly prohibited
+# Proprietary and confidential
+
+dev=/dev/ttyAMA1
+baud=230400
+cmd=$1
+rsp=$2
+
+usage()
+{
+    echo "Usage: $0 'CMD' Expected_Response_Pattern  "
+    echo "Example:"
+    echo "    $0 '\$PSTMGETPAR,1500' PSTMSETPAR"
+    exit 1
+}
+
+# input should be $xxxxxx,yyy,...
+chksum() {
+    let len=${#1}
+    let i=1
+#    printf $len
+
+    let val=0
+    while [ $i -lt $len ]; do
+        #printf '%d' "'${1:$len:1}'"
+        let val^=$( LC_CTYPE=C printf '%d' "'${1:$i:1}'" )
+        let i++
+    done
+
+    printf '%02X' $val
+}
+
+cmdline="$*"
+#echo $cmdline
+
+if [ ! $# -eq 2 ]; then
+    usage
+fi
+
+killall -q -9 gpsd
+gpsd=$(ps|grep gpsd|grep -v grep)
+if [ x"$gpsd" != x ]; then
+    echo "Failed to kill gpsd process: $gpsd"
+    exit 1
+fi
+
+stty -F $dev raw speed $baud > /dev/null
+
+cmd_str=$(printf '%s*%s\r\n' "$cmd" "$(chksum $cmd)")
+#exit 0
+
+exec 99<> $dev
+printf "$cmd_str" >&99 
+echo "[send] " $cmd_str
+trial=0
+cnt=0
+while read -t 5 line <&99; do
+    rsp_line=$(echo "$line" | grep $rsp)
+    if [ $? -eq 0 ]; then
+        break;
+    else
+        cnt=$((cnt+1))
+        if [ $cnt -eq 30 ]; then
+            cnt=0
+            trial=$((trial+1))
+            if [ $trial -eq 5 ]; then
+                break;
+            fi
+        fi
+    fi
+    if [ $cnt -eq 0 ]; then
+        printf "$cmd_str" >&99 
+        echo "[send] " $cmd_str
+    fi
+done 
+exec 99>&-
+
+echo "[recv] " $rsp_line

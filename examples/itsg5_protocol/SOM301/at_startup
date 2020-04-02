@@ -1,0 +1,11 @@
+#!/bin/sh
+
+EXTFS_PATH=/home/root/ext-fs
+V2X_SERV_FILE=$EXTFS_PATH/usr/bin/v2xservice_startup
+
+echo "Unex startup ..."
+source common_startup
+if [ -x $V2X_SERV_FILE ]; then
+source $V2X_SERV_FILE
+fi
+echo "Unex startup done."

@@ -1,0 +1,100 @@
+{
+    "station": {
+        "type": 15,
+        "is_mobile": false,
+        "country_code": 466,
+        "ll_addr": "90:56:92:00:00:01"
+    },
+    "fixed_position": {
+        "is_enabled": false,
+        "latitude": 0,
+        "longitude": 0,
+        "pai": false,
+        "speed": 0,
+        "heading": 0
+    },
+    "dcc": {
+        "is_enabled": true
+    },
+    "dcc_reactive_param": {
+        "c_weight": 1.0,
+        "c_threshold": 0.62,
+        "min_t_on_millis": 0,
+        "max_t_on_millis": 4,
+        "min_t_off_millis": 25,
+        "max_t_off_millis": 1000
+    },
+    "media" : {
+        "dsrc_antenna_max_gain_db" : 5
+    },
+    "security": {
+        "is_mib_its_gn_security_enabled": false,
+        "mib_its_gn_decap_result_handling": 1,
+        "aid_profile": [
+            {
+                "aid": 36,
+                "profile_name": "ISC_PROFILE_SIGN"
+            },
+            {
+                "aid": 37,
+                "profile_name": "ISC_PROFILE_SIGN"
+            },
+            {
+                "aid": 141,
+                "profile_name": "ISC_PROFILE_SIGN"
+            },
+            {
+                "aid": 4294967295,
+                "profile_name": ""
+            },
+            {
+                "aid": 4294967295,
+                "profile_name": ""
+            },
+            {
+                "aid": 4294967295,
+                "profile_name": ""
+            },
+            {
+                "aid": 4294967295,
+                "profile_name": ""
+            },
+            {
+                "aid": 4294967295,
+                "profile_name": ""
+            },
+            {
+                "aid": 4294967295,
+                "profile_name": ""
+            },
+            {
+                "aid": 4294967295,
+                "profile_name": ""
+            },
+            {
+                "aid": 4294967295,
+                "profile_name": ""
+            },
+            {
+                "aid": 4294967295,
+                "profile_name": ""
+            },
+            {
+                "aid": 4294967295,
+                "profile_name": ""
+            },
+            {
+                "aid": 4294967295,
+                "profile_name": ""
+            },
+            {
+                "aid": 4294967295,
+                "profile_name": ""
+            },
+            {
+                "aid": 4294967295,
+                "profile_name": ""
+            }
+        ]
+    }
+}

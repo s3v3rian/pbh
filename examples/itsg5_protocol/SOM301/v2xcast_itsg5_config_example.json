@@ -1,0 +1,228 @@
+{
+  "Management Profile": [
+    {
+      "ID": 0,
+      "GN Security Type": "Unsecured"
+    }
+  ],
+  "Caster Profile": [   
+    {
+      "ID": 0,
+      "Description": "CAM TX, Channel 180, Caster service on port 7777",
+      "BTP Profile ID": 0,
+      "Channel Profile ID": 0,
+      "Carrier Profile ID": 0,
+      "Security Profile ID": 0
+    },
+    {
+      "ID": 1,
+      "Description": "CAM RX, Channel 180, Caster service on port 8888",
+      "BTP Profile ID": 1,
+      "Channel Profile ID": 0,
+      "Carrier Profile ID": 1,
+      "Security Profile ID": 0
+    },
+    {
+      "ID": 2,
+      "Description": "DENM TX, Channel 180, Caster service on port 9999",
+      "BTP Profile ID": 2,
+      "Channel Profile ID": 0,
+      "Carrier Profile ID": 2,
+      "Security Profile ID": 1
+    },
+    {
+      "ID": 3,
+      "Description": "DENM RX, Channel 180, Caster service on port 10101",
+      "BTP Profile ID": 3,
+      "Channel Profile ID": 0,
+      "Carrier Profile ID": 3,
+      "Security Profile ID": 1
+    },
+    {
+      "ID": 4,
+      "Description": "GPC(RTCMEM) TX, Channel 180, Caster service on port 10000",
+      "BTP Profile ID": 4,
+      "Channel Profile ID": 0,
+      "Carrier Profile ID": 4,
+      "Security Profile ID": 2
+    },
+    {
+      "ID": 5,
+      "Description": "TLM(SPATEM) TX, Channel 180, Caster service on port 10001",
+      "BTP Profile ID": 5,
+      "Channel Profile ID": 0,
+      "Carrier Profile ID": 5,
+      "Security Profile ID": 2
+    }
+  ],
+  "BTP Profile": [
+    {
+      "ID": 0,
+      "Description": "CAM TX service, BTP-B to port 2001, 6Mbps",
+      "Direction": "TX",
+      "BTP Type": "B",
+      "GN Profile ID": 0,
+      "Source Port": 2001,
+      "Destination Port": 2001,
+      "TX Power":20,
+      "TX Data Rate":12
+    },
+    {
+      "ID": 1,
+      "Description": "CAM RX service, recv from port 2001",
+      "Direction": "RX",
+      "BTP Type": "B",
+      "GN Profile ID": 1,
+      "Source Port": 2001,
+      "Destination Port": 2001
+    },
+    {
+      "ID": 2,
+      "Description": "DENM TX service, BTP-B to port 2002, 6Mbps",
+      "Direction": "TX",
+      "BTP Type": "B",
+      "GN Profile ID": 2,
+      "Source Port": 2002,
+      "Destination Port": 2002,
+      "TX Power":20,
+      "TX Data Rate":12
+    },
+    {
+      "ID": 3,
+      "Description": "DENM RX service, BTP-B to port 2002",
+      "Direction": "RX",
+      "BTP Type": "B",
+      "GN Profile ID": 2,
+      "Source Port": 2002,
+      "Destination Port": 2002
+    },
+    {
+      "ID": 4,
+      "Description": "GPC(RTCMEM) TX service, BTP-B to port 2013, 6Mbps",
+      "Direction": "TX",
+      "BTP Type": "B",
+      "GN Profile ID": 3,
+      "Source Port": 2013,
+      "Destination Port": 2013,
+      "TX Power":20,
+      "TX Data Rate":12
+    },
+    {
+      "ID": 5,
+      "Description": "TLM(SPATEM) service, BTP-B to/from port 2004, 6Mbps",
+      "Direction": "BOTH",
+      "BTP Type": "B",
+      "GN Profile ID": 3,
+      "Source Port": 2004,
+      "Destination Port": 2004,
+      "TX Power":20,
+      "TX Data Rate":12
+    }  
+  ],
+  "GN Profile": [
+    {
+      "ID": 0,
+      "Description": "SHB GN TX setting",
+      "Transport Type": "SHB",
+      "TX Traffic Class ID": 2,
+      "TX Maximum Packet Lifetime": 1,
+      "TX Repetition Interval": 0,
+      "TX Maximum Repetition Time": 0
+    },
+    {
+      "ID": 1,
+      "Description": "SHB GN RX setting",
+      "Transport Type": "SHB",
+      "TX Traffic Class ID": 2,
+      "TX Maximum Packet Lifetime": 1,
+      "TX Repetition Interval": 0,
+      "TX Maximum Repetition Time": 0
+    },
+    {
+      "ID": 2,
+      "Description": "DENM",
+      "Transport Type": "GBC",
+      "TX Traffic Class ID": 1,
+      "TX Maximum Packet Lifetime": 1,
+      "TX Repetition Interval": 0,
+      "TX Maximum Repetition Time": 0,
+      "TX Maximum Hop Limit": 1,
+      "Target Shape": "Circular",
+      "Distance A": 1000,
+      "Distance B": 1000,
+      "Angle": 0
+    },
+    {
+      "ID": 3,
+      "Description": "TLM, GPC",
+      "Transport Type": "GBC",
+      "TX Traffic Class ID": 3,
+      "TX Maximum Packet Lifetime": 1,
+      "TX Repetition Interval": 0,
+      "TX Maximum Repetition Time": 0,
+      "TX Maximum Hop Limit": 1,
+      "Target Shape": "Circular",
+      "Distance A": 400,
+      "Distance B": 400,
+      "Angle": 0
+    }
+  ],
+  "POTI Profile": [
+    {
+      "ID": 0,
+      "Description": "Internal POTI",
+      "Type": "Publisher"
+    }
+  ],
+  "Channel Profile": [
+    {
+      "ID": 0,
+      "Description": "Channel setting",
+      "Radio Interface Number": 0,
+      "Channel Number": 180
+    }
+  ],
+  "Security Profile": [
+    {
+      "ID": 0,
+      "Description": "For CAM service",
+      "AID": 36
+    },
+    {
+      "ID": 1,
+      "Description": "For DENM service",
+      "AID": 37
+    },
+    {
+      "ID": 2,
+      "Description": "For Messages types that security unsupported",
+      "AID": 4294967295
+    }
+  ],
+  "Carrier Profile": [
+    {
+      "ID": 0,
+      "Service Port": 7777
+    },
+    {
+      "ID": 1,
+      "Service Port": 8888
+    },
+    {
+      "ID": 2,
+      "Service Port": 9999
+    },
+    {
+      "ID": 3,
+      "Service Port": 10101
+    },
+    {
+      "ID": 4,
+      "Service Port": 10000
+    },
+    {
+      "ID": 5,
+      "Service Port": 10001
+    }
+  ]
+}

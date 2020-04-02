@@ -1,0 +1,58 @@
+#!/bin/sh -e
+
+#[All] create shm & mqueue in file system
+mkdir /dev/shm
+mount -t tmpfs shmfs /dev/shm
+mkdir /dev/mqueue
+mount -t mqueue none /dev/mqueue
+
+#Start ATLK service
+insmod /usr/bin/craton.ko
+
+#Start UNEX service
+UNEX_HOME=/home/root/ext-fs/home/unex
+
+#[All] to log nmea
+#start-stop-daemon -S -b -a socat -- /dev/ttyAMA1,raw,nonblock,waitlock=/tmp/ttyAMA1.locak,echo=0,b230400 tcp-listen:1947,reuseaddr,fork
+
+#[All] time sync.
+export TZDIR=$UNEX_HOME/conf/
+start-stop-daemon -S -a ${UNEX_HOME}/bin/chronyd -- -f ${UNEX_HOME}/conf/chrony.conf
+
+#[Onboard GNSS]
+stty -F /dev/ttyAMA1 raw speed 230400
+#start-stop-daemon -S -a ${UNEX_HOME}/bin/gpsd -- -G -n /dev/ttyAMA1
+#start-stop-daemon -S -a ${UNEX_HOME}/bin/gpsd -- -G -n tcp://127.0.0.1:1947
+${UNEX_HOME}/bin/gpsd -n -G -D2 -N /dev/ttyAMA1 2>&1 | ${UNEX_HOME}/bin/v2xlogd -i stdin -f gpsd -s 1500000 -k 1 -d ${UNEX_HOME}/log&
+
+# Unex logd
+if [ -c /dev/ttyGS0 ]; then
+/bin/stty -F /dev/ttyGS0 raw
+start-stop-daemon -b -S --make-pidfile --pidfile /tmp/v2xlogd.pid --startas /bin/sh -- -c "exec ${UNEX_HOME}/bin/v2xlogd -o stderr -d ${UNEX_HOME}/log 2> /dev/ttyGS0"
+#${UNEX_HOME}/bin/v2xlogd -o stderr -d ${UNEX_HOME}/log 2>&1 | socat - tcp:192.168.1.1:87878,forever&
+else
+start-stop-daemon -b -S -a ${UNEX_HOME}/bin/v2xlogd -- -d ${UNEX_HOME}/log
+fi
+
+# make sure log damon is ready
+i=0
+while [ $i -lt 100 ]
+do
+    #gpsd=$(ps|grep v2xlogd|grep -v grep)
+    #if [ x"$gpsd" != x ]; then
+    if [ -e /dev/mqueue/v2x_log ]; then
+        break
+    fi
+    i=$((i+1))
+    usleep 100
+done
+#echo $i > ${UNEX_HOME}/log/i.txt
+
+#[All] potid
+start-stop-daemon -b -S -a ${UNEX_HOME}/bin/potid -- -g 127.0.0.1:2947
+
+#[All] GN daemon
+start-stop-daemon -S -b -a ${UNEX_HOME}/bin/gnd ${UNEX_HOME}/conf/gnd.json
+
+# Unex v2xcastd
+start-stop-daemon -S -b -a ${UNEX_HOME}/bin/v2xcastd /home/root/ext-fs/home/unex/conf/v2xcast_itsg5_config_example.json

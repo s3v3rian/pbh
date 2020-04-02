@@ -1,0 +1,24 @@
+#!/bin/sh
+ 
+# Copyright (C) Unex Technology Corporation - All Rights Reserved
+# Unauthorized copying of this file, via any medium is strictly prohibited
+# Proprietary and confidential
+
+gnss=/dev/ttyAMA1
+ext=/dev/ttyAMA2
+baud=230400
+
+cmdline="$*"
+#echo $cmdline
+
+killall -q -9 gpsd
+gpsd=$(ps|grep gpsd|grep -v grep)
+if [ x"$gpsd" != x ]; then
+    echo "Failed to kill gpsd process: $gpsd"
+    exit 1
+fi
+
+stty -F $gnss raw speed $baud > /dev/null
+
+#socat -v -x pty,link=/home/root/pty,rawer,b230400 /dev/ttyAMA1,rawer,b230400 2>&1
+socat -v -x $gnss,cfmakeraw,b$baud $ext,cfmakeraw,b$baud 2>&1
