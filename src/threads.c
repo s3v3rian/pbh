@@ -1,125 +1,16 @@
+#include "threads.h"
 
-#include <pthread.h>
+#include <time.h>
 
-#include "globals.h"
-#include "gps_sim.h"
-#include "time.h"
-
-#include "cam_mngr.h"
-#include "denm_mngr.h"
-
-/*
- *******************************************************************************
- * Global variables
- *******************************************************************************
- */
-
-// All threads.
-static pthread_t g_asThreads[8];
-
-// Sender threads BTP handlers.
-static btp_handler_ptr g_pBtpDenmHandler;
-
-// POTI service handler.
-static poti_service_t *g_psPotiHandler = NULL;
-
-/*
- *******************************************************************************
- * Public functions
- *******************************************************************************
- */
-
-static void *main_sender_func(void *p_param __attribute__((unused)));
-static void *cam_receiver_func(void *p_param __attribute__((unused)));
-static void *denm_receiver_func(void *p_param __attribute__((unused)));
-
-/*
- *******************************************************************************
- *******************************************************************************
- */
+#include "common/globals.h"
+#include "gps/gps_sim.h"
 
 /**
- * function_example - Function example
- *
- * @param   [in]    input       Example input.
- * @param   [out]   *p_output   Example output.
- *
- * @return  [int]   Function executing result.
- * @retval  [0]     Success.
- * @retval  [-1]    Fail.
- *
+ * @brief main_sender_active
+ * @param p_param
+ * @return
  */
-int32_t main(int argc, char **argv) {
-
-    // -------------------------------------------------
-    // ----------- Initialize GPS Simulator ------------
-    // -------------------------------------------------
-
-    int32_t n32Result = 0;
-
-#ifdef __GPS_SIMULATOR_ENABLED__
-
-    if(2 <= argc) {
-
-        n32Result = gps_sim_init(argv[1], argv[2]);
-
-        if(0 > n32Result) {
-
-            printf("Cannot initialize gps simulator\n");
-            return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
-        }
-    }
-
-#endif
-
-    // -------------------------------------------------
-    // ------------ Initialize POTI Service ------------
-    // -------------------------------------------------
-
-    n32Result = poti_create_service(&g_psPotiHandler, NULL);
-
-    if(0 > IS_SUCCESS(n32Result)) {
-
-        printf("Cannot create POTI service: %s\n", ERROR_MSG(n32Result));
-        return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
-    }
-
-    // -------------------------------------------------
-    // ----------- Initialize Tx/Rx Threads ------------
-    // -------------------------------------------------
-
-    //  Activate tx tasks.
-    pthread_create(&g_asThreads[0], NULL, main_sender_func, NULL);
-
-    // Activate rx tasks.
-    pthread_create(&g_asThreads[1], NULL, cam_receiver_func, NULL);
-    pthread_create(&g_asThreads[2], NULL, denm_receiver_func, NULL);
-
-    /* Wait till cam_sender_func is completed. */
-    pthread_join(g_asThreads[0], NULL);
-
-    // -------------------------------------------------
-    // --------------- Release Resources ---------------
-    // -------------------------------------------------
-
-    /* Release POTI handler. */
-    poti_release_service(g_psPotiHandler);
-
-    return PROCEDURE_SUCCESSFULL;
-}
-
-/**
- * function_example - Function example
- *
- * @param   [in]    input       Example input.
- * @param   [out]   *p_output   Example output.
- *
- * @return  [int]   Function executing result.
- * @retval  [0]     Success.
- * @retval  [-1]    Fail.
- *
- */
-static void *main_sender_func(void *p_param __attribute__((unused))) {
+void *main_sender_active(void *p_param __attribute__((unused))) {
 
     int32_t n32IsSenderActive = BOOLEAN_TRUE;
 
@@ -150,7 +41,7 @@ static void *main_sender_func(void *p_param __attribute__((unused))) {
 
         n32SendCount = 0;
 
-        if(0 > IS_SUCCESS(n32Result)) {
+        if(false == IS_SUCCESS(n32Result)) {
 
             printf("poti_wait_gnss_data error: %s\n", ERROR_MSG(n32Result));
             continue;
@@ -159,7 +50,7 @@ static void *main_sender_func(void *p_param __attribute__((unused))) {
         /* Get fix data. */
         n32Result = poti_get_fix_data(g_psPotiHandler, &sPotiFixData);
 
-        if(0 > IS_SUCCESS(n32Result)) {
+        if(false == IS_SUCCESS(n32Result)) {
 
             printf("Cannot get GNSS fix data: %s\n", ERROR_MSG(n32Result));
             continue;
@@ -191,10 +82,13 @@ static void *main_sender_func(void *p_param __attribute__((unused))) {
 
     cam_mngr_release();
     denm_mngr_release();
+
+    /* Terminate this thread. */
+    pthread_exit(NULL);
 }
 
 /**
- * function_example - Function example
+ * activetion_example - Function example
  *
  * @param   [in]    input       Example input.
  * @param   [out]   *p_output   Example output.
@@ -204,7 +98,7 @@ static void *main_sender_func(void *p_param __attribute__((unused))) {
  * @retval  [-1]    Fail.
  *
  */
-static void *denm_receiver_func(void *p_param __attribute__((unused))) {
+void *denm_receiver_active(void *p_param __attribute__((unused))) {
 
     int32_t n32IsReceiverActive = BOOLEAN_TRUE;
 
@@ -222,7 +116,7 @@ static void *denm_receiver_func(void *p_param __attribute__((unused))) {
 }
 
 /**
- * function_example - Function example
+ * activetion_example - Function example
  *
  * @param   [in]    input       Example input.
  * @param   [out]   *p_output   Example output.
@@ -232,7 +126,7 @@ static void *denm_receiver_func(void *p_param __attribute__((unused))) {
  * @retval  [-1]    Fail.
  *
  */
-static void *cam_receiver_func(void *p_param __attribute__((unused))) {
+void *cam_receiver_active(void *p_param __attribute__((unused))) {
 
     //pBtpCamHandler_ptr pBtpCamHandler; // TODO Why?
     int32_t n32IsReceiverActive = BOOLEAN_TRUE;

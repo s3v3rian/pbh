@@ -1,3 +1,4 @@
 #!/bin/bash
 
-rm -R src/*.o
+find . -name \*.o -type f -delete
+rm -R bin/*
