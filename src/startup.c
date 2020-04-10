@@ -6,6 +6,12 @@
 #include "cam/cam_mngr.h"
 #include "denm/denm_mngr.h"
 
+// ------------------------------------------------------------
+// ----------------- External variables -----------------------
+// ------------------------------------------------------------
+
+extern poti_service_t *g_psPotiHandler;
+
 /**
  * activetion_example - Function example
  *
@@ -69,6 +75,8 @@ int32_t main(int argc, char **argv) {
     // -------------------------------------------------
     // --------------- Release Resources ---------------
     // -------------------------------------------------
+
+    printf("Releasing all resources...\n");
 
     /* Release POTI handler. */
     poti_release_service(g_psPotiHandler);

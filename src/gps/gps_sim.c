@@ -65,16 +65,22 @@ int32_t gps_sim_init(const char *pchScenarioName, const char *pchParticipantId) 
     if(0 == m_n32LatitudeArraySize
             || 0 == m_n32LongitudeArraySize) {
 
+        printf("Requested longitude and latitude csv files are not the same size\n");
+
         gps_sim_release();
         n32Result = PROCEDURE_INVALID_PARAMETERS_ERROR;
 
     } else if(m_n32LatitudeArraySize != m_n32LongitudeArraySize) {
+
+        printf("Requested longitude and latitude csv files are not the same size\n");
 
         gps_sim_release();
         n32Result = PROCEDURE_INVALID_PARAMETERS_ERROR;
 
     } else if(m_n32LatitudeArraySize != m_n32AltitudeArraySize
               && 0 != m_n32AltitudeArraySize) {
+
+        printf("Requested longitude, latitude and altitude csv files are not the same size\n");
 
         gps_sim_release();
         n32Result = PROCEDURE_INVALID_PARAMETERS_ERROR;

@@ -58,8 +58,6 @@ int32_t read_csv_doubles(const char *pchCsvFilePath, double **p2dCsvArray) {
         }
     }
 
-    //printf("Current number of values: %d\n", un32CurrentSizeInValues);
-
     char *pchTempValHolder = NULL;
     uint32_t un32CsvArrayIndex = 0;
     uint32_t un32LengthLongestValue = 0;
@@ -133,6 +131,8 @@ int32_t read_csv_doubles(const char *pchCsvFilePath, double **p2dCsvArray) {
             break;
         }
     }
+
+    printf("Loaded from csv file %s - number of values: %d\n", pchCsvFilePath, un32CurrentSizeInValues);
 
     fclose(pfInput);
     free(pchTempValHolder);

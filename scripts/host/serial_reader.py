@@ -40,7 +40,7 @@ def read_serial_data():
 	        	        	_lonmin = _longps - _londeg*100
 		                	_lon = _londeg + (_lonmin/60)
 
-        		        	with open ("/home/rdev/V2X/pbh/target_data/tgt_positional_data_%s.kml" % (_target_name), "w") as pos: pos.write(
+        		        	with open ("/home/s3v3rian/V2X/pbh/target_data/tgt_positional_data_%s.kml" % (_target_name), "w") as pos: pos.write(
 """<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
 <Placemark>
     <name>VComm %s</name>

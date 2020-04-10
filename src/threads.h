@@ -31,13 +31,10 @@
  */
 
 // All threads.
-static pthread_t g_asThreads[8];
-
-// Sender threads BTP handlers.
-static btp_handler_ptr g_pBtpDenmHandler;
+pthread_t g_asThreads[8];
 
 // POTI service handler.
-static poti_service_t *g_psPotiHandler = NULL;
+poti_service_t *g_psPotiHandler;
 
 /*
  *******************************************************************************
