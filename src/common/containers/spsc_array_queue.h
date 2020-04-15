@@ -1,10 +1,6 @@
-#ifndef THREADS_H_
-#define THREADS_H_
+#ifndef COMMON_CONTAINERS_SPSC_ARRAY_QUEUE_H_
+#define COMMON_CONTAINERS_SPSC_ARRAY_QUEUE_H_
 
-#include <pthread.h>
-
-#include "cam/cam_mngr.h"
-#include "denm/denm_mngr.h"
 
 /*
  *******************************************************************************
@@ -30,26 +26,15 @@
  *******************************************************************************
  */
 
-// All threads.
-pthread_t g_asThreads[8];
-
-// POTI service handler.
-poti_service_t *g_psPotiHandler;
-
 /*
  *******************************************************************************
- * Public activetions
+ * Public functions
  *******************************************************************************
  */
 
-void *main_sender_active(void *p_param __attribute__((unused)));
-void *cam_receiver_active(void *p_param __attribute__((unused)));
-void *denm_receiver_active(void *p_param __attribute__((unused)));
-void *sa_proc_active(void *p_param __attribute__((unused)));
-
 /*
  *******************************************************************************
- * Private activetions
+ * Private functions
  *******************************************************************************
  */
 

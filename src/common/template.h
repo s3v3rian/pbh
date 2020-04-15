@@ -1,5 +1,5 @@
-#ifndef TEMPLATE_H_
-#define TEMPLATE_H_
+#ifndef PACKAGE_TEMPLATE_H_
+#define PACKAGE_TEMPLATE_H_
 
 
 /*
