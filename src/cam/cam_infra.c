@@ -1,10 +1,28 @@
 #include "cam_infra.h"
 
+#include "common/globals.h"
+
 /*
  *******************************************************************************
  * Public functions
  *******************************************************************************
  */
+
+void cam_infra_init(SITSStationInfo *psStationInfo) {
+
+    /* Make sure we reset the data structure at least once. */
+    memset((void *)&cam_tx_encode_fmt, 0, sizeof(cam_tx_encode_fmt));
+
+    // Set header info.
+
+    /* For the present document, the value of the DE protocolVersion shall be set to 1.  */
+    cam_tx_encode_fmt.header.protocolVersion = CAM_PROTOCOL_VERSION;
+    cam_tx_encode_fmt.header.messageID = CAM_Id;
+    cam_tx_encode_fmt.header.stationID = psStationInfo->m_un32StationId;
+
+    /* This DE provides the station type information of the originating ITS-S. */
+    cam_tx_encode_fmt.cam.camParameters.basicContainer.stationType = psStationInfo->m_n32StationType;
+}
 
 /**
  * function_example - Function example
@@ -17,18 +35,10 @@
  * @retval  [-1]    Fail.
  *
  */
-int32_t cam_encode(uint8_t **pp_cam_data, fix_data_t *p_fix_data) {
+int32_t cam_infra_encode(uint8_t **pp_cam_data, fix_data_t *p_fix_data) {
 
     ITSMsgCodecErr err;
     int buf_len = 0;
-
-    /* Make sure we reset the data structure at least once. */
-    memset((void *)&cam_tx_encode_fmt, 0, sizeof(cam_tx_encode_fmt));
-
-    /* For the present document, the value of the DE protocolVersion shall be set to 1.  */
-    cam_tx_encode_fmt.header.protocolVersion = CAM_PROTOCOL_VERSION;
-    cam_tx_encode_fmt.header.messageID = CAM_Id;
-    cam_tx_encode_fmt.header.stationID = CAM_STATION_ID_DEF;
 
     /*
      * Time corresponding to the time of the reference position in the CAM, considered
@@ -56,7 +66,6 @@ int32_t cam_encode(uint8_t **pp_cam_data, fix_data_t *p_fix_data) {
      * direction. This definition implies that the semiMajorConfidence might be smaller
      * than the semiMinorConfidence.
      */
-    cam_tx_encode_fmt.cam.camParameters.basicContainer.stationType = CAM_STATION_TYPE_DEF;
     cam_tx_encode_fmt.cam.camParameters.basicContainer.referencePosition.latitude = (int32_t)(p_fix_data->latitude * 10000000.0); /* Convert to 1/10 micro degree. */
     cam_tx_encode_fmt.cam.camParameters.basicContainer.referencePosition.longitude = (int32_t)(p_fix_data->longitude * 10000000.0); /* Convert to 1/10 micro degree. */
     cam_tx_encode_fmt.cam.camParameters.basicContainer.referencePosition.positionConfidenceEllipse.semiMajorConfidence = cam_set_semi_axis_length(p_fix_data->err_smajor_axis); /* Convert to centimetre. */
@@ -133,7 +142,7 @@ int32_t cam_encode(uint8_t **pp_cam_data, fix_data_t *p_fix_data) {
     *       LowFrequencyContainer shall be set to BasicVehicleContainerLowFrequency
     *       SpecialVehicleContainer shall be set to EmergencyContainer
     */
-    if (cam_tx_encode_fmt.cam.camParameters.basicContainer.stationType == GN_ITS_STATION_SPECIAL_VEHICLE) {
+    if(cam_tx_encode_fmt.cam.camParameters.basicContainer.stationType == GN_ITS_STATION_SPECIAL_VEHICLE) {
         /*
         * The optional low frequency container of CAM.
         *      vehicleRole: emergency(6)
@@ -178,11 +187,11 @@ int32_t cam_encode(uint8_t **pp_cam_data, fix_data_t *p_fix_data) {
     err.msg_size = 512;
     err.msg = calloc(1, err.msg_size);
 
-    if (err.msg != NULL) {
+    if(err.msg != NULL) {
         /* Encode the CAM message. */
         buf_len = itsmsg_encode(pp_cam_data, (ItsPduHeader *)&cam_tx_encode_fmt, &err);
 
-        if (buf_len <= 0) {
+        if(buf_len <= 0) {
             printf("itsmsg_encode error: %s\n", err.msg);
         }
 
@@ -193,7 +202,7 @@ int32_t cam_encode(uint8_t **pp_cam_data, fix_data_t *p_fix_data) {
         printf("Cannot allocate memory for error message buffer.\n");
     }
 
-    if (cam_tx_encode_fmt.cam.camParameters.basicContainer.stationType == GN_ITS_STATION_SPECIAL_VEHICLE) {
+    if(cam_tx_encode_fmt.cam.camParameters.basicContainer.stationType == GN_ITS_STATION_SPECIAL_VEHICLE) {
         /* free the memory for encoding */
         asn1_bstr_free(&(cam_tx_encode_fmt.cam.camParameters.lowFrequencyContainer.u.basicVehicleContainerLowFrequency.exteriorLights));
         asn1_bstr_free(&(cam_tx_encode_fmt.cam.camParameters.specialVehicleContainer.u.emergencyContainer.lightBarSirenInUse));
@@ -213,66 +222,48 @@ int32_t cam_encode(uint8_t **pp_cam_data, fix_data_t *p_fix_data) {
  * @retval  [-1]    Fail.
  *
  */
-int32_t cam_decode(uint8_t *p_rx_payload, int32_t rx_payload_len, btp_handler_recv_indicator_t *p_recv_ind, bool ssp_check, CAM *psOutputCam)
-{
-    ITSMsgCodecErr err;
-    ItsPduHeader *p_rx_decode_hdr = NULL;
-    CAM *p_rx_decode_cam = NULL;
-    int32_t result;
+int32_t cam_infra_decode(uint8_t *p_rx_payload, int32_t rx_payload_len, btp_handler_recv_indicator_t *p_recv_ind, bool ssp_check, CAM *psOutputCam, ITSMsgCodecErr *psOutputErr) {
 
-    if (p_recv_ind == NULL || p_rx_payload == NULL || rx_payload_len == 0) {
+    ItsPduHeader *psItsHeader = NULL;;
+    int32_t n32Result = PROCEDURE_SUCCESSFULL;
+
+    if(p_recv_ind == NULL
+            || p_rx_payload == NULL
+            || rx_payload_len == 0
+            || NULL == psOutputCam
+            || NULL == psOutputErr) {
+
         return -1;
     }
-
-    /* Allocate a buffer for restoring the decode error information if needed. */
-    err.msg_size = 256;
-    err.msg = calloc(1, err.msg_size);
-
-    if (err.msg == NULL) {
-        printf("Cannot allocate memory for error message buffer.\n");
-        return -1;
-    }
-
-    /* Determine and decode the content in RX payload. */
-    result = itsmsg_decode(&p_rx_decode_hdr, p_rx_payload, rx_payload_len, &err);
 
     /* Check whether this is a ITS message. */
-    if (result > 0 && p_rx_decode_hdr != NULL) {
+    if(0 < (itsmsg_decode(&psItsHeader, p_rx_payload, rx_payload_len, psOutputErr))) {
+
         /* Check whether this is a ITS CAM message. */
-        if (p_rx_decode_hdr->messageID == CAM_Id) {
-            /* Convert to CAM data format. */
-            p_rx_decode_cam = (CAM *)p_rx_decode_hdr;
+        if(psItsHeader->messageID == CAM_Id) {
 
-            // Save to outpt structure.
-            memcpy(psOutputCam, p_rx_decode_cam, sizeof(CAM));
+            if(TRUE == ssp_check) {
 
-            if (ssp_check) {
                 /* Check CAM msg permission */
-                result = cam_check_msg_permission(p_rx_decode_cam, p_recv_ind->security.ssp, p_recv_ind->security.ssp_len);
-                printf("\tCheck msg permissions: ");
-                if (IS_SUCCESS(result)) {
-                    printf("trustworthy\n");
-                }
-                else {
-                    printf("untrustworthy\n");
+                n32Result = cam_check_msg_permission(psOutputCam, p_recv_ind->security.ssp, p_recv_ind->security.ssp_len);
+                if(FALSE == IS_SUCCESS(n32Result)) {
+
+                    printf("Received CAM message is untrustworthy\n");
+
+                } else {
+
+                    memcpy(psOutputCam, psItsHeader, sizeof(CAM));
                 }
             }
-        }
-        else {
-            printf("Received unrecognized ITS message type: %d\n", p_rx_decode_hdr->messageID);
-        }
 
-        /* Release the decode message buffer. */
-        itsmsg_free(p_rx_decode_hdr);
-    }
-    else {
-        printf("Unable to decode RX packet: %s\n", err.msg);
+        } else {
+
+            printf("Received unrecognized ITS message type: %d\n", psItsHeader->messageID);
+            n32Result = PROCEDURE_INVALID_SERVICE_RX_ERROR;
+        }
     }
 
-    /* Release the allocated error message buffer. */
-    free(err.msg);
-
-    return 0;
+    return n32Result;
 }
 
 /*
@@ -308,10 +299,10 @@ static int32_t cam_set_semi_axis_length(double meter)
 
     centimeter = meter * 100.0;
 
-    if (centimeter < 1.0) {
+    if(centimeter < 1.0) {
         value = 1;
     }
-    else if (centimeter > 1.0 && centimeter < 4093.0) {
+    else if(centimeter > 1.0 && centimeter < 4093.0) {
         value = (int32_t)centimeter;
     }
     else {
@@ -360,46 +351,46 @@ static int32_t cam_set_altitude_confidence(double metre)
 
     int32_t enum_value;
 
-    if (metre <= 0.01) {
+    if(metre <= 0.01) {
         enum_value = AltitudeConfidence_alt_000_01;
     }
-    else if (metre <= 0.02) {
+    else if(metre <= 0.02) {
         enum_value = AltitudeConfidence_alt_000_02;
     }
-    else if (metre <= 0.05) {
+    else if(metre <= 0.05) {
         enum_value = AltitudeConfidence_alt_000_05;
     }
-    else if (metre <= 0.1) {
+    else if(metre <= 0.1) {
         enum_value = AltitudeConfidence_alt_000_10;
     }
-    else if (metre <= 0.2) {
+    else if(metre <= 0.2) {
         enum_value = AltitudeConfidence_alt_000_20;
     }
-    else if (metre <= 0.5) {
+    else if(metre <= 0.5) {
         enum_value = AltitudeConfidence_alt_000_50;
     }
-    else if (metre <= 1.0) {
+    else if(metre <= 1.0) {
         enum_value = AltitudeConfidence_alt_001_00;
     }
-    else if (metre <= 2.0) {
+    else if(metre <= 2.0) {
         enum_value = AltitudeConfidence_alt_002_00;
     }
-    else if (metre <= 5.0) {
+    else if(metre <= 5.0) {
         enum_value = AltitudeConfidence_alt_005_00;
     }
-    else if (metre <= 10.0) {
+    else if(metre <= 10.0) {
         enum_value = AltitudeConfidence_alt_010_00;
     }
-    else if (metre <= 20.0) {
+    else if(metre <= 20.0) {
         enum_value = AltitudeConfidence_alt_020_00;
     }
-    else if (metre <= 50.0) {
+    else if(metre <= 50.0) {
         enum_value = AltitudeConfidence_alt_050_00;
     }
-    else if (metre <= 100.0) {
+    else if(metre <= 100.0) {
         enum_value = AltitudeConfidence_alt_100_00;
     }
-    else if (metre <= 200.0) {
+    else if(metre <= 200.0) {
         enum_value = AltitudeConfidence_alt_200_00;
     }
     else {
@@ -439,10 +430,10 @@ static int32_t cam_set_heading_confidence(double degree)
 
     int32_t value;
 
-    if (degree <= 0.1) {
+    if(degree <= 0.1) {
         value = 1;
     }
-    else if (degree > 1.0 && degree < 125.0) {
+    else if(degree > 1.0 && degree < 125.0) {
         value = (int32_t)(degree * 0.1);
     }
     else {
@@ -480,13 +471,13 @@ static int32_t cam_set_speed_confidence(double meter_per_sec)
 
     cm_per_sec = meter_per_sec * 100.0;
 
-    if (cm_per_sec <= 1.0) {
+    if(cm_per_sec <= 1.0) {
         value = 1;
     }
-    else if (cm_per_sec > 1.0 && cm_per_sec < 125.0) {
+    else if(cm_per_sec > 1.0 && cm_per_sec < 125.0) {
         value = (int32_t)(cm_per_sec);
     }
-    else if (cm_per_sec >= 125.0 && cm_per_sec < 126.0) {
+    else if(cm_per_sec >= 125.0 && cm_per_sec < 126.0) {
         value = 125;
     }
     else {
@@ -511,37 +502,37 @@ static int32_t cam_set_speed_confidence(double meter_per_sec)
 static int32_t cam_check_msg_permission(CAM *p_cam_msg, uint8_t *p_ssp, uint32_t ssp_len)
 {
     int32_t rc = 0, fbs;
-    if (ssp_len < CAM_SSP_LEN) {
+    if(ssp_len < CAM_SSP_LEN) {
         rc = -1;
         printf("Err: SSP length[%d] is not enough\n", ssp_len);
         goto FAILURE;
     }
 
-    if (p_cam_msg->cam.camParameters.specialVehicleContainer_option) {
+    if(p_cam_msg->cam.camParameters.specialVehicleContainer_option) {
         /*
          *   For example, only check emergencyContainer
          *   Please refer to ETSI EN 302 637-2 to check related SSP item
          */
-        switch (p_cam_msg->cam.camParameters.specialVehicleContainer.choice) {
+        switch(p_cam_msg->cam.camParameters.specialVehicleContainer.choice) {
             case SpecialVehicleContainer_emergencyContainer:
-                if (CAM_SSP_CHECK(EMERGENCY, p_ssp[1]) == false) {
+                if(CAM_SSP_CHECK(EMERGENCY, p_ssp[1]) == false) {
                     printf("Err: certificate not allowed to sign EMERGENCY\n");
                     rc = -1;
                     goto FAILURE;
                 }
 
-                if (p_cam_msg->cam.camParameters.specialVehicleContainer.u.emergencyContainer.emergencyPriority_option) {
+                if(p_cam_msg->cam.camParameters.specialVehicleContainer.u.emergencyContainer.emergencyPriority_option) {
                     fbs = asn1_bstr_ffs(&(p_cam_msg->cam.camParameters.specialVehicleContainer.u.emergencyContainer.emergencyPriority));
-                    switch (fbs) {
+                    switch(fbs) {
                         case EmergencyPriority_requestForRightOfWay:
-                            if (CAM_SSP_CHECK(REQUEST_FOR_RIGHT_OF_WAY, p_ssp[2]) == false) {
+                            if(CAM_SSP_CHECK(REQUEST_FOR_RIGHT_OF_WAY, p_ssp[2]) == false) {
                                 printf("Err: certificate not allowed to sign REQUEST_FOR_RIGHT_OF_WAY\n");
                                 rc = -1;
                                 goto FAILURE;
                             }
                             break;
                         case EmergencyPriority_requestForFreeCrossingAtATrafficLight:
-                            if (CAM_SSP_CHECK(REQUEST_FOR_FREE_CROSSING_AT_A_TRAFFIC_LIGHT, p_ssp[2]) == false) {
+                            if(CAM_SSP_CHECK(REQUEST_FOR_FREE_CROSSING_AT_A_TRAFFIC_LIGHT, p_ssp[2]) == false) {
                                 printf("Err: certificate not allowed to sign REQUEST_FOR_FREE_CROSSING_AT_A_TRAFFIC_LIGHT\n");
                                 rc = -1;
                                 goto FAILURE;

@@ -1,7 +1,6 @@
-#ifndef BOUNDARY_SERIAL_OUTPUT_H_
-#define BOUNDARY_SERIAL_OUTPUT_H_
+#ifndef COMMON_UTILS_GEO_UTILS_H_
+#define COMMON_UTILS_GEO_UTILS_H_
 
-#include <stdint.h>
 
 /*
  *******************************************************************************
@@ -33,7 +32,7 @@
  *******************************************************************************
  */
 
-int32_t serial_output_write(char *pchSentence, int32_t n32SentenceSize, uint32_t un32StationId);
+int64_t compute_lla_distance();
 
 /*
  *******************************************************************************

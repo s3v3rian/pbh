@@ -1,5 +1,7 @@
 #include "denm_mngr.h"
 
+#include "sa/sa_mngr.h"
+
 int32_t denm_mngr_init() {
 
     int32_t n32Result = PROCEDURE_SUCCESSFULL;
@@ -61,6 +63,22 @@ int32_t denm_mngr_init() {
 
 #endif
 
+    /* Allocate a buffer for restoring the decode error information if needed. */
+    g_sDecodeDenmErr.msg_size = 256;
+    g_sDecodeDenmErr.msg = calloc(1, g_sDecodeDenmErr.msg_size);
+
+    /* Allocate a buffer for restoring the decode error information if needed. */
+    g_sEncodeDenmErr.msg_size = 256;
+    g_sEncodeDenmErr.msg = calloc(1, g_sEncodeDenmErr.msg_size);
+
+    if(NULL == g_sEncodeDenmErr.msg
+            || NULL == g_sDecodeDenmErr.msg) {
+
+        printf("Cannot allocate memory for DENM error message buffer.\n");
+
+        n32Result = PROCEDURE_INVALID_SERVICE_INIT_ERROR;
+    }
+
     return n32Result;
 }
 
@@ -71,13 +89,16 @@ int32_t denm_mngr_process_tx(fix_data_t *psPotiFixData) {
     uint8_t *pun8TxPayload = NULL;
     int32_t n32TxPayloadSize = 0;
 
+    // Init denm message.
+    denm_infra_init(&g_sStationInfo);
+
     // Generate DENM message.
-    n32TxPayloadSize = denm_encode(&pun8TxPayload, psPotiFixData);
+    n32TxPayloadSize = denm_infra_encode(&pun8TxPayload, psPotiFixData, &g_sEncodeDenmErr);
 
     if(pun8TxPayload == NULL
             || n32TxPayloadSize <= 0) {
 
-        printf("Failed to generate DENM message\n");
+        printf("Failed to generate DENM message - Err: %s\n", g_sEncodeDenmErr.msg);
         return PROCEDURE_INVALID_SERVICE_TX_ERROR;
     }
 
@@ -122,7 +143,6 @@ int32_t denm_mngr_process_rx() {
 
     if(0 > n32Result > 0) {
 
-        printf("Failed to receive denm data\n");
         return PROCEDURE_INVALID_SERVICE_RX_ERROR;
     }
 
@@ -137,9 +157,9 @@ int32_t denm_mngr_process_rx() {
         bSspCheck = true;
 
         /* Try to decode the received message. */
-        denm_decode(g_aun8DenmRxPayload, n32Result, &g_sBtpDenmRecvIndicator, bSspCheck);
+        denm_infra_decode(g_aun8DenmRxPayload, n32Result, &g_sBtpDenmRecvIndicator, bSspCheck, &g_sDecodedDenm, &g_sDecodeDenmErr);
 
-        //cam_print_decoded(&g_sDecodedCam, &recv_ind);
+        //cam_print_decoded(&g_sDecodedDenm, &recv_ind);
 
     } else if(g_sBtpDenmRecvIndicator.security.status == ITS_SEC_NA) {
 
@@ -149,6 +169,10 @@ int32_t denm_mngr_process_rx() {
 
         printf("\tSecurity status: other (%d)\n", g_sBtpDenmRecvIndicator.security.status);
     }
+
+    sa_process_denm_data(&g_sDecodedDenm);
+
+    return PROCEDURE_SUCCESSFULL;
 }
 
 int32_t denm_mngr_release() {

@@ -1,7 +1,7 @@
 #include "cam_mngr.h"
 
-#include "gps/nmea_infra.h"
-#include "boundary/serial_output.h"
+#include "gps/gps_sim.h"
+#include "sa/sa_mngr.h"
 
 int32_t cam_mngr_init() {
 
@@ -35,7 +35,7 @@ int32_t cam_mngr_init() {
     }
 
     /* Bind BTP port. */
-    n32Result = btp_bind(pBtpCamHandler, un16CamSrcPrt);
+    n32Result = btp_bind(g_pBtpCamHandler, un16CamSrcPrt);
 
     if(false == IS_SUCCESS(n32Result)) {
 
@@ -63,6 +63,36 @@ int32_t cam_mngr_init() {
 
 #endif
 
+    /* Allocate a buffer for restoring the decode error information if needed. */
+    g_sDecodeCamErr.msg_size = 256;
+    g_sDecodeCamErr.msg = calloc(1, g_sDecodeCamErr.msg_size);
+
+    /* Allocate a buffer for restoring the decode error information if needed. */
+    g_sEncodeCamErr.msg_size = 256;
+    g_sEncodeCamErr.msg = calloc(1, g_sEncodeCamErr.msg_size);
+
+    if(NULL == g_sEncodeCamErr.msg
+            || NULL == g_sDecodeCamErr.msg) {
+
+        printf("Cannot allocate memory for CAM error message buffer.\n");
+
+        n32Result = PROCEDURE_INVALID_SERVICE_INIT_ERROR;
+    }
+
+#ifdef __GPS_SIMULATOR_ENABLED__
+
+    if(g_sScenarioInfo.m_un32GpSimSyncId == g_sStationInfo.m_un32StationId) {
+
+        g_sScenarioInfo.m_un32GpSimSyncId = 0;
+    }
+
+    if(0 == g_sScenarioInfo.m_un32GpSimSyncId) {
+
+        gps_sim_pause_fix_data(BOOLEAN_FALSE);
+    }
+
+#endif
+
     return n32Result;
 }
 
@@ -73,8 +103,16 @@ int32_t cam_mngr_process_tx(fix_data_t *psPotiFixData) {
     uint8_t *pun8TxPayload = NULL;
     int32_t n32TxPayloadSize = 0;
 
+#ifdef __GPS_SIMULATOR_ENABLED__
+
+            // Use simulated values if requested.
+            gps_sim_update_fix_data(psPotiFixData);
+#endif
+
+    cam_infra_init(&g_sStationInfo);
+
     // Generate CAM message.
-    n32TxPayloadSize = cam_encode(&pun8TxPayload, psPotiFixData);
+    n32TxPayloadSize = cam_infra_encode(&pun8TxPayload, psPotiFixData);
 
     if(pun8TxPayload == NULL
             || n32TxPayloadSize <= 0) {
@@ -94,26 +132,8 @@ int32_t cam_mngr_process_tx(fix_data_t *psPotiFixData) {
     // Release the allocated message buffer.
     itsmsg_buf_free(pun8TxPayload);
 
-    // Convert POTI info to NMEA data.
-    SNmeaGgaData sGgaData;
-    SNmeaRmcData sRmcData;
-    char achNmeaSentence[300];
-    int32_t n32SentenceSize = 0;
-
-    memset(&sGgaData, 0, sizeof(sGgaData));
-    memset(&sRmcData, 0, sizeof(sRmcData));
-
-    // Get data from POTI.
-    nmea_get_gga_data(psPotiFixData, &sGgaData);
-    nmea_get_rmc_data(psPotiFixData, &sRmcData);
-
-    // Build and send NMEA sentence.
-    n32SentenceSize = nmea_build_gga_msg(&sGgaData, achNmeaSentence);
-    serial_output_write(achNmeaSentence, n32SentenceSize, "T0");
-
-    // Build and send NMEA sentence.
-    n32SentenceSize = nmea_build_rmc_msg(&sRmcData, achNmeaSentence);
-    serial_output_write(achNmeaSentence, n32SentenceSize, "T0");
+    // Call SA.
+    sa_process_poti_data(psPotiFixData);
 
     return n32Result;
 }
@@ -125,11 +145,10 @@ int32_t cam_mngr_process_rx() {
     int32_t n32Result = PROCEDURE_SUCCESSFULL;
 
     /* Listen the CAM BTP port. */
-    n32Result = btp_recv(g_pBtpCamHandler, &g_sBtpCamRecvIndicator, g_aun8CamRxPayload, sizeof(g_aun8CamRxPayload), BTP_RECV_WAIT_FOREVER);
+    int32_t n32CamDataSize = btp_recv(g_pBtpCamHandler, &g_sBtpCamRecvIndicator, g_aun8CamRxPayload, sizeof(g_aun8CamRxPayload), BTP_RECV_WAIT_FOREVER);
 
-    if(0 > n32Result > 0) {
+    if(0 > n32CamDataSize > 0) {
 
-        printf("Failed to receive cam data\n");
         return PROCEDURE_INVALID_SERVICE_RX_ERROR;
     }
 
@@ -144,7 +163,7 @@ int32_t cam_mngr_process_rx() {
         bSspCheck = true;
 
         /* Try to decode the received message. */
-        cam_decode(g_aun8CamRxPayload, n32Result, &g_sBtpCamRecvIndicator, bSspCheck, &g_sDecodedCam);
+        n32Result = cam_infra_decode(g_aun8CamRxPayload, n32CamDataSize, &g_sBtpCamRecvIndicator, bSspCheck, &g_sDecodedCam, &g_sDecodeCamErr);
 
         //cam_print_decoded(&g_sDecodedCam, &recv_ind);
 
@@ -157,33 +176,37 @@ int32_t cam_mngr_process_rx() {
         printf("\tSecurity status: other (%d)\n", g_sBtpCamRecvIndicator.security.status);
     }
 
-    SNmeaRmcData sRmcData;
-    char achNmeaSentence[300];
-    int32_t n32SentenceSize = 0;
+    if(0 > n32Result) {
 
-    memset(&sRmcData, 0, sizeof(sRmcData));
+        printf("Unable to decode CAM RX packet: %s\n", g_sDecodeCamErr.msg);
 
-    nmea_get_rmc_Data(&sRmcData);
+    } else {
 
-    sRmcData.m_dLatitude = g_sDecodedCam.cam.camParameters.basicContainer.referencePosition.latitude;
-    sRmcData.m_dLatitude = sRmcData.m_dLatitude / 10000000;
-    sRmcData.m_dLatitude = nmea_convert_decimal_degress_to_degrees_minutes(sRmcData.m_dLatitude);
+#ifdef __GPS_SIMULATOR_ENABLED__
 
-    sRmcData.m_dLongitude = g_sDecodedCam.cam.camParameters.basicContainer.referencePosition.longitude;
-    sRmcData.m_dLongitude = sRmcData.m_dLongitude / 10000000;
-    sRmcData.m_dLongitude = nmea_convert_decimal_degress_to_degrees_minutes(sRmcData.m_dLongitude);
+        if(BOOLEAN_TRUE == g_sScenarioInfo.m_n32IsGpsSimEnabled) {
 
-    sRmcData.m_dVelcoityInKnots = g_sDecodedCam.cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.speed.speedValue * 1.944;
+            if(BOOLEAN_TRUE == gps_sim_is_paused()) {
 
-    n32SentenceSize = nmea_build_rmc_msg(&sRmcData, achNmeaSentence);
-    serial_output_write(achNmeaSentence, n32SentenceSize, "T1");
+                if(g_sDecodedCam.header.stationID == g_sScenarioInfo.m_un32GpSimSyncId) {
 
-    return PROCEDURE_SUCCESSFULL;
+                    gps_sim_pause_fix_data(BOOLEAN_FALSE);
+                }
+            }
+        }
+#endif
+
+        sa_process_cam_data(&g_sDecodedCam);
+    }
+
+    return n32Result;
 }
 
 int32_t cam_mngr_release() {
 
     btp_release(g_pBtpCamHandler);
+
+    free(g_sDecodeCamErr.msg);
 
     return PROCEDURE_SUCCESSFULL;
 }

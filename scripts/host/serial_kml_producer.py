@@ -14,14 +14,44 @@ __serial_interface="/dev/dumbass"
 # ---------------- Declare functions ---------------
 # --------------------------------------------------
 
-def read_serial_data():
+def read_serial_line():
+    
+    _dictionary = {"tgt_dumbass":"dumbass" }
+
     _gps = serial.Serial(__serial_interface, baudrate = 115200)
+#    _serial_line="""<kml xmlns="http://www.opengis.net/kml/2.2">"""
     while True:
         	_line = _gps.readline()
         	_data = _line.split(",")
-                if len(_data) >= 8:
+                if len(_data) >= 2:
                         _target_name = _data[0]
-                       	if _data[1] == "$GPRMC":
+
+                        _is_key_found=False
+                        for _key in _dictionary:
+                            if _key == _target_name:
+                                _is_key_found=True
+                                break
+
+                        if _is_key_found == False:
+                            print "Added new one!"
+                            _dictionary[_target_name] = """<kml xmlns="http://www.opengis.net/kml/2.2">"""
+
+                        _serial_line = _dictionary.get(_target_name)
+
+                        if _data[1] == "EVENT":
+                            _event = _data[2]
+                            _serial_line +="""
+    <Style id="balloon_style">
+        <IconStyle>
+            <scale>3</scale>
+            <Icon>
+                <href>%s.jpg</href>
+            </Icon>
+        </IconStyle>
+    </Style>""" % (_event)
+                            _dictionary[_target_name] = _serial_line
+
+                        elif _data[1] == "$GPRMC":
         	            	if _data[3] == "A":
     
 		                	_latgps = float(_data[4])
@@ -40,15 +70,20 @@ def read_serial_data():
 	        	        	_lonmin = _longps - _londeg*100
 		                	_lon = _londeg + (_lonmin/60)
 
-        		        	with open ("/home/s3v3rian/V2X/pbh/target_data/tgt_positional_data_%s.kml" % (_target_name), "w") as pos: pos.write(
-"""<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
-<Placemark>
-    <name>VComm %s</name>
-    <description>Live GPS data</description>
-    <Point>
-        <coordinates>%s,%s,0</coordinates>
-    </Point>
-</Placemark></kml>""" % (_target_name, _lon, _lat))
+                                        _serial_line +="""
+    <Placemark>
+        <name>VComm %s</name>
+        <description>Live GPS data</description>
+        <styleUrl>#balloon_style</styleUrl>
+        <Point>
+            <coordinates>%s,%s,0</coordinates>
+        </Point>
+    </Placemark>
+</kml>""" % (_target_name, _lon, _lat)
+
+        		        	with open ("/home/s3v3rian/V2X/pbh/target_data/tgt_positional_data_%s.kml" % (_target_name), "w") as pos: pos.write(_serial_line)
+                                        _serial_line="""<kml xmlns="http://www.opengis.net/kml/2.2">"""
+                                        _dictionary[_target_name] = _serial_line
 
 
 def print_parameters():
@@ -84,7 +119,7 @@ def main(argv):
         sys.exit()
 
     print_parameters()
-    read_serial_data()
+    read_serial_line()
     
 
 if __name__=="__main__":

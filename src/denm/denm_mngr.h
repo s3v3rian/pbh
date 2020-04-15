@@ -30,6 +30,8 @@ static btp_handler_ptr g_pBtpDenmHandler;
 static btp_handler_send_config_t g_sBtpDenmSendConfig;
 
 DENM g_sDecodedDenm;
+ITSMsgCodecErr g_sEncodeDenmErr;
+ITSMsgCodecErr g_sDecodeDenmErr;
 uint8_t g_aun8DenmRxPayload[GN_MAX_SDU_SIZE];
 btp_handler_recv_indicator_t g_sBtpDenmRecvIndicator;
 

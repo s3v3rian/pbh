@@ -31,6 +31,8 @@ static btp_handler_ptr g_pBtpCamHandler;
 static btp_handler_send_config_t g_sBtpCamSendConfig;
 
 CAM g_sDecodedCam;
+ITSMsgCodecErr g_sEncodeCamErr;
+ITSMsgCodecErr g_sDecodeCamErr;
 uint8_t g_aun8CamRxPayload[GN_MAX_SDU_SIZE];
 btp_handler_recv_indicator_t g_sBtpCamRecvIndicator;
 

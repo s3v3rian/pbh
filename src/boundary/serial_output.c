@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-int32_t serial_output_write(char *pchSentence, int32_t n32SentenceSize, const char *pchID) {
+int32_t serial_output_write(char *pchSentence, int32_t n32SentenceSize, uint32_t un32StationId) {
 
     int32_t n32Fd = open("/dev/ttyAMA2", O_RDWR);
 
@@ -17,7 +17,7 @@ int32_t serial_output_write(char *pchSentence, int32_t n32SentenceSize, const ch
     int8_t n32Result = 0;
 
     char achNewSentence[n32SentenceSize + 10];
-    n32SentenceSize = sprintf(achNewSentence, "%s,%s", pchID, pchSentence);
+    n32SentenceSize = sprintf(achNewSentence, "T%d,%s", un32StationId, pchSentence);
 
     if(n32SentenceSize != write(n32Fd, achNewSentence, n32SentenceSize)) {
 

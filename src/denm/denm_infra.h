@@ -26,12 +26,6 @@
 
 #define DENM_PROTOCOL_VERSION                       1       /* ETSI EN 302 637-3 V1.2.2 (2014-11) */
 
-/* Please assign ID for your ITS station. */
-#define DENM_STATION_ID_DEF                         168
-
-/* Please assign the type of your ITS station. */
-#define DENM_STATION_TYPE_DEF                       GN_ITS_STATION_ROAD_SIDE_UNIT
-
 /* Please correct this setting according to different purpose, or keep this setting as default value. */
 #define DENM_VALIDITY_DURATION_DEF                  600
 
@@ -109,8 +103,9 @@ static DENM denm_tx_encode_fmt;
  *******************************************************************************
  */
 
-int32_t denm_encode(uint8_t **pp_denm_data, fix_data_t *p_fix_data);
-int32_t denm_decode(uint8_t *p_rx_payload, int32_t rx_payload_len, btp_handler_recv_indicator_t *p_recv_ind, bool ssp_check);
+void denm_infra_init(SITSStationInfo *psStationInfo);
+int32_t denm_infra_encode(uint8_t **pp_denm_data, fix_data_t *p_fix_data, ITSMsgCodecErr *psOutputErr);
+int32_t denm_infra_decode(uint8_t *p_rx_payload, int32_t rx_payload_len, btp_handler_recv_indicator_t *p_recv_ind, bool ssp_check, DENM *psOutputDenm, ITSMsgCodecErr *psOutputErr);
 
 /*
  *******************************************************************************

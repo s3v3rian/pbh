@@ -5,7 +5,7 @@
 
 /*
  *******************************************************************************
- * Global variables
+ * Private variables
  *******************************************************************************
  */
 
@@ -15,9 +15,11 @@ static int32_t m_n32LatitudeArrayIndex;
 static int32_t m_n32LongitudeArrayIndex;
 static int32_t m_n32AltitudeArrayIndex;
 
-double *m_pdLatitudeArray;
-double *m_pdLongitudeArray;
-double *m_pdAltitudeArray;
+static double *m_pdLatitudeArray;
+static double *m_pdLongitudeArray;
+static double *m_pdAltitudeArray;
+
+static int32_t m_n32IsPausingFixData;
 
 static int32_t m_n32LatitudeArraySize;
 static int32_t m_n32LongitudeArraySize;
@@ -30,6 +32,9 @@ static int32_t m_n32AltitudeArraySize;
  */
 
 int32_t gps_sim_init(const char *pchScenarioName, const char *pchParticipantId) {
+
+    // Set global variables.
+    m_n32IsPausingFixData = BOOLEAN_FALSE;
 
     printf("Loading GPS Simulator - Using scenario %s, Participant ID: %s\n", pchScenarioName, pchParticipantId);
 
@@ -50,13 +55,13 @@ int32_t gps_sim_init(const char *pchScenarioName, const char *pchParticipantId) 
 
     char achFilePath[1000];
 
-    sprintf(achFilePath, "/home/root/ext-fs/home/unex/v2x/bin/config/gps_sim/%s/%s/latitude.csv", pchScenarioName, pchParticipantId);
+    sprintf(achFilePath, "%s/gps_sim/%s/%s/latitude.csv", g_pchConfigurationFileDirectoryPath, pchScenarioName, pchParticipantId);
     m_n32LatitudeArraySize = read_csv_doubles(achFilePath, &m_pdLatitudeArray);
 
-    sprintf(achFilePath, "/home/root/ext-fs/home/unex/v2x/bin/config/gps_sim/%s/%s/longitude.csv", pchScenarioName, pchParticipantId);
+    sprintf(achFilePath, "%s/gps_sim/%s/%s/longitude.csv", g_pchConfigurationFileDirectoryPath, pchScenarioName, pchParticipantId);
     m_n32LongitudeArraySize = read_csv_doubles(achFilePath, &m_pdLongitudeArray);
 
-    sprintf(achFilePath, "/home/root/ext-fs/home/unex/v2x/bin/config/gps_sim/%s/%s/altitude.csv", pchScenarioName, pchParticipantId);
+    sprintf(achFilePath, "%s/gps_sim/%s/%s/altitude.csv", g_pchConfigurationFileDirectoryPath, pchScenarioName, pchParticipantId);
     m_n32AltitudeArraySize = read_csv_doubles(achFilePath, &m_pdAltitudeArray);
 
     int32_t n32Result = PROCEDURE_SUCCESSFULL;
@@ -100,21 +105,49 @@ void gps_sim_update_fix_data(fix_data_t *psPotiFixData) {
 
     if(0 != m_n32LatitudeArraySize) {
 
-        m_n32LatitudeArrayIndex = (m_n32LatitudeArrayIndex + 1) % m_n32LatitudeArraySize;
+        if(BOOLEAN_FALSE == m_n32IsPausingFixData) {
+
+            m_n32LatitudeArrayIndex = (m_n32LatitudeArrayIndex + 1) % m_n32LatitudeArraySize;
+        }
         psPotiFixData->latitude = m_pdLatitudeArray[m_n32LatitudeArrayIndex];
     }
 
     if(0 != m_n32LongitudeArraySize) {
 
-        m_n32LongitudeArrayIndex = (m_n32LongitudeArrayIndex + 1) % m_n32LongitudeArraySize;
+        if(BOOLEAN_FALSE == m_n32IsPausingFixData) {
+
+            m_n32LongitudeArrayIndex = (m_n32LongitudeArrayIndex + 1) % m_n32LongitudeArraySize;
+        }
         psPotiFixData->longitude = m_pdLongitudeArray[m_n32LongitudeArrayIndex];
     }
 
     if(0 != m_n32AltitudeArraySize) {
 
-        m_n32AltitudeArrayIndex = (m_n32AltitudeArrayIndex + 1) % m_n32AltitudeArraySize;
+        if(BOOLEAN_FALSE == m_n32IsPausingFixData) {
+
+            m_n32AltitudeArrayIndex = (m_n32AltitudeArrayIndex + 1) % m_n32AltitudeArraySize;
+        }
         psPotiFixData->altitude = m_pdAltitudeArray[m_n32AltitudeArrayIndex];
     }
+}
+
+void gps_sim_pause_fix_data(int32_t n32IsPaused) {
+
+    m_n32IsPausingFixData = n32IsPaused;
+
+    if(BOOLEAN_TRUE == m_n32IsPausingFixData) {
+
+        printf("GPS simulator is pausing");
+
+    } else {
+
+        printf("GPS simulator is not pausing");
+    }
+}
+
+int32_t gps_sim_is_paused() {
+
+    return m_n32IsPausingFixData;
 }
 
 void gps_sim_release() {

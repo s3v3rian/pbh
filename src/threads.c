@@ -3,7 +3,6 @@
 #include <time.h>
 
 #include "common/globals.h"
-#include "gps/gps_sim.h"
 
 /**
  * @brief main_sender_active
@@ -15,7 +14,7 @@ void *main_sender_active(void *p_param __attribute__((unused))) {
     int32_t n32IsSenderActive = BOOLEAN_TRUE;
 
     fix_data_t sPotiFixData = FIX_DATA_INIT;
-    uint32_t n32SendCount = 0;
+    int32_t n32SendCount = 0;
 
     // -------------------------------------------------
     // ----------- Initialize Managers -------------
@@ -34,7 +33,7 @@ void *main_sender_active(void *p_param __attribute__((unused))) {
         n32SendCount++;
 
         // Send every 1 second.
-        if(SENDER_FREQUENCY_IN_10_HZ > n32SendCount) {
+        if(g_sTxParameters.m_n32TxFrequencyIn10Hz > n32SendCount) {
 
             continue;
         }
@@ -65,10 +64,6 @@ void *main_sender_active(void *p_param __attribute__((unused))) {
 
         } else {
 
-            // Use simulated values if requested.
-            gps_sim_update_fix_data(&sPotiFixData);
-
-            // Process poti info into cam manager.
             cam_mngr_process_tx(&sPotiFixData);
             denm_mngr_process_tx(&sPotiFixData);
 

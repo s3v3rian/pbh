@@ -26,12 +26,6 @@
 
 #define CAM_PROTOCOL_VERSION                        1       /* ETSI EN 302 637-2 V1.3.1 (2014-09) */
 
-/* Please assign ID for your ITS station. */
-#define CAM_STATION_ID_DEF                          168
-
-/* Please assign the type of your ITS station. */
-#define CAM_STATION_TYPE_DEF                        GN_ITS_STATION_SPECIAL_VEHICLE
-
 /* Please correct following macros for getting data from additional INS sensors on host system. */
 #define CAM_SENSOR_GET_DRIVE_DIRECTION()            DriveDirection_forward
 
@@ -101,8 +95,9 @@ static CAM cam_tx_encode_fmt;
  *******************************************************************************
  */
 
-int32_t cam_encode(uint8_t **pp_cam_data, fix_data_t *p_fix_data);
-int32_t cam_decode(uint8_t *p_rx_payload, int32_t rx_payload_len, btp_handler_recv_indicator_t *p_recv_ind, bool ssp_check, CAM *psOutputCam);
+void cam_infra_init(SITSStationInfo *psStationInfo);
+int32_t cam_infra_encode(uint8_t **pp_cam_data, fix_data_t *p_fix_data);
+int32_t cam_infra_decode(uint8_t *p_rx_payload, int32_t rx_payload_len, btp_handler_recv_indicator_t *p_recv_ind, bool ssp_check, CAM *psOutputCam, ITSMsgCodecErr *psOutputErr);
 
 /*
  *******************************************************************************

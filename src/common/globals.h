@@ -2,12 +2,7 @@
 #define COMMON_GLOBALS_H_
 
 #include <stdint.h>
-
-#include "lib/inc/itsmsg.h"
-#include "lib/inc/itsmsg_codec.h"
-#include "lib/inc/poti_service.h"
-#include "lib/inc/gn_service_user.h"
-#include "lib/inc/error_code_user.h"
+#include <stdlib.h>
 
 /*
  *******************************************************************************
@@ -15,8 +10,16 @@
  *******************************************************************************
  */
 
+// ---------------------------------------------------------
+// --------------- General Status Definitions --------------
+// ---------------------------------------------------------
+
 #define	BOOLEAN_TRUE				1
 #define BOOLEAN_FALSE				0
+
+// ---------------------------------------------------------
+// ---------- General Procedure Result Definitions ---------
+// ---------------------------------------------------------
 
 #define PROCEDURE_SUCCESSFULL			0
 #define PROCEDURE_INVALID_PARAMETERS_ERROR	-1
@@ -25,7 +28,13 @@
 #define PROCEDURE_INVALID_SERVICE_RX_ERROR  	-4
 #define PROCEDURE_SECURITY_ERROR		-5
 
-#define SENDER_FREQUENCY_IN_10_HZ		1
+// ---------------------------------------------------------
+// ------------- Configuration File Definitions ------------
+// ---------------------------------------------------------
+
+#define CONFIGURATION_FILE_STATION_INFO_USER	"STATION_INFO_USER"
+#define CONFIGURATION_FILE_SCENARIO_PARAMS_USER	"SCENARIO_INFO_USER"
+#define CONFIGURATION_FILE_GENERAL_PARAMS_USER	"GENERAL_PARAMS_USER"
 
 /*
  *******************************************************************************
@@ -39,14 +48,40 @@
  *******************************************************************************
  */
 
+typedef struct SITSStationInfo {
+
+    uint32_t m_un32StationId;
+    int32_t m_n32StationType;
+
+} SITSStationInfo;
+
+typedef struct SITSScenarioInfo {
+
+    int32_t m_n32IsScenarioEnabled;
+    char m_achName[30];
+    int32_t m_n32IsGpsSimEnabled;
+    char m_achParticipantId[30];
+    uint32_t m_un32GpSimSyncId;
+
+} SITSScenarioInfo;
+
+typedef struct SITSTxParameters {
+
+    int32_t m_n32TxFrequencyIn10Hz;
+
+} SITSTxParameters;
+
 /*
  *******************************************************************************
  * Global variables
  *******************************************************************************
  */
 
-static btp_handler_ptr pBtpCamHandler;
-static btp_handler_ptr pBtpDenmHandler;
+SITSStationInfo g_sStationInfo;
+SITSScenarioInfo g_sScenarioInfo;
+SITSTxParameters g_sTxParameters;
+
+char *g_pchConfigurationFileDirectoryPath;
 
 /*
  *******************************************************************************
