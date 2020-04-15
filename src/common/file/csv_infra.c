@@ -4,6 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*
+ *******************************************************************************
+ * Public functions
+ *******************************************************************************
+ */
+
 int32_t read_csv_doubles(const char *pchCsvFilePath, double **p2dCsvArray) {
 
     //printf("Loading CSV file - %s\n", pchCsvFilePath);

@@ -3,21 +3,26 @@
 
 #include "common/globals.h"
 #include "common/file/ini_infra.h"
+#include "common/containers/spsc_array_queue.h"
 #include "gps/gps_sim.h"
 #include "cam/cam_mngr.h"
 #include "denm/denm_mngr.h"
 
-// ------------------------------------------------------------
-// ----------------- Private variables -----------------------
-// ------------------------------------------------------------
+/*
+ *******************************************************************************
+ * Private/Extern variables
+ *******************************************************************************
+ */
 
 int32_t m_n32IsScenarioLoaded;
 
-// ------------------------------------------------------------
-// ----------------- External variables -----------------------
-// ------------------------------------------------------------
-
 extern poti_service_t *g_psPotiHandler;
+
+/*
+ *******************************************************************************
+ * Public functions
+ *******************************************************************************
+ */
 
 /**
  * @brief ini_value_loader
@@ -98,6 +103,9 @@ int32_t ini_value_loader(void* pchUser, const char* pchSection, const char* pchN
     return n32Reuslt;
 }
 
+/**
+ * @brief print_program_arguments
+ */
 void print_program_arguments() {
 
     printf("-------------------------------------\n");
@@ -105,6 +113,9 @@ void print_program_arguments() {
     printf("-------------------------------------\n");
 }
 
+/**
+ * @brief print_configuration_parameters
+ */
 void print_configuration_parameters() {
 
     printf("-------------------------------------\n");
@@ -164,9 +175,10 @@ int32_t main(int argc, char **argv) {
     print_configuration_parameters();
 
     // -------------------------------------------------
-    // ----------- Initialize GPS Simulator ------------
+    // -------------- Initialize Services --------------
     // -------------------------------------------------
 
+    // Initialize GPS simulator.
 #ifdef __GPS_SIMULATOR_ENABLED__
 
     if(BOOLEAN_TRUE == g_sScenarioInfo.m_n32IsScenarioEnabled) {
@@ -186,10 +198,7 @@ int32_t main(int argc, char **argv) {
 
 #endif
 
-    // -------------------------------------------------
-    // ------------ Initialize POTI Service ------------
-    // -------------------------------------------------
-
+    // Initialize POTI service.
     n32Result = poti_create_service(&g_psPotiHandler, NULL);
 
     if(FALSE == IS_SUCCESS(n32Result)) {
@@ -198,8 +207,11 @@ int32_t main(int argc, char **argv) {
         return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
     }
 
+    // Initialize containers.
+    spsc_init();
+
     // -------------------------------------------------
-    // ----------- Initialize Tx/Rx Threads ------------
+    // -------------- Initialize Threads ---------------
     // -------------------------------------------------
 
     //  Activate tx tasks.
@@ -209,7 +221,7 @@ int32_t main(int argc, char **argv) {
     pthread_create(&g_asThreads[1], NULL, cam_receiver_active, NULL);
     pthread_create(&g_asThreads[2], NULL, denm_receiver_active, NULL);
 
-    /* Wait till main_sender_active is completed. */
+    // If main thread is done then so is the controller.
     pthread_join(g_asThreads[0], NULL);
 
     // -------------------------------------------------
@@ -218,7 +230,10 @@ int32_t main(int argc, char **argv) {
 
     printf("Releasing all resources...\n");
 
-    /* Release POTI handler. */
+    // Release containers.
+    spsc_release();
+
+    // Release POTI service.
     poti_release_service(g_psPotiHandler);
 
 #ifdef __GPS_SIMULATOR_ENABLED__

@@ -3,6 +3,12 @@
 #include "gps/gps_sim.h"
 #include "sa/sa_mngr.h"
 
+/*
+ *******************************************************************************
+ * Public functions
+ *******************************************************************************
+ */
+
 int32_t cam_mngr_init() {
 
     int32_t n32Result = PROCEDURE_SUCCESSFULL;

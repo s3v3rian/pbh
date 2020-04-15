@@ -3,6 +3,12 @@
 #include "gps/nmea_infra.h"
 #include "boundary/serial_output.h"
 
+/*
+ *******************************************************************************
+ * Public functions
+ *******************************************************************************
+ */
+
 void sa_process_services() {
 
 }
@@ -44,11 +50,11 @@ int32_t sa_process_cam_data(CAM *psCam) {
     nmea_get_rmc_Data(&sRmcData);
 
     sRmcData.m_dLatitude = psCam->cam.camParameters.basicContainer.referencePosition.latitude;
-    sRmcData.m_dLatitude = sRmcData.m_dLatitude / 10000000;
+    sRmcData.m_dLatitude = sRmcData.m_dLatitude / 10000000.0;
     sRmcData.m_dLatitude = nmea_convert_decimal_degress_to_degrees_minutes(sRmcData.m_dLatitude);
 
     sRmcData.m_dLongitude = psCam->cam.camParameters.basicContainer.referencePosition.longitude;
-    sRmcData.m_dLongitude = sRmcData.m_dLongitude / 10000000;
+    sRmcData.m_dLongitude = sRmcData.m_dLongitude / 10000000.0;
     sRmcData.m_dLongitude = nmea_convert_decimal_degress_to_degrees_minutes(sRmcData.m_dLongitude);
 
     sRmcData.m_dVelcoityInKnots = psCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.speed.speedValue * 1.944;
