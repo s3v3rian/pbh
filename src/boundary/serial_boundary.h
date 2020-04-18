@@ -1,5 +1,5 @@
-#ifndef COMMON_UTILS_PRINT_UTILS_H_
-#define COMMON_UTILS_PRINT_UTILS_H_
+#ifndef BOUNDARY_SERIAL_BOUNDARY_H_
+#define BOUNDARY_SERIAL_BOUNDARY_H_
 
 #include <stdint.h>
 
@@ -33,7 +33,7 @@
  *******************************************************************************
  */
 
-int32_t sprintf_denm_event_code(char *pchSentence, int32_t n32CauseCode);
+int32_t serial_boundary_write(char *pchSentence, int32_t n32SentenceSize, uint32_t un32StationId);
 
 /*
  *******************************************************************************

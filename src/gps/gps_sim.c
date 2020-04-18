@@ -9,21 +9,21 @@
  *******************************************************************************
  */
 
-static int32_t m_n32IsSimulatorEnabled = 0;
+static bool m_bIsSimulatorEnabled = false;
 
-static int32_t m_n32LatitudeArrayIndex;
-static int32_t m_n32LongitudeArrayIndex;
-static int32_t m_n32AltitudeArrayIndex;
+static int32_t m_n32LatitudeArrayIndex = 0;
+static int32_t m_n32LongitudeArrayIndex = 0;
+static int32_t m_n32AltitudeArrayIndex = 0;
 
-static double *m_pdLatitudeArray;
-static double *m_pdLongitudeArray;
-static double *m_pdAltitudeArray;
+static double *m_pdLatitudeArray = NULL;
+static double *m_pdLongitudeArray = NULL;
+static double *m_pdAltitudeArray = NULL;
 
-static int32_t m_n32IsPausingFixData;
+static bool m_bIsPausingFixData = false;
 
-static int32_t m_n32LatitudeArraySize;
-static int32_t m_n32LongitudeArraySize;
-static int32_t m_n32AltitudeArraySize;
+static int32_t m_n32LatitudeArraySize = 0;
+static int32_t m_n32LongitudeArraySize = 0;
+static int32_t m_n32AltitudeArraySize = 0;
 
 /*
  *******************************************************************************
@@ -34,12 +34,12 @@ static int32_t m_n32AltitudeArraySize;
 int32_t gps_sim_init(const char *pchScenarioName, const char *pchParticipantId) {
 
     // Set global variables.
-    m_n32IsPausingFixData = BOOLEAN_FALSE;
+    m_bIsPausingFixData = false;
 
     printf("Loading GPS Simulator - Using scenario %s, Participant ID: %s\n", pchScenarioName, pchParticipantId);
 
     // Init internal variables.
-    m_n32IsSimulatorEnabled = 1;
+    m_bIsSimulatorEnabled = true;
 
     m_n32LatitudeArrayIndex = 0;
     m_n32LongitudeArrayIndex = 0;
@@ -96,7 +96,7 @@ int32_t gps_sim_init(const char *pchScenarioName, const char *pchParticipantId) 
 
 void gps_sim_update_fix_data(fix_data_t *psPotiFixData) {
 
-    if(0 == m_n32IsSimulatorEnabled) {
+    if(false == m_bIsSimulatorEnabled) {
 
         return;
     }
@@ -105,7 +105,7 @@ void gps_sim_update_fix_data(fix_data_t *psPotiFixData) {
 
     if(0 != m_n32LatitudeArraySize) {
 
-        if(BOOLEAN_FALSE == m_n32IsPausingFixData) {
+        if(false == m_bIsPausingFixData) {
 
             m_n32LatitudeArrayIndex = (m_n32LatitudeArrayIndex + 1) % m_n32LatitudeArraySize;
         }
@@ -114,7 +114,7 @@ void gps_sim_update_fix_data(fix_data_t *psPotiFixData) {
 
     if(0 != m_n32LongitudeArraySize) {
 
-        if(BOOLEAN_FALSE == m_n32IsPausingFixData) {
+        if(false == m_bIsPausingFixData) {
 
             m_n32LongitudeArrayIndex = (m_n32LongitudeArrayIndex + 1) % m_n32LongitudeArraySize;
         }
@@ -123,7 +123,7 @@ void gps_sim_update_fix_data(fix_data_t *psPotiFixData) {
 
     if(0 != m_n32AltitudeArraySize) {
 
-        if(BOOLEAN_FALSE == m_n32IsPausingFixData) {
+        if(false == m_bIsPausingFixData) {
 
             m_n32AltitudeArrayIndex = (m_n32AltitudeArrayIndex + 1) % m_n32AltitudeArraySize;
         }
@@ -131,11 +131,11 @@ void gps_sim_update_fix_data(fix_data_t *psPotiFixData) {
     }
 }
 
-void gps_sim_pause_fix_data(int32_t n32IsPaused) {
+void gps_sim_pause_fix_data(bool bIsPaused) {
 
-    m_n32IsPausingFixData = n32IsPaused;
+    m_bIsPausingFixData = bIsPaused;
 
-    if(BOOLEAN_TRUE == m_n32IsPausingFixData) {
+    if(false == m_bIsPausingFixData) {
 
         printf("GPS simulator is pausing");
 
@@ -145,9 +145,9 @@ void gps_sim_pause_fix_data(int32_t n32IsPaused) {
     }
 }
 
-int32_t gps_sim_is_paused() {
+bool gps_sim_is_paused() {
 
-    return m_n32IsPausingFixData;
+    return m_bIsPausingFixData;
 }
 
 void gps_sim_release() {

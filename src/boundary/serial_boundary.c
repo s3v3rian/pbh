@@ -1,10 +1,10 @@
-#include "serial_output.h"
+#include "serial_boundary.h"
 
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
 
-int32_t serial_output_write(char *pchSentence, int32_t n32SentenceSize, uint32_t un32StationId) {
+int32_t serial_boundary_write(char *pchSentence, int32_t n32SentenceSize, uint32_t un32StationId) {
 
     int32_t n32Fd = open("/dev/ttyAMA2", O_RDWR);
 

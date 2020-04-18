@@ -1,8 +1,8 @@
 #ifndef SA_SA_MNGR_H_
 #define SA_SA_MNGR_H_
 
-#include "cam/cam_infra.h"
-#include "denm/denm_infra.h"
+#include "cam/cam_mngr.h"
+#include "denm/denm_mngr.h"
 
 /*
  *******************************************************************************
@@ -28,22 +28,30 @@
  *******************************************************************************
  */
 
+// Global services.
+poti_service_t *g_psPotiHandler;
+
 /*
  *******************************************************************************
  * Public functions
  *******************************************************************************
  */
 
-void sa_process_services();
-int32_t sa_process_poti_data(fix_data_t *psPotiFixData);
-int32_t sa_process_cam_data(CAM *psCam);
-int32_t sa_process_denm_data(DENM *psDenm);
+void sa_mngr_init();
+void sa_mngr_process_tx();
+void sa_mngr_process_rx_cam();
+void sa_mngr_process_rx_denm();
+void sa_mngr_release();
 
 /*
  *******************************************************************************
  * Private functions
  *******************************************************************************
  */
+
+static int32_t sa_mngr_output_poti(fix_data_t *psPotiFixData);
+static int32_t sa_mngr_output_cam(CAM *psCam);
+static int32_t sa_mngr_output_denm(DENM *psDENM);
 
 #endif
 

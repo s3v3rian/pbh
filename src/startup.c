@@ -1,9 +1,11 @@
 
 #include "threads.h"
 
-#include "common/globals.h"
+#include "lib/inc/error_code_user.h"
 #include "common/file/ini_infra.h"
 #include "common/containers/spsc_array_queue.h"
+#include "boundary/serial_boundary.h"
+#include "boundary/ethernet_boundary.h"
 #include "gps/gps_sim.h"
 #include "cam/cam_mngr.h"
 #include "denm/denm_mngr.h"
@@ -14,9 +16,7 @@
  *******************************************************************************
  */
 
-int32_t m_n32IsScenarioLoaded;
-
-extern poti_service_t *g_psPotiHandler;
+bool m_bIsScenarioLoaded;
 
 /*
  *******************************************************************************
@@ -67,16 +67,16 @@ int32_t ini_value_loader(void* pchUser, const char* pchSection, const char* pchN
 
         if(0 == strcmp("scenario_info", pchSection)) {
 
-            if(BOOLEAN_FALSE == m_n32IsScenarioLoaded) {
+            if(false == m_bIsScenarioLoaded) {
 
                 if(0 == strcmp("scenario_en", pchName)) {
 
-                    if(BOOLEAN_TRUE == strtol(pchValue, &pchError, 10)) {
+                    if(0 < strtol(pchValue, &pchError, 10)) {
 
-                        g_sScenarioInfo.m_n32IsScenarioEnabled = BOOLEAN_TRUE;
+                        g_sScenarioInfo.m_bIsScenarioEnabled = true;
                     }
 
-                } else if(BOOLEAN_TRUE == g_sScenarioInfo.m_n32IsScenarioEnabled) {
+                } else if(true == g_sScenarioInfo.m_bIsScenarioEnabled) {
 
                     if(0 == strcmp("scenario_name", pchName)) {
 
@@ -84,7 +84,7 @@ int32_t ini_value_loader(void* pchUser, const char* pchSection, const char* pchN
 
                     } else if(0 == strcmp("scenario_gps_sim_en", pchName)) {
 
-                        g_sScenarioInfo.m_n32IsGpsSimEnabled = strtol(pchValue, &pchError, 10);
+                        g_sScenarioInfo.m_bIsGpsSimEnabled = strtol(pchValue, &pchError, 10);
 
                     } else if(0 == strcmp("scenario_gps_sim_id", pchName)) {
 
@@ -93,7 +93,7 @@ int32_t ini_value_loader(void* pchUser, const char* pchSection, const char* pchN
                     } else if(0 == strcmp("scenario_gps_sim_sync_id", pchName)) {
 
                         g_sScenarioInfo.m_un32GpSimSyncId = strtol(pchValue, &pchError, 10);
-                        m_n32IsScenarioLoaded = BOOLEAN_TRUE;
+                        m_bIsScenarioLoaded = true;
                     }
                 }
             }
@@ -153,7 +153,7 @@ int32_t main(int argc, char **argv) {
     memset(&g_sScenarioInfo, 0, sizeof(g_sScenarioInfo));
     memset(&g_sTxParameters, 0, sizeof(g_sTxParameters));
 
-    m_n32IsScenarioLoaded = BOOLEAN_FALSE;
+    m_bIsScenarioLoaded = true;
 
     int32_t n32Result = 0;
 
@@ -166,7 +166,7 @@ int32_t main(int argc, char **argv) {
     sprintf(achFilePath, "%s/general_parameters.ini", g_pchConfigurationFileDirectoryPath);
     n32Result |= ini_parse(achFilePath, ini_value_loader, CONFIGURATION_FILE_GENERAL_PARAMS_USER);
 
-    if(FALSE == IS_SUCCESS(n32Result)) {
+    if(PROCEDURE_SUCCESSFULL != n32Result) {
 
         printf("Cannot read configuration files\n");
         return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
@@ -178,21 +178,37 @@ int32_t main(int argc, char **argv) {
     // -------------- Initialize Services --------------
     // -------------------------------------------------
 
+#ifdef __SERIAL_OUTPUT_ENABLED__
+
+    g_fpBoundaryWriter = serial_boundary_write;
+
+#else
+
+    g_fpBoundaryWriter = ethernet_boundary_write;
+
+#endif
+
     // Initialize GPS simulator.
 #ifdef __GPS_SIMULATOR_ENABLED__
 
-    if(BOOLEAN_TRUE == g_sScenarioInfo.m_n32IsScenarioEnabled) {
+    if(true == g_sScenarioInfo.m_bIsScenarioEnabled) {
 
         n32Result |= gps_sim_init(g_sScenarioInfo.m_achName, g_sScenarioInfo.m_achParticipantId);
 
-        if(FALSE == IS_SUCCESS(n32Result)) {
+        if(PROCEDURE_SUCCESSFULL != n32Result) {
 
             printf("Cannot initialize gps simulator\n");
             return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
 
         } else {
 
-            gps_sim_pause_fix_data(BOOLEAN_TRUE);
+            gps_sim_pause_fix_data(true);
+
+            if(0 == g_sScenarioInfo.m_un32GpSimSyncId
+                || g_sScenarioInfo.m_un32GpSimSyncId == g_sStationInfo.m_un32StationId) {
+
+                gps_sim_pause_fix_data(false);
+            }
         }
     }
 
@@ -201,14 +217,14 @@ int32_t main(int argc, char **argv) {
     // Initialize POTI service.
     n32Result = poti_create_service(&g_psPotiHandler, NULL);
 
-    if(FALSE == IS_SUCCESS(n32Result)) {
+    if(PROCEDURE_SUCCESSFULL != n32Result) {
 
         printf("Cannot create POTI service: %s\n", ERROR_MSG(n32Result));
         return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
     }
 
     // Initialize containers.
-    spsc_init();
+    spsc_array_queue_init();
 
     // -------------------------------------------------
     // -------------- Initialize Threads ---------------
@@ -231,7 +247,7 @@ int32_t main(int argc, char **argv) {
     printf("Releasing all resources...\n");
 
     // Release containers.
-    spsc_release();
+    spsc_array_queue_release();
 
     // Release POTI service.
     poti_release_service(g_psPotiHandler);

@@ -26,7 +26,9 @@ SOURCES = startup.c \
     common/file/csv_infra.c \
     common/file/ini_infra.c \
     common/utils/geo_utils.c \
+    common/utils/print_utils.c \
     common/containers/spsc_array_queue.c \
+    common/containers/array_queue.c \
     denm/denm_infra.c \
     denm/denm_mngr.c \
     gps/gps_sim.c \

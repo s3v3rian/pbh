@@ -38,12 +38,12 @@
  *******************************************************************************
  */
 
-void spsc_init();
-int32_t spsc_queue_init(const char *pchName);
-int32_t spsc_queue_push(int32_t n32ContainerId, void *pvElement);
-int32_t spsc_queue_pop(int32_t n32ContainerId, void **p2vElement);
-int32_t spsc_queue_release(int32_t n32ContainerId);
-void spsc_release();
+int32_t spsc_array_queue_init();
+int32_t spsc_array_queue_container_init(const char *pchName);
+int32_t spsc_array_queue_container_push(int32_t n32ContainerId, void *pvElement);
+int32_t spsc_array_queue_container_pop(int32_t n32ContainerId, void **p2vElement);
+int32_t spsc_array_queue_container_release(int32_t n32ContainerId);
+int32_t spsc_array_queue_release();
 
 /*
  *******************************************************************************

@@ -44,7 +44,7 @@ EXECUTABLES=v2x_car
 all: $(EXECUTABLES)
 
 %.o: %.c $(DEPS)	
-	$(CC) -D__EN_SECURITY_FEATURE__=1 -D__GPS_SIMULATOR_ENABLED__=1 -c -o $@ $< $(CFLAGS)
+	$(CC) -D__EN_SECURITY_FEATURE__=1 -D__SERIAL_OUTPUT_ENABLED__=1 -D__GPS_SIMULATOR_ENABLED__=1 -c -o $@ $< $(CFLAGS)
 
 v2x_car: $(OBJ)	
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)

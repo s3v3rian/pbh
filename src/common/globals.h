@@ -3,19 +3,15 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdbool.h>
 
 /*
  *******************************************************************************
  * Constant value definition
  *******************************************************************************
  */
-
-// ---------------------------------------------------------
-// --------------- General Status Definitions --------------
-// ---------------------------------------------------------
-
-#define	BOOLEAN_TRUE				1
-#define BOOLEAN_FALSE				0
 
 // ---------------------------------------------------------
 // ---------- General Procedure Result Definitions ---------
@@ -48,6 +44,9 @@
  *******************************************************************************
  */
 
+// Callbacks.
+typedef int32_t (*boundary_write)(char *pchSentence, int32_t n32SentenceSize, uint32_t un32StationId);
+
 typedef struct SITSStationInfo {
 
     uint32_t m_un32StationId;
@@ -57,9 +56,9 @@ typedef struct SITSStationInfo {
 
 typedef struct SITSScenarioInfo {
 
-    int32_t m_n32IsScenarioEnabled;
+    bool m_bIsScenarioEnabled;
     char m_achName[30];
-    int32_t m_n32IsGpsSimEnabled;
+    bool m_bIsGpsSimEnabled;
     char m_achParticipantId[30];
     uint32_t m_un32GpSimSyncId;
 
@@ -77,11 +76,14 @@ typedef struct SITSTxParameters {
  *******************************************************************************
  */
 
+// Global configuration.
 SITSStationInfo g_sStationInfo;
 SITSScenarioInfo g_sScenarioInfo;
 SITSTxParameters g_sTxParameters;
-
 char *g_pchConfigurationFileDirectoryPath;
+
+// Callbacks.
+boundary_write g_fpBoundaryWriter;
 
 /*
  *******************************************************************************
