@@ -8,30 +8,34 @@ DEFINES += __GPS_SIMULATOR_ENABLED__=1
 
 INCLUDEPATH += threads.h \
     boundary/ \
-    cam/ \
     common/ \
     common/file/ \
     common/utils/ \
     common/containers/ \
-    denm/ \
-    gps/ \
+    services/cam/ \
+    services/denm/ \
+    services/gps/ \
     sa \
     lib/inc/ \
 
 SOURCES = startup.c \
     threads.c \
     boundary/serial_ouput.c \
-    cam/cam_infra.c \
-    cam/cam_mngr.c \
+    common/ring_buffers.c \
     common/file/csv_infra.c \
     common/file/ini_infra.c \
     common/utils/geo_utils.c \
     common/utils/print_utils.c \
     common/containers/spsc_array_queue.c \
+    common/containers/blocked_array_queue.c \
     common/containers/array_queue.c \
-    denm/denm_infra.c \
-    denm/denm_mngr.c \
-    gps/gps_sim.c \
-    gps/nmea_infra. \
+    services/cam/cam_infra.c \
+    services/cam/cam_mngr.c \
+    services/denm/denm_infra.c \
+    services/denm/denm_mngr.c \
+    services/gps/gps_poti.c \
+    services/gps/gps_sim.c \
+    services/gps/nmea_infra. \
+    sa/sa_database.c \
     sa/sa_mngr.c \
 

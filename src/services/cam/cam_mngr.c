@@ -13,18 +13,20 @@
  */
 
 // BTP fields.
-static btp_handler_ptr g_pBtpCamHandler;
-static btp_handler_send_config_t g_sBtpCamSendConfig;
+btp_handler_ptr m_pBtpCamHandler;
+btp_handler_send_config_t m_sBtpCamSendConfig;
 
 // CAM generation fields.
-CAM g_sEncodedCam;
-ITSMsgCodecErr g_sEncodeCamErr;
+CAM m_asEncodedCam[MAX_MSG_RING_BUFFER_SIZE];
+ITSMsgCodecErr m_sEncodeCamErr;
+uint32_t m_un32EncodedCamBufferIndex = 0;
 
 // CAM decode fields.
-CAM g_sDecodedCam;
-ITSMsgCodecErr g_sDecodeCamErr;
-uint8_t g_aun8CamRxPayload[GN_MAX_SDU_SIZE];
-btp_handler_recv_indicator_t g_sBtpCamRecvStatus;
+uint8_t m_aun8CamRxPayload[GN_MAX_SDU_SIZE];
+CAM m_asDecodedCam[MAX_MSG_RING_BUFFER_SIZE];
+ITSMsgCodecErr m_sDecodeCamErr;
+uint32_t m_un32DecodedCamBufferIndex = 0;
+btp_handler_recv_indicator_t m_sBtpCamRecvStatus;
 
 /*
  *******************************************************************************
@@ -55,7 +57,7 @@ int32_t cam_mngr_init() {
 #endif
 
     // Create BTP handler.
-    n32Result = btp_create(&g_pBtpCamHandler, &sBtpCamConfig);
+    n32Result = btp_create(&m_pBtpCamHandler, &sBtpCamConfig);
 
     if(false == IS_SUCCESS(n32Result)) {
 
@@ -64,7 +66,7 @@ int32_t cam_mngr_init() {
     }
 
     /* Bind BTP port. */
-    n32Result = btp_bind(g_pBtpCamHandler, un16CamSrcPrt);
+    n32Result = btp_bind(m_pBtpCamHandler, un16CamSrcPrt);
 
     if(false == IS_SUCCESS(n32Result)) {
 
@@ -73,7 +75,7 @@ int32_t cam_mngr_init() {
     }
 
     /* BTP send packet default configuration (SHB/BTP-B). */
-    BTP_SEND_CONFIG_INIT(&g_sBtpCamSendConfig);
+    BTP_SEND_CONFIG_INIT(&m_sBtpCamSendConfig);
 
 #if (__EN_SECURITY_FEATURE__)
 
@@ -84,24 +86,24 @@ int32_t cam_mngr_init() {
     */
 
     /* SSP Version control */
-    g_sBtpCamSendConfig.security.ssp[0] = 0x0;
+    m_sBtpCamSendConfig.security.ssp[0] = 0x0;
     /* Service-specific parameter */
-    g_sBtpCamSendConfig.security.ssp[1] = EMERGENCY; /* Emergency container */
-    g_sBtpCamSendConfig.security.ssp[2] = REQUEST_FOR_FREE_CROSSING_AT_A_TRAFFIC_LIGHT; /* EmergencyPriority */
-    g_sBtpCamSendConfig.security.ssp_len = 3;
+    m_sBtpCamSendConfig.security.ssp[1] = EMERGENCY; /* Emergency container */
+    m_sBtpCamSendConfig.security.ssp[2] = REQUEST_FOR_FREE_CROSSING_AT_A_TRAFFIC_LIGHT; /* EmergencyPriority */
+    m_sBtpCamSendConfig.security.ssp_len = 3;
 
 #endif
 
     /* Allocate a buffer for restoring the decode error information if needed. */
-    g_sDecodeCamErr.msg_size = 256;
-    g_sDecodeCamErr.msg = calloc(1, g_sDecodeCamErr.msg_size);
+    m_sDecodeCamErr.msg_size = 256;
+    m_sDecodeCamErr.msg = calloc(1, m_sDecodeCamErr.msg_size);
 
     /* Allocate a buffer for restoring the decode error information if needed. */
-    g_sEncodeCamErr.msg_size = 512;
-    g_sEncodeCamErr.msg = calloc(1, g_sEncodeCamErr.msg_size);
+    m_sEncodeCamErr.msg_size = 512;
+    m_sEncodeCamErr.msg = calloc(1, m_sEncodeCamErr.msg_size);
 
-    if(NULL == g_sEncodeCamErr.msg
-            || NULL == g_sDecodeCamErr.msg) {
+    if(NULL == m_sEncodeCamErr.msg
+            || NULL == m_sDecodeCamErr.msg) {
 
         printf("Cannot allocate memory for CAM error message buffer.\n");
 
@@ -111,17 +113,21 @@ int32_t cam_mngr_init() {
     return n32Result;
 }
 
-int32_t cam_mngr_process_tx(fix_data_t *psPotiFixData) {
+int32_t cam_mngr_process_tx(fix_data_t *psPotiFixData, CAM *psOutputCam) {
 
     int32_t n32Result = PROCEDURE_SUCCESSFULL;
 
     uint8_t *pun8TxPayload = NULL;
     int32_t n32TxPayloadSize = 0;
 
-    cam_mngr_msg_init(&g_sStationInfo, &g_sEncodedCam);
+    cam_mngr_msg_init(&g_sStationInfo, psOutputCam);
 
     // Generate CAM message.
-    n32TxPayloadSize = cam_mngr_msg_encode(&pun8TxPayload, psPotiFixData, &g_sEncodedCam, &g_sEncodeCamErr);
+    n32TxPayloadSize = cam_mngr_msg_encode(
+                &pun8TxPayload,
+                psPotiFixData,
+                psOutputCam,
+                &m_sEncodeCamErr);
 
     if(pun8TxPayload == NULL
             || n32TxPayloadSize <= 0) {
@@ -131,7 +137,7 @@ int32_t cam_mngr_process_tx(fix_data_t *psPotiFixData) {
     }
 
     /* Broadcast the CAM message (BTP-B, SHB). */
-    n32Result = btp_send(g_pBtpCamHandler, &g_sBtpCamSendConfig, pun8TxPayload, n32TxPayloadSize);
+    n32Result = btp_send(m_pBtpCamHandler, &m_sBtpCamSendConfig, pun8TxPayload, n32TxPayloadSize);
 
     if(0 >= n32Result) {
 
@@ -144,55 +150,51 @@ int32_t cam_mngr_process_tx(fix_data_t *psPotiFixData) {
     return n32Result;
 }
 
-int32_t cam_mngr_process_rx(CAM **p2sOutputCam) {
+int32_t cam_mngr_process_rx(CAM *psOutputCam) {
 
     bool bSspCheck = false;
 
     int32_t n32Result = PROCEDURE_SUCCESSFULL;
 
     /* Listen the CAM BTP port. */
-    int32_t n32CamDataSize = btp_recv(g_pBtpCamHandler, &g_sBtpCamRecvStatus, g_aun8CamRxPayload, sizeof(g_aun8CamRxPayload), BTP_RECV_WAIT_FOREVER);
+    int32_t n32CamDataSize = btp_recv(m_pBtpCamHandler, &m_sBtpCamRecvStatus, m_aun8CamRxPayload, sizeof(m_aun8CamRxPayload), BTP_RECV_WAIT_FOREVER);
 
     if(0 > n32CamDataSize > 0) {
 
         return PROCEDURE_INVALID_SERVICE_RX_ERROR;
     }
 
-    if(true == IS_DECAP_FAIL(g_sBtpCamRecvStatus.security.status)) {
+    if(true == IS_DECAP_FAIL(m_sBtpCamRecvStatus.security.status)) {
 
-        printf("\tSecurity status: decapsulation error (%d), the payload content is untrustworthy\n", g_sBtpCamRecvStatus.security.status);
+        printf("\tSecurity status: decapsulation error (%d), the payload content is untrustworthy\n", m_sBtpCamRecvStatus.security.status);
         return PROCEDURE_SECURITY_ERROR;
     }
 
-    if(ITS_SEC_SUCCESS == g_sBtpCamRecvStatus.security.status) {
+    if(ITS_SEC_SUCCESS == m_sBtpCamRecvStatus.security.status) {
 
         bSspCheck = true;
 
         /* Try to decode the received message. */
         n32Result = cam_mngr_msg_decode(
-                    g_aun8CamRxPayload,
+                    m_aun8CamRxPayload,
                     n32CamDataSize,
-                    &g_sBtpCamRecvStatus,
+                    &m_sBtpCamRecvStatus,
                     bSspCheck,
-                    &g_sDecodedCam,
-                    &g_sDecodeCamErr);
+                    psOutputCam,
+                    &m_sDecodeCamErr);
 
-    } else if(g_sBtpCamRecvStatus.security.status == ITS_SEC_NA) {
+    } else if(m_sBtpCamRecvStatus.security.status == ITS_SEC_NA) {
 
         printf("\tSecurity status: no security protection\n");
 
     } else {
 
-        printf("\tSecurity status: other (%d)\n", g_sBtpCamRecvStatus.security.status);
+        printf("\tSecurity status: other (%d)\n", m_sBtpCamRecvStatus.security.status);
     }
 
     if(0 > n32Result) {
 
-        printf("Unable to decode CAM RX packet: %s\n", g_sDecodeCamErr.msg);
-
-    } else {
-
-        *p2sOutputCam = &g_sEncodedCam;
+        printf("Unable to decode CAM RX packet: %s\n", m_sDecodeCamErr.msg);
     }
 
     return n32Result;
@@ -200,11 +202,27 @@ int32_t cam_mngr_process_rx(CAM **p2sOutputCam) {
 
 int32_t cam_mngr_release() {
 
-    btp_release(g_pBtpCamHandler);
+    btp_release(m_pBtpCamHandler);
 
-    free(g_sDecodeCamErr.msg);
+    free(m_sDecodeCamErr.msg);
 
     return PROCEDURE_SUCCESSFULL;
+}
+
+CAM *cam_mngr_allocate_encoded_buffer() {
+
+    CAM *psOutputCam = &m_asEncodedCam[m_un32EncodedCamBufferIndex];
+    m_un32EncodedCamBufferIndex = (m_un32EncodedCamBufferIndex + 1) % MAX_MSG_RING_BUFFER_SIZE;
+
+    return psOutputCam;
+}
+
+CAM *cam_mngr_allocate_decoded_buffer() {
+
+    CAM *psOutputCam = &m_asDecodedCam[m_un32EncodedCamBufferIndex];
+    m_un32DecodedCamBufferIndex = (m_un32DecodedCamBufferIndex + 1) % MAX_MSG_RING_BUFFER_SIZE;
+
+    return psOutputCam;
 }
 
 /*

@@ -9,11 +9,6 @@
  *******************************************************************************
  */
 
-#define MAX_QUEUE_NAME_STRING_SIZE_IN_BYTES	20
-#define MAX_NUMBER_OF_QUEUES			20
-#define MAX_NUMBER_OF_QUEUE_ELEMENTS		100
-#define INVALID_QUEUE_ID			-1
-
 /*
  *******************************************************************************
  * Macros
@@ -40,8 +35,8 @@
 
 int32_t spsc_array_queue_init();
 int32_t spsc_array_queue_container_init(const char *pchName);
-int32_t spsc_array_queue_container_push(int32_t n32ContainerId, void *pvElement);
-int32_t spsc_array_queue_container_pop(int32_t n32ContainerId, void **p2vElement);
+int32_t spsc_array_queue_container_push(int32_t n32ContainerId, int32_t n32ElementId, char *pchElement);
+int32_t spsc_array_queue_container_pop(int32_t n32ContainerId, int32_t *pn32ElementId, char **p2chElement);
 int32_t spsc_array_queue_container_release(int32_t n32ContainerId);
 int32_t spsc_array_queue_release();
 

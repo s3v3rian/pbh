@@ -1,6 +1,7 @@
 #include "threads.h"
 
 #include <time.h>
+#include <unistd.h>
 
 #include "common/globals.h"
 #include "sa/sa_mngr.h"
@@ -20,11 +21,31 @@ int32_t m_bIsThreadsActive = true;
  */
 
 /**
+ * @brief error_catcher_active
+ * @param signal
+ */
+void error_catcher_active(int signal) {
+
+    m_bIsThreadsActive = false;
+}
+
+/**
+ * @brief exit_catcher_active
+ * @param signal
+ */
+void exit_catcher_active(int signal) {
+
+    m_bIsThreadsActive = false;
+
+    usleep(100000);
+}
+
+/**
  * @brief main_sender_active
  * @param p_param
  * @return
  */
-void *main_sender_active(void *p_param __attribute__((unused))) {
+void *poti_receiver_active(void *p_param __attribute__((unused))) {
 
     printf("Starting sender\n");
 
@@ -40,7 +61,7 @@ void *main_sender_active(void *p_param __attribute__((unused))) {
 
     while(true == m_bIsThreadsActive) {
 
-        sa_mngr_process_tx();
+        sa_mngr_process_poti();
     }
 
     printf("Stopping sender\n");
@@ -50,26 +71,6 @@ void *main_sender_active(void *p_param __attribute__((unused))) {
     // -------------------------------------------------
 
     sa_mngr_release();
-
-    /* Terminate this thread. */
-    pthread_exit(NULL);
-}
-
-/**
- * @brief denm_receiver_active
- * @param p_param
- * @return
- */
-void *denm_receiver_active(void *p_param __attribute__((unused))) {
-
-        printf("Starting DENM receiver\n");
-
-    while(true == m_bIsThreadsActive) {
-
-        sa_mngr_process_rx_denm();
-    }
-
-    printf("Stopping DENM receiver\n");
 
     /* Terminate this thread. */
     pthread_exit(NULL);
@@ -88,7 +89,7 @@ void *cam_receiver_active(void *p_param __attribute__((unused))) {
 
     while(true == m_bIsThreadsActive) {
 
-        sa_mngr_process_rx_cam();
+        sa_mngr_process_cam();
     }
 
     printf("Stopping CAM receiver\n");
@@ -97,3 +98,42 @@ void *cam_receiver_active(void *p_param __attribute__((unused))) {
     pthread_exit(NULL);
 }
 
+/**
+ * @brief denm_receiver_active
+ * @param p_param
+ * @return
+ */
+void *denm_receiver_active(void *p_param __attribute__((unused))) {
+
+        printf("Starting DENM receiver\n");
+
+    while(true == m_bIsThreadsActive) {
+
+        sa_mngr_process_denm();
+    }
+
+    printf("Stopping DENM receiver\n");
+
+    /* Terminate this thread. */
+    pthread_exit(NULL);
+}
+
+/**
+ * @brief sa_processor_active
+ * @param p_param
+ * @return
+ */
+void *sa_processor_active(void *p_param __attribute__((unused))) {
+
+    printf("Starting SA processor\n");
+
+    while(true == m_bIsThreadsActive) {
+
+        sa_mngr_process_fusion();
+    }
+
+    printf("Stopping SA processor\n");
+
+    /* Terminate this thread. */
+    pthread_exit(NULL);
+}

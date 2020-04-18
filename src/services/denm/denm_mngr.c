@@ -17,13 +17,15 @@ btp_handler_ptr m_pBtpDenmHandler;
 btp_handler_send_config_t m_sBtpDenmSendConfig;
 
 // DENM generation fields.
-DENM m_sEncodedDenm;
+DENM m_asEncodedDenm[MAX_MSG_RING_BUFFER_SIZE];
 ITSMsgCodecErr m_sEncodeDenmErr;
+uint32_t m_un32EncodedDenmBufferIndex = 0;
 
 // DENM decode fields.
-DENM m_sDecodedDenm;
-ITSMsgCodecErr m_sDecodeDenmErr;
 uint8_t m_aun8DenmRxPayload[GN_MAX_SDU_SIZE];
+DENM m_asDecodedDenm[MAX_MSG_RING_BUFFER_SIZE];
+ITSMsgCodecErr m_sDecodeDenmErr;
+uint32_t m_un32DecodedDenmBufferIndex = 0;
 btp_handler_recv_indicator_t m_sBtpDenmRecvStatus;
 
 /*
@@ -112,18 +114,29 @@ int32_t denm_mngr_init() {
     return n32Result;
 }
 
-int32_t denm_mngr_process_tx(fix_data_t *psPotiFixData) {
+int32_t denm_mngr_process_tx(fix_data_t *psPotiFixData, DENM *psOutputDenm) {
 
     int32_t n32Result = PROCEDURE_SUCCESSFULL;
 
     uint8_t *pun8TxPayload = NULL;
     int32_t n32TxPayloadSize = 0;
 
+    if(NULL == psOutputDenm
+            || NULL == psPotiFixData) {
+
+        printf("Failed to process denm tx\n");
+        return PROCEDURE_INVALID_PARAMETERS_ERROR;
+    }
+
     // Init denm message.
-    denm_mngr_msg_init(&g_sStationInfo, &m_sEncodedDenm);
+    denm_mngr_msg_init(&g_sStationInfo, psOutputDenm);
 
     // Generate DENM message.
-    n32TxPayloadSize = denm_mngr_msg_encode(&pun8TxPayload, psPotiFixData, &m_sEncodedDenm, &m_sEncodeDenmErr);
+    n32TxPayloadSize = denm_mngr_msg_encode(
+                &pun8TxPayload,
+                psPotiFixData,
+                psOutputDenm,
+                &m_sEncodeDenmErr);
 
     if(pun8TxPayload == NULL
             || n32TxPayloadSize <= 0) {
@@ -162,7 +175,7 @@ int32_t denm_mngr_process_tx(fix_data_t *psPotiFixData) {
     return n32Result;
 }
 
-int32_t denm_mngr_process_rx(DENM **p2sOutputDenm) {
+int32_t denm_mngr_process_rx(DENM *psOutputDenm) {
 
     bool bSspCheck = false;
 
@@ -187,9 +200,13 @@ int32_t denm_mngr_process_rx(DENM **p2sOutputDenm) {
         bSspCheck = true;
 
         /* Try to decode the received message. */
-        denm_mngr_msg_decode(m_aun8DenmRxPayload, n32Result, &m_sBtpDenmRecvStatus, bSspCheck, &m_sDecodedDenm, &m_sDecodeDenmErr);
-
-        *p2sOutputDenm = &m_sDecodedDenm;
+        denm_mngr_msg_decode(
+                    m_aun8DenmRxPayload,
+                    n32Result,
+                    &m_sBtpDenmRecvStatus,
+                    bSspCheck,
+                    psOutputDenm,
+                    &m_sDecodeDenmErr);
 
     } else if(m_sBtpDenmRecvStatus.security.status == ITS_SEC_NA) {
 
@@ -208,6 +225,22 @@ int32_t denm_mngr_release() {
     btp_release(m_pBtpDenmHandler);
 
     return PROCEDURE_SUCCESSFULL;
+}
+
+DENM *denm_mngr_allocate_encoded_buffer() {
+
+    DENM *psOutputDenm = &m_asEncodedDenm[m_un32EncodedDenmBufferIndex];
+    m_un32EncodedDenmBufferIndex = (m_un32EncodedDenmBufferIndex + 1) % MAX_MSG_RING_BUFFER_SIZE;
+
+    return psOutputDenm;
+}
+
+DENM *denm_mngr_allocate_decoded_buffer() {
+
+    DENM *psOutputDenm = &m_asDecodedDenm[m_un32EncodedDenmBufferIndex];
+    m_un32DecodedDenmBufferIndex = (m_un32DecodedDenmBufferIndex + 1) % MAX_MSG_RING_BUFFER_SIZE;
+
+    return psOutputDenm;
 }
 
 /*

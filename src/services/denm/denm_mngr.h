@@ -1,5 +1,5 @@
-#ifndef DENM_DENM_MNGR_H_
-#define DENM_DENM_MNGR_H_
+#ifndef SERVICES_DENM_DENM_MNGR_H_
+#define SERVICES_DENM_DENM_MNGR_H_
 
 #include "lib/inc/itsmsg.h"
 #include "lib/inc/itsmsg_codec.h"
@@ -94,9 +94,12 @@
  */
 
 int32_t denm_mngr_init();
-int32_t denm_mngr_process_tx(fix_data_t *psPotiFixData);
-int32_t denm_mngr_process_rx(DENM **p2sOutputDenm);
+int32_t denm_mngr_process_tx(fix_data_t *psPotiFixData, DENM *psOutputDenm);
+int32_t denm_mngr_process_rx(DENM *psOutputDenm);
 int32_t denm_mngr_release();
+
+DENM *denm_mngr_allocate_encoded_buffer();
+DENM *denm_mngr_allocate_decoded_buffer();
 
 /*
  *******************************************************************************

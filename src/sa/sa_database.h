@@ -1,7 +1,7 @@
-#ifndef COMMON_CONTAINERS_ARRAY_QUEUE_H_
-#define COMMON_CONTAINERS_ARRAY_QUEUE_H_
+#ifndef SA_SA_DATABASE_H_
+#define SA_SA_DATABASE_H_
 
-#include "globals.h"
+#include "common/globals.h"
 
 /*
  *******************************************************************************
@@ -21,6 +21,21 @@
  *******************************************************************************
  */
 
+typedef struct SStationLLAData {
+
+    double m_dLongitude;
+    double m_dLatitude;
+    double m_dAltitude;
+
+} SStationLLAData;
+
+typedef struct SStationFusionData {
+
+    uint32_t m_un32StationId;
+    SStationLLAData m_sCurrentLLA;
+
+} SStationFusionData;
+
 /*
  *******************************************************************************
  * Global variables
@@ -33,12 +48,8 @@
  *******************************************************************************
  */
 
-int32_t array_queue_init();
-int32_t array_queue_container_init(const char *pchName);
-int32_t array_queue_container_push(int32_t n32ContainerId, int32_t n32ElementId, char *pchElement);
-int32_t array_queue_container_pop(int32_t n32ContainerId, int32_t *pn32ElementId, char **p2chElement);
-int32_t array_queue_container_release(int32_t n32ContainerId);
-int32_t array_queue_release();
+void sa_database_init();
+SStationFusionData *sa_database_get_station_data(uint32_t un32StationId);
 
 /*
  *******************************************************************************

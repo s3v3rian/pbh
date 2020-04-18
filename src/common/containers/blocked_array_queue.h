@@ -1,5 +1,5 @@
-#ifndef COMMON_CONTAINERS_ARRAY_QUEUE_H_
-#define COMMON_CONTAINERS_ARRAY_QUEUE_H_
+#ifndef COMMON_CONTAINERS_BLOCKED_ARRAY_QUEUE_H_
+#define COMMON_CONTAINERS_BLOCKED_ARRAY_QUEUE_H_
 
 #include "globals.h"
 
@@ -33,12 +33,12 @@
  *******************************************************************************
  */
 
-int32_t array_queue_init();
-int32_t array_queue_container_init(const char *pchName);
-int32_t array_queue_container_push(int32_t n32ContainerId, int32_t n32ElementId, char *pchElement);
-int32_t array_queue_container_pop(int32_t n32ContainerId, int32_t *pn32ElementId, char **p2chElement);
-int32_t array_queue_container_release(int32_t n32ContainerId);
-int32_t array_queue_release();
+int32_t blocked_array_queue_init();
+int32_t blocked_array_queue_container_init(const char *pchName);
+int32_t blocked_array_queue_container_push(int32_t n32ContainerId, int32_t n32ElementId, char *pchElement);
+int32_t blocked_array_queue_container_pop(int32_t n32ContainerId, int32_t *pn32ElementId, char **p2chElement);
+int32_t blocked_array_queue_container_release(int32_t n32ContainerId);
+int32_t blocked_array_queue_release();
 
 /*
  *******************************************************************************

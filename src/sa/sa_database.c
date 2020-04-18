@@ -1,29 +1,28 @@
-#ifndef COMMON_CONTAINERS_ARRAY_QUEUE_H_
-#define COMMON_CONTAINERS_ARRAY_QUEUE_H_
-
-#include "globals.h"
+#include "sa_database.h"
 
 /*
  *******************************************************************************
- * Constant value definition
+ * Private constant value definition
  *******************************************************************************
  */
 
 /*
  *******************************************************************************
- * Macros
+ * Private macros
  *******************************************************************************
  */
 
 /*
  *******************************************************************************
- * Data type definition
+ * Private/Extern data type definition
  *******************************************************************************
  */
 
+SStationFusionData m_asStationDb[200]; // TODO Change this to hash map.
+
 /*
  *******************************************************************************
- * Global variables
+ * Private/Extern variables
  *******************************************************************************
  */
 
@@ -33,19 +32,32 @@
  *******************************************************************************
  */
 
-int32_t array_queue_init();
-int32_t array_queue_container_init(const char *pchName);
-int32_t array_queue_container_push(int32_t n32ContainerId, int32_t n32ElementId, char *pchElement);
-int32_t array_queue_container_pop(int32_t n32ContainerId, int32_t *pn32ElementId, char **p2chElement);
-int32_t array_queue_container_release(int32_t n32ContainerId);
-int32_t array_queue_release();
+void sa_database_init() {
+
+    for(uint32_t un32Index = 0; un32Index < 200; un32Index++) {
+
+        m_asStationDb[un32Index].m_un32StationId = 0;
+    }
+}
+
+SStationFusionData *sa_database_get_station_data(uint32_t un32StationId) {
+
+    SStationFusionData *psStationData = NULL;
+
+    for(uint32_t un32Index = 0; un32Index < 200; un32Index++) {
+
+        if(un32StationId == m_asStationDb[un32Index].m_un32StationId) {
+
+            psStationData = &m_asStationDb[un32Index];
+            break;
+        }
+    }
+
+    return psStationData;
+}
 
 /*
  *******************************************************************************
  * Private functions
  *******************************************************************************
  */
-
-#endif
-
-

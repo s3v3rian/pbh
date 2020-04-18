@@ -1,5 +1,5 @@
-#ifndef CAM_CAM_MNGR_H_
-#define CAM_CAM_MNGR_H_
+#ifndef SERVICES_CAM_CAM_MNGR_H_
+#define SERVICES_CAM_CAM_MNGR_H_
 
 #include "lib/inc/itsmsg.h"
 #include "lib/inc/itsmsg_codec.h"
@@ -85,9 +85,12 @@
  */
 
 int32_t cam_mngr_init();
-int32_t cam_mngr_process_tx(fix_data_t *psPotiFixData);
-int32_t cam_mngr_process_rx(CAM **p2sOutputCam);
+int32_t cam_mngr_process_tx(fix_data_t *psPotiFixData, CAM *psOutputCam);
+int32_t cam_mngr_process_rx(CAM *psOutputCam);
 int32_t cam_mngr_release();
+
+CAM *cam_mngr_allocate_encoded_buffer();
+CAM *cam_mngr_allocate_decoded_buffer();
 
 /*
  *******************************************************************************

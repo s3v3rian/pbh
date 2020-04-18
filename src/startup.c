@@ -2,13 +2,16 @@
 #include "threads.h"
 
 #include "lib/inc/error_code_user.h"
+
 #include "common/file/ini_infra.h"
+
+#include "common/containers/array_queue.h"
 #include "common/containers/spsc_array_queue.h"
+
 #include "boundary/serial_boundary.h"
 #include "boundary/ethernet_boundary.h"
-#include "gps/gps_sim.h"
-#include "cam/cam_mngr.h"
-#include "denm/denm_mngr.h"
+
+#include "sa/sa_mngr.h"
 
 /*
  *******************************************************************************
@@ -145,6 +148,34 @@ int32_t main(int argc, char **argv) {
     print_program_arguments();
 
     // -------------------------------------------------
+    // ------------- Set Signal Catching ---------------
+    // -------------------------------------------------
+
+    // Catch error signals.
+    struct sigaction sErrorSigAction;
+
+    memset(&sErrorSigAction, 0, sizeof(sErrorSigAction));
+    sigemptyset(&sErrorSigAction.sa_mask);
+
+    sErrorSigAction.sa_handler = error_catcher_active;
+    sErrorSigAction.sa_flags = SA_SIGINFO;
+
+    sigaction(SIGSEGV, &sErrorSigAction, NULL);
+    sigaction(SIGABRT, &sErrorSigAction, NULL);
+    sigaction(SIGFPE, &sErrorSigAction, NULL);
+
+    // Catch exit signals.
+    struct sigaction sExitSigAction;
+
+    memset(&sExitSigAction, 0, sizeof(sExitSigAction));
+    sigemptyset(&sExitSigAction.sa_mask);
+
+    sExitSigAction.sa_handler = exit_catcher_active;
+    sExitSigAction.sa_flags = SA_SIGINFO;
+
+    sigaction(SIGTERM, &sExitSigAction, NULL);
+
+    // -------------------------------------------------
     // ----------- Load Configuration Files ------------
     // -------------------------------------------------
 
@@ -155,18 +186,18 @@ int32_t main(int argc, char **argv) {
 
     m_bIsScenarioLoaded = true;
 
-    int32_t n32Result = 0;
+    int32_t n32ProcedureResult = 0;
 
     char achFilePath[100];
 
     sprintf(achFilePath, "%s/station_info.ini", g_pchConfigurationFileDirectoryPath);
-    n32Result |= ini_parse(achFilePath, ini_value_loader, CONFIGURATION_FILE_STATION_INFO_USER);
+    n32ProcedureResult &= ini_parse(achFilePath, ini_value_loader, CONFIGURATION_FILE_STATION_INFO_USER);
     sprintf(achFilePath, "%s/scenario_parameters.ini", g_pchConfigurationFileDirectoryPath);
-    n32Result |= ini_parse(achFilePath, ini_value_loader, CONFIGURATION_FILE_SCENARIO_PARAMS_USER);
+    n32ProcedureResult &= ini_parse(achFilePath, ini_value_loader, CONFIGURATION_FILE_SCENARIO_PARAMS_USER);
     sprintf(achFilePath, "%s/general_parameters.ini", g_pchConfigurationFileDirectoryPath);
-    n32Result |= ini_parse(achFilePath, ini_value_loader, CONFIGURATION_FILE_GENERAL_PARAMS_USER);
+    n32ProcedureResult &= ini_parse(achFilePath, ini_value_loader, CONFIGURATION_FILE_GENERAL_PARAMS_USER);
 
-    if(PROCEDURE_SUCCESSFULL != n32Result) {
+    if(PROCEDURE_SUCCESSFULL != n32ProcedureResult) {
 
         printf("Cannot read configuration files\n");
         return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
@@ -188,56 +219,39 @@ int32_t main(int argc, char **argv) {
 
 #endif
 
-    // Initialize GPS simulator.
-#ifdef __GPS_SIMULATOR_ENABLED__
+    // Initialize containers.
+    n32ProcedureResult &= array_queue_init();
+    n32ProcedureResult &= spsc_array_queue_init();
 
-    if(true == g_sScenarioInfo.m_bIsScenarioEnabled) {
+    if(PROCEDURE_SUCCESSFULL != n32ProcedureResult) {
 
-        n32Result |= gps_sim_init(g_sScenarioInfo.m_achName, g_sScenarioInfo.m_achParticipantId);
-
-        if(PROCEDURE_SUCCESSFULL != n32Result) {
-
-            printf("Cannot initialize gps simulator\n");
-            return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
-
-        } else {
-
-            gps_sim_pause_fix_data(true);
-
-            if(0 == g_sScenarioInfo.m_un32GpSimSyncId
-                || g_sScenarioInfo.m_un32GpSimSyncId == g_sStationInfo.m_un32StationId) {
-
-                gps_sim_pause_fix_data(false);
-            }
-        }
-    }
-
-#endif
-
-    // Initialize POTI service.
-    n32Result = poti_create_service(&g_psPotiHandler, NULL);
-
-    if(PROCEDURE_SUCCESSFULL != n32Result) {
-
-        printf("Cannot create POTI service: %s\n", ERROR_MSG(n32Result));
+        printf("Cannot init containers\n");
         return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
     }
 
-    // Initialize containers.
-    spsc_array_queue_init();
+    // Initialize SA manager.
+    n32ProcedureResult &= sa_mngr_init();
+
+    if(PROCEDURE_SUCCESSFULL != n32ProcedureResult) {
+
+        printf("Cannot init situation awarnesss manager\n");
+        return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
+    }
 
     // -------------------------------------------------
     // -------------- Initialize Threads ---------------
     // -------------------------------------------------
 
     //  Activate tx tasks.
-    pthread_create(&g_asThreads[0], NULL, main_sender_active, NULL);
+    pthread_create(&g_asThreads[0], NULL, sa_processor_active, NULL);
+    pthread_create(&g_asThreads[1], NULL, poti_receiver_active, NULL);
+    pthread_create(&g_asThreads[2], NULL, cam_receiver_active, NULL);
+    pthread_create(&g_asThreads[3], NULL, denm_receiver_active, NULL);
 
-    // Activate rx tasks.
-    pthread_create(&g_asThreads[1], NULL, cam_receiver_active, NULL);
-    pthread_create(&g_asThreads[2], NULL, denm_receiver_active, NULL);
-
-    // If main thread is done then so is the controller.
+    // If threads are done then so is the controller.
+    pthread_join(g_asThreads[3], NULL);
+    pthread_join(g_asThreads[2], NULL);
+    pthread_join(g_asThreads[1], NULL);
     pthread_join(g_asThreads[0], NULL);
 
     // -------------------------------------------------
@@ -246,17 +260,12 @@ int32_t main(int argc, char **argv) {
 
     printf("Releasing all resources...\n");
 
+    // Shutdown situation awareness manager.
+    sa_mngr_release();
+
     // Release containers.
     spsc_array_queue_release();
-
-    // Release POTI service.
-    poti_release_service(g_psPotiHandler);
-
-#ifdef __GPS_SIMULATOR_ENABLED__
-
-    gps_sim_release();
-
-#endif
+    array_queue_release();
 
     return PROCEDURE_SUCCESSFULL;
 }

@@ -1,5 +1,5 @@
-#ifndef GPS_GPS_SIM_H_
-#define GPS_GPS_SIM_H_
+#ifndef SERVICES_GPS_GPS_SIM_H_
+#define SERVICES_GPS_GPS_SIM_H_
 
 #include "common/globals.h"
 #include "lib/inc/poti_service.h"

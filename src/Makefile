@@ -2,9 +2,10 @@ CC = /opt/poky-craton2/2.2.1/sysroots/x86_64-pokysdk-linux/usr/bin/arm-poky-linu
 INC_PATH = lib/inc 
 INC_DIR = -Ilib/inc \
 	  -I../src/ \
-	  -Idenm \
-	  -Icam \
-	  -Igps \
+	  -Iservices \
+	  -Iservices/denm \
+	  -Iservices/cam \
+	  -Iservices/gps \
 	  -Iboundary \
 	  -Icommon \
 	  -Icommon/file \
@@ -17,9 +18,10 @@ LDFLAGS :=-g -L$(LIB_PATH)
 CFLAGS = -g $(INC_DIR) -std=gnu99 -march=armv7-a -mfloat-abi=hard -mfpu=vfpv3-d16 -mthumb --sysroot=/opt/poky-craton2/2.2.1/sysroots/cortexa7t2hf-neon-poky-linux-gnueabi
 SEC_FLAGS =
 DEPS = $(wildcard *.h) \
-      $(wildcard denm/*.h) \
-      $(wildcard cam/*.h) \
-      $(wildcard gps/*.h) \
+      $(wildcard services/*.h) \
+      $(wildcard services/denm/*.h) \
+      $(wildcard services/cam/*.h) \
+      $(wildcard services/gps/*.h) \
       $(wildcard boundary/*.h) \
       $(wildcard common/*.h) \
       $(wildcard common/file/*.h) \
@@ -27,9 +29,10 @@ DEPS = $(wildcard *.h) \
       $(wildcard common/containers/*.h) \
       $(wildcard sa/*.h)
 SRC = $(wildcard *.c) \
-      $(wildcard denm/*.c) \
-      $(wildcard cam/*.c) \
-      $(wildcard gps/*.c) \
+      $(wildcard services/*.c) \
+      $(wildcard services/denm/*.c) \
+      $(wildcard services/cam/*.c) \
+      $(wildcard services/gps/*.c) \
       $(wildcard boundary/*.c) \
       $(wildcard common/*.c) \
       $(wildcard common/file/*.c) \

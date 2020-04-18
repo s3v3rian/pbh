@@ -1,6 +1,7 @@
 #ifndef THREADS_H_
 #define THREADS_H_
 
+#include <signal.h>
 #include <pthread.h>
 
 #include "cam/cam_mngr.h"
@@ -31,25 +32,24 @@
  */
 
 // All threads.
-pthread_t g_asThreads[8];
-
-// POTI service handler.
-poti_service_t *g_psPotiHandler;
+pthread_t g_asThreads[MAX_NUMBER_OF_THREADS];
 
 /*
  *******************************************************************************
- * Public activetions
+ * Public functions
  *******************************************************************************
  */
 
-void *main_sender_active(void *p_param __attribute__((unused)));
+void error_catcher_active(int signal);
+void exit_catcher_active(int signal);
+void *poti_receiver_active(void *p_param __attribute__((unused)));
 void *cam_receiver_active(void *p_param __attribute__((unused)));
 void *denm_receiver_active(void *p_param __attribute__((unused)));
-void *sa_proc_active(void *p_param __attribute__((unused)));
+void *sa_processor_active(void *p_param __attribute__((unused)));
 
 /*
  *******************************************************************************
- * Private activetions
+ * Private functions
  *******************************************************************************
  */
 

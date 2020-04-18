@@ -1,5 +1,5 @@
-#ifndef GPS_NMEA_INFRA_H_
-#define GPS_NMEA_INFRA_H_
+#ifndef SERVICES_GPS_NMEA_INFRA_H_
+#define SERVICES_GPS_NMEA_INFRA_H_
 
 #include <stdint.h>
 #include "lib/inc/poti_service.h"

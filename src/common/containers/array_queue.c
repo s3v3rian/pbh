@@ -31,7 +31,7 @@ typedef struct SQueueDescriptor {
 
 uint32_t m_un32CurrentQueueInitIndex;
 SQueueDescriptor m_asQueues[MAX_NUMBER_OF_QUEUES];
-void *m_pvQueueArray;
+SQueueElement *m_psQueueArray;
 
 /*
  *******************************************************************************
@@ -43,10 +43,21 @@ int32_t array_queue_init() {
 
     m_un32CurrentQueueInitIndex = 0;
 
-    memset(m_asQueues, 0, sizeof(SQueueDescriptor) * MAX_NUMBER_OF_QUEUES);
+    for(uint32_t un32Index = 0; un32Index < MAX_NUMBER_OF_QUEUES; un32Index++) {
+
+        m_asQueues[un32Index].m_bIsInUse = false;
+        m_asQueues[un32Index].m_un32CurrentPushIndex = 0;
+        m_asQueues[un32Index].m_un32CurrentPopIndex = 0;
+    }
 
     // Create queue elements array.
-    m_pvQueueArray = malloc(sizeof(void*) * MAX_NUMBER_OF_QUEUES * MAX_NUMBER_OF_QUEUE_ELEMENTS);
+    m_psQueueArray = malloc(sizeof(void*) * MAX_NUMBER_OF_QUEUES * MAX_NUMBER_OF_QUEUE_ELEMENTS);
+
+    for(uint32_t un32Index = 0; un32Index < MAX_NUMBER_OF_QUEUES * MAX_NUMBER_OF_QUEUE_ELEMENTS; un32Index++) {
+
+        m_psQueueArray[un32Index].n32Data = INVALID_QUEUE_ELEMENT_ID;
+        m_psQueueArray[un32Index].m_pchData = NULL;
+    }
 
     return PROCEDURE_SUCCESSFULL;
 }
@@ -68,7 +79,7 @@ int32_t array_queue_container_init(const char *pchName) {
     return n32QueueIndex;
 }
 
-int32_t array_queue_container_push(int32_t n32ContainerId, void *pvElement) {
+int32_t array_queue_container_push(int32_t n32ContainerId, int32_t n32ElementId, char *pchElement) {
 
     if(0 > n32ContainerId
             || MAX_NUMBER_OF_QUEUES <= n32ContainerId) {
@@ -85,14 +96,15 @@ int32_t array_queue_container_push(int32_t n32ContainerId, void *pvElement) {
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
-    void *pvQueueElement = m_pvQueueArray + ((n32ContainerId * MAX_NUMBER_OF_QUEUE_ELEMENTS) + psQueueDescriptor->m_un32CurrentPushIndex);
-    pvQueueElement = pvElement;
+    SQueueElement *psQueueElement = m_psQueueArray + sizeof(SQueueElement) * ((n32ContainerId * MAX_NUMBER_OF_QUEUE_ELEMENTS) + psQueueDescriptor->m_un32CurrentPushIndex);
+    psQueueElement->n32Data = n32ElementId;
+    psQueueElement->m_pchData = pchElement;
     psQueueDescriptor->m_un32CurrentPushIndex = ((psQueueDescriptor->m_un32CurrentPushIndex + 1) % MAX_NUMBER_OF_QUEUE_ELEMENTS);
 
     return PROCEDURE_SUCCESSFULL;
 }
 
-int32_t array_queue_container_pop(int32_t n32ContainerId, void **p2vElement) {
+int32_t array_queue_container_pop(int32_t n32ContainerId, int32_t *pn32ElementId, char **p2chElement) {
 
     if(0 > n32ContainerId
             || MAX_NUMBER_OF_QUEUES <= n32ContainerId) {
@@ -109,9 +121,13 @@ int32_t array_queue_container_pop(int32_t n32ContainerId, void **p2vElement) {
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
-    void *pvQueueElement = m_pvQueueArray + ((n32ContainerId * MAX_NUMBER_OF_QUEUE_ELEMENTS) + psQueueDescriptor->m_un32CurrentPopIndex);
-    *p2vElement = pvQueueElement;
-    pvQueueElement = NULL;
+    SQueueElement *psQueueElement = m_psQueueArray + sizeof(SQueueElement) * ((n32ContainerId * MAX_NUMBER_OF_QUEUE_ELEMENTS) + psQueueDescriptor->m_un32CurrentPopIndex);
+    *pn32ElementId = psQueueElement->n32Data;
+    *p2chElement = psQueueElement->m_pchData;
+
+    psQueueElement->n32Data = INVALID_QUEUE_ELEMENT_ID;
+    psQueueElement->m_pchData = NULL;
+
     psQueueDescriptor->m_un32CurrentPopIndex = ((psQueueDescriptor->m_un32CurrentPopIndex + 1) % MAX_NUMBER_OF_QUEUE_ELEMENTS);
 
     return PROCEDURE_SUCCESSFULL;
@@ -138,7 +154,7 @@ int32_t array_queue_release() {
         m_asQueues[n32Index].m_bIsInUse = false;
     }
 
-    free(m_pvQueueArray);
+    free(m_psQueueArray);
 
     return PROCEDURE_SUCCESSFULL;
 }
