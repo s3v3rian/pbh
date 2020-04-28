@@ -8,6 +8,17 @@
 
 /*
  *******************************************************************************
+ * Private function signatures
+ *******************************************************************************
+ */
+
+static int32_t denm_mngr_msg_init(SITSStationInfo *psStationInfo, DENM *psOutputDenm);
+static int32_t denm_mngr_msg_encode(uint8_t **p2un8DenmPayload, fix_data_t *psPotiFixData, DENM *psOutputDenm, ITSMsgCodecErr *psOutputErr);
+static int32_t denm_mngr_msg_decode(uint8_t *pun8RxPayload, int32_t n32RxPayloadLength, btp_handler_recv_indicator_t *psBtpRecvStatus, bool bSspCheck, DENM *psOutputDenm, ITSMsgCodecErr *psOutputErr);
+static int32_t denm_mngr_check_msg_permissions(DENM *psOutputDenm, uint8_t *pun8Ssp, uint32_t un32SspLength);
+
+/*
+ *******************************************************************************
  * Private/Extern variables
  *******************************************************************************
  */
@@ -17,15 +28,11 @@ btp_handler_ptr m_pBtpDenmHandler;
 btp_handler_send_config_t m_sBtpDenmSendConfig;
 
 // DENM generation fields.
-DENM m_asEncodedDenm[MAX_MSG_RING_BUFFER_SIZE];
 ITSMsgCodecErr m_sEncodeDenmErr;
-uint32_t m_un32EncodedDenmBufferIndex = 0;
 
 // DENM decode fields.
 uint8_t m_aun8DenmRxPayload[GN_MAX_SDU_SIZE];
-DENM m_asDecodedDenm[MAX_MSG_RING_BUFFER_SIZE];
 ITSMsgCodecErr m_sDecodeDenmErr;
-uint32_t m_un32DecodedDenmBufferIndex = 0;
 btp_handler_recv_indicator_t m_sBtpDenmRecvStatus;
 
 /*
@@ -114,7 +121,7 @@ int32_t denm_mngr_init() {
     return n32Result;
 }
 
-int32_t denm_mngr_process_tx(fix_data_t *psPotiFixData, DENM *psOutputDenm) {
+int32_t denm_mngr_process_tx(SITSStationInfo *psStationInfo, fix_data_t *psPotiFixData, DENM *psOutputDenm) {
 
     int32_t n32Result = PROCEDURE_SUCCESSFULL;
 
@@ -129,7 +136,7 @@ int32_t denm_mngr_process_tx(fix_data_t *psPotiFixData, DENM *psOutputDenm) {
     }
 
     // Init denm message.
-    denm_mngr_msg_init(&g_sStationInfo, psOutputDenm);
+    denm_mngr_msg_init(psStationInfo, psOutputDenm);
 
     // Generate DENM message.
     n32TxPayloadSize = denm_mngr_msg_encode(
@@ -227,20 +234,33 @@ int32_t denm_mngr_release() {
     return PROCEDURE_SUCCESSFULL;
 }
 
-DENM *denm_mngr_allocate_encoded_buffer() {
+int32_t denm_mngr_sprintf_situation(char *pchSentence, SituationContainer *psSituationContainer) {
 
-    DENM *psOutputDenm = &m_asEncodedDenm[m_un32EncodedDenmBufferIndex];
-    m_un32EncodedDenmBufferIndex = (m_un32EncodedDenmBufferIndex + 1) % MAX_MSG_RING_BUFFER_SIZE;
+    int32_t n32SentenceSize = 0;
 
-    return psOutputDenm;
+    switch(psSituationContainer->eventType.causeCode) {
+
+        case CauseCodeType_redLight:
+
+            n32SentenceSize = sprintf(pchSentence, "EVENT,RED_LIGHT\n");
+            break;
+
+        default:
+
+            n32SentenceSize = sprintf(pchSentence, "EVENT,%d\n", psSituationContainer->eventType.causeCode);
+            break;
+    }
+
+    return n32SentenceSize;
 }
 
-DENM *denm_mngr_allocate_decoded_buffer() {
+int32_t denm_mngr_sprintf_stationary(char *pchSentence, StationaryVehicleContainer *psStationaryContainer) {
 
-    DENM *psOutputDenm = &m_asDecodedDenm[m_un32EncodedDenmBufferIndex];
-    m_un32DecodedDenmBufferIndex = (m_un32DecodedDenmBufferIndex + 1) % MAX_MSG_RING_BUFFER_SIZE;
+    int32_t n32SentenceSize = 0;
 
-    return psOutputDenm;
+    n32SentenceSize = sprintf(pchSentence, "Company Name: %s, :Length: %s\n", psStationaryContainer->carryingDangerousGoods.companyName.buf, psStationaryContainer->carryingDangerousGoods.companyName.len);
+
+    return n32SentenceSize;
 }
 
 /*
@@ -378,7 +398,26 @@ int32_t denm_mngr_msg_encode(uint8_t **p2un8DenmPayload, fix_data_t *psPotiFixDa
     /*
      * The a la carte container contains additional information that is not provided by other containers.
      */
-    psOutputDenm->denm.alacarte_option = FALSE;
+    psOutputDenm->denm.alacarte_option = TRUE;
+    psOutputDenm->denm.alacarte.stationaryVehicle_option = TRUE;
+    psOutputDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods_option = TRUE;
+    psOutputDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods.companyName_option = TRUE;
+    psOutputDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods.companyName.buf = (uint8_t*)g_sScenarioInfo.m_achParticipantName;
+    psOutputDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods.companyName.len = strlen(g_sScenarioInfo.m_achParticipantName) + 1;
+    /*
+    psOutputDenm->denm.alacarte_option = TRUE;
+    psOutputDenm->denm.alacarte.impactReduction_option = TRUE;
+    psOutputDenm->denm.alacarte.impactReduction.heightLonCarrLeft = 1;
+    psOutputDenm->denm.alacarte.impactReduction.heightLonCarrRight = 1;
+    psOutputDenm->denm.alacarte.impactReduction.posLonCarrLeft = 1;
+    psOutputDenm->denm.alacarte.impactReduction.posLonCarrRight = 1;
+    psOutputDenm->denm.alacarte.impactReduction.posCentMass = 1;
+    psOutputDenm->denm.alacarte.impactReduction.wheelBaseVehicle = 1;
+    psOutputDenm->denm.alacarte.impactReduction.turningRadius = 1;
+    psOutputDenm->denm.alacarte.impactReduction.posFrontAx = 1;
+    psOutputDenm->denm.alacarte.impactReduction.positionOfOccupants. = 20;
+    psOutputDenm->denm.alacarte.impactReduction.vehicleMass = 16;
+    */
     //psOutputDenm->denm.alacarte.lanePosition_option =
     //psOutputDenm->denm.alacarte.lanePosition =
     //psOutputDenm->denm.alacarte.impactReduction_option =
@@ -395,7 +434,7 @@ int32_t denm_mngr_msg_encode(uint8_t **p2un8DenmPayload, fix_data_t *psPotiFixDa
     // ----------------- Encode ITS Message --------------------
     // ---------------------------------------------------------
 
-    n32EncodedBufferLength = itsmsg_encode(p2un8DenmPayload, (ItsPduHeader *)&psOutputDenm, psOutputErr);
+    n32EncodedBufferLength = itsmsg_encode(p2un8DenmPayload, (ItsPduHeader *)psOutputDenm, psOutputErr);
 
     /* Release allocated memory. */
     free(psOutputDenm->denm.location.traces.tab[0].tab);

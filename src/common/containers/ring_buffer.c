@@ -1,4 +1,4 @@
-#include "spsc_array_queue.h"
+#include "ring_buffer.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -16,13 +16,14 @@
  *******************************************************************************
  */
 
-typedef struct SQueueDescriptor {
+typedef struct SPoolDescriptor {
 
     _Atomic bool m_baIsInUse;
-    _Atomic uint32_t m_un32aCurrentPushIndex;
-    _Atomic uint32_t m_un32aCurrentPopIndex;
+    _Atomic uint32_t m_un32aCurrentAllocateIndex;
+    uint32_t m_un32ElementSize;
+    SDataContainerElement m_sContainerData;
 
-} SQueueDescriptor;
+} SPoolDescriptor;
 
 /*
  *******************************************************************************
@@ -31,8 +32,7 @@ typedef struct SQueueDescriptor {
  */
 
 uint32_t m_un32CurrentContainerInitIndex;
-SQueueDescriptor m_asContainers[MAX_NUMBER_OF_CONTAINERS];
-SDataContainerElement *m_psContainerArray;
+SPoolDescriptor m_asContainers[MAX_NUMBER_OF_CONTAINERS];
 
 /*
  *******************************************************************************
@@ -40,47 +40,45 @@ SDataContainerElement *m_psContainerArray;
  *******************************************************************************
  */
 
-int32_t spsc_array_queue_init() {
+int32_t ring_buffer_init() {
 
     m_un32CurrentContainerInitIndex = 0;
 
     for(uint32_t un32Index = 0; un32Index < MAX_NUMBER_OF_CONTAINERS; un32Index++) {
 
         m_asContainers[un32Index].m_baIsInUse = false;
-        m_asContainers[un32Index].m_un32aCurrentPushIndex = 0;
-        m_asContainers[un32Index].m_un32aCurrentPopIndex = 0;
-    }
-
-    // Create queue elements array.
-    m_psContainerArray = malloc(sizeof(SDataContainerElement) * MAX_NUMBER_OF_CONTAINERS * MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
-
-    for(uint32_t un32Index = 0; un32Index < MAX_NUMBER_OF_CONTAINERS * MAX_NUMBER_OF_CONTAINERS_ELEMENTS; un32Index++) {
-
-        m_psContainerArray[un32Index].m_n32Data = INVALID_CONTAINER_ELEMENT_ID;
-        m_psContainerArray[un32Index].m_pchData = NULL;
+        m_asContainers[un32Index].m_un32aCurrentAllocateIndex = 0;
     }
 
     return PROCEDURE_SUCCESSFULL;
 }
 
-int32_t spsc_array_queue_container_init(const char *pchName) {
+int32_t ring_buffer_container_init(const char *pchName, uint32_t un32ElementSize) {
 
-    printf("Creating SPSC Array Queue - %s\n", pchName);
+    printf("Creating Ring Buffer - %s\n", pchName);
 
-    int32_t n32QueueIndex = INVALID_CONTAINER_ID;
+    int32_t n32PoolIndex = INVALID_CONTAINER_ID;
     for(int32_t n32Index = 0; n32Index < MAX_NUMBER_OF_CONTAINERS; n32Index++) {
 
         if(false == m_asContainers[n32Index].m_baIsInUse) {
 
             m_asContainers[n32Index].m_baIsInUse = true;
-            n32QueueIndex= n32Index;
+            m_asContainers[n32Index].m_un32ElementSize = un32ElementSize;
+            n32PoolIndex= n32Index;
+
+            for(uint32_t un32Index = 0; un32Index < MAX_NUMBER_OF_CONTAINERS_ELEMENTS; un32Index++) {
+
+                m_asContainers[n32Index].m_sContainerData.m_n32Data = INVALID_CONTAINER_ELEMENT_ID;
+                m_asContainers[n32Index].m_sContainerData.m_pchData = malloc(un32ElementSize * MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
+            }
             break;
         }
     }
-    return n32QueueIndex;
+    return n32PoolIndex;
 }
 
-int32_t spsc_array_queue_container_push(int32_t n32ContainerId, int32_t n32ElementId, char *pchElement) {
+/*
+int32_t ring_buffer_container_allocate(int32_t n32ContainerId, int32_t n32ElementId, char *pchElement) {
 
     if(0 > n32ContainerId
             || MAX_NUMBER_OF_CONTAINERS <= n32ContainerId) {
@@ -97,15 +95,16 @@ int32_t spsc_array_queue_container_push(int32_t n32ContainerId, int32_t n32Eleme
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
-    SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_un32aCurrentPushIndex);
-    psQueueElement->m_n32Data = n32ElementId;
+    SArrayPointerElement *psQueueElement = m_psContainerArray + sizeof(SArrayPointerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_un32aCurrentAllocateIndex);
+    psQueueElement->n32Data = n32ElementId;
     psQueueElement->m_pchData = pchElement;
-    psQueueDescriptor->m_un32aCurrentPushIndex = ((psQueueDescriptor->m_un32aCurrentPushIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
+    psQueueDescriptor->m_un32aCurrentAllocateIndex = ((psQueueDescriptor->m_un32aCurrentAllocateIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
 
     return PROCEDURE_SUCCESSFULL;
 }
+*/
 
-int32_t spsc_array_queue_container_pop(int32_t n32ContainerId, int32_t *pn32ElementId, char **p2chElement) {
+int32_t ring_buffer_container_allocate(int32_t n32ContainerId, char **p2chElement) {
 
     if(0 > n32ContainerId
             || MAX_NUMBER_OF_CONTAINERS <= n32ContainerId) {
@@ -114,27 +113,22 @@ int32_t spsc_array_queue_container_pop(int32_t n32ContainerId, int32_t *pn32Elem
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
-    SQueueDescriptor *psQueueDescriptor = &m_asContainers[n32ContainerId];
+    SPoolDescriptor *psPoolDescriptor = &m_asContainers[n32ContainerId];
 
-    if(false == psQueueDescriptor->m_baIsInUse) {
+    if(false == psPoolDescriptor->m_baIsInUse) {
 
         printf("spsc pop operation failed, container %d is not in use\n", n32ContainerId);
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
-    SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_un32aCurrentPopIndex);
-    *pn32ElementId = psQueueElement->m_n32Data;
-    *p2chElement = psQueueElement->m_pchData;
+    *p2chElement = psPoolDescriptor->m_sContainerData.m_pchData + psPoolDescriptor->m_un32ElementSize * psPoolDescriptor->m_un32aCurrentAllocateIndex;
 
-    psQueueElement->m_n32Data = INVALID_CONTAINER_ELEMENT_ID;
-    psQueueElement->m_pchData = NULL;
-
-    psQueueDescriptor->m_un32aCurrentPopIndex = ((psQueueDescriptor->m_un32aCurrentPopIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
+    psPoolDescriptor->m_un32aCurrentAllocateIndex = ((psPoolDescriptor->m_un32aCurrentAllocateIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
 
     return PROCEDURE_SUCCESSFULL;
 }
 
-int32_t spsc_array_queue_container_release(int32_t n32ContainerId) {
+int32_t ring_buffer_container_release(int32_t n32ContainerId) {
 
     if(0 > n32ContainerId
             || MAX_NUMBER_OF_CONTAINERS <= n32ContainerId) {
@@ -144,18 +138,25 @@ int32_t spsc_array_queue_container_release(int32_t n32ContainerId) {
     }
 
     m_asContainers[n32ContainerId].m_baIsInUse = false;
+    free(m_asContainers[n32ContainerId].m_sContainerData.m_pchData);
 
     return PROCEDURE_SUCCESSFULL;
 }
 
-int32_t spsc_array_queue_release() {
+int32_t ring_buffer_release() {
 
     for(int32_t n32Index = 0; n32Index < MAX_NUMBER_OF_CONTAINERS; n32Index++) {
 
         m_asContainers[n32Index].m_baIsInUse = false;
     }
 
-    free(m_psContainerArray);
+    for(int32_t n32Index = 0; n32Index < MAX_NUMBER_OF_CONTAINERS * MAX_NUMBER_OF_CONTAINERS_ELEMENTS; n32Index++) {
+
+        if(true == m_asContainers[n32Index].m_baIsInUse) {
+
+            free(m_asContainers[n32Index].m_sContainerData.m_pchData);
+        }
+    }
 
     return PROCEDURE_SUCCESSFULL;
 }

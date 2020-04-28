@@ -104,14 +104,4 @@ int32_t nmea_build_gga_msg(SNmeaGgaData *psGgaData, char *pchOutput);
 int32_t nmea_build_gsa_msg(char *pchOutput);
 int32_t nmea_build_rmc_msg(SNmeaRmcData *psRmcData, char *pchOutput);
 
-double nmea_convert_decimal_degress_to_degrees_minutes(double dValue);
-/*
- *******************************************************************************
- * Private functions
- *******************************************************************************
- */
-
-static int8_t nmea_compute_sentence_checksum(char *pchSentence, int32_t n32SentenceSize);
-static char nmea_convert_dec_to_hex(int8_t n8Number);
-
 #endif

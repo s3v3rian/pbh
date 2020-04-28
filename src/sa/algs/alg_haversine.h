@@ -1,5 +1,7 @@
-#ifndef COMMON_UTILS_GEO_UTILS_H_
-#define COMMON_UTILS_GEO_UTILS_H_
+#ifndef SA_ALGS_ALG_HAVERSINE_H_
+#define SA_ALGS_ALG_HAVERSINE_H_
+
+#include "common/globals.h"
 
 /*
  *******************************************************************************
@@ -31,7 +33,7 @@
  *******************************************************************************
  */
 
-double geodesic_convert_decimal_degress_to_degrees_minutes(double dValue);
+double alg_haversine_compute(SStationLLAData *psLocalLLAData, SStationLLAData *psRemoteLLAData);
 
 /*
  *******************************************************************************

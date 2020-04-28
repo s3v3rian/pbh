@@ -20,14 +20,14 @@
 #define MAX_NUMBER_OF_THREADS			8
 
 // ---------------------------------------------------------
-// -------------------- Queue Definitions ------------------
+// ------------------ Container Definitions ----------------
 // ---------------------------------------------------------
 
-#define MAX_QUEUE_NAME_STRING_SIZE_IN_BYTES	20
-#define MAX_NUMBER_OF_QUEUES			20
-#define MAX_NUMBER_OF_QUEUE_ELEMENTS		100
-#define INVALID_QUEUE_ID			-1
-#define INVALID_QUEUE_ELEMENT_ID		-1
+#define MAX_CONTAINER_NAME_STRING_SIZE_IN_BYTES	20
+#define MAX_NUMBER_OF_CONTAINERS		20
+#define MAX_NUMBER_OF_CONTAINERS_ELEMENTS	100
+#define INVALID_CONTAINER_ID			-1
+#define INVALID_CONTAINER_ELEMENT_ID		-1
 
 // ---------------------------------------------------------
 // ---------- General Procedure Result Definitions ---------
@@ -47,6 +47,7 @@
 #define CONFIGURATION_FILE_STATION_INFO_USER	"STATION_INFO_USER"
 #define CONFIGURATION_FILE_SCENARIO_PARAMS_USER	"SCENARIO_INFO_USER"
 #define CONFIGURATION_FILE_GENERAL_PARAMS_USER	"GENERAL_PARAMS_USER"
+#define CONFIGURATION_FILE_SCENARIO_PARTICIPANT_PARAMS_USER	"SCENARIO_PARTICIPANT_USER"
 
 // ---------------------------------------------------------
 // ------------------ Message Definitions ------------------
@@ -61,6 +62,10 @@
  *******************************************************************************
  */
 
+// #define LOG(fmt, ...) printf("%s:%d - %s", __FILE__, __LINE__, fmt, __VA_ARGS__);
+#define DEBUG_LOG(fmt, ...) \
+    do { if (__DEBUG_PRINTING_ENABLED__) fprintf(stdout, "%s:%d:%s() - ", fmt, __FILE__, __LINE__, __func__, ##__VA_ARGS__); } while(0)
+
 /*
  *******************************************************************************
  * Data type definition
@@ -71,20 +76,48 @@
 typedef int32_t (*boundary_write)(char *pchSentence, int32_t n32SentenceSize, uint32_t un32StationId);
 
 // Structures.
+typedef struct SStationLLAData {
+
+    double m_dLongitude;
+    double m_dLatitude;
+    double m_dAltitude;
+
+} SStationLLAData;
+
+typedef struct SStationFinalizedEventData {
+
+    uint64_t m_un64Events;
+
+} SStationFinalizedEventData;
+
+typedef struct SStationFusionData {
+
+    uint32_t m_un32StationId;
+
+    SStationLLAData m_sCurrentLLAData;
+    SStationFinalizedEventData m_sCurrentEventData;
+
+} SStationFusionData;
+
 typedef struct SITSStationInfo {
 
     uint32_t m_un32StationId;
     int32_t m_n32StationType;
+    int32_t m_n32SubStationType;
 
 } SITSStationInfo;
 
 typedef struct SITSScenarioInfo {
 
+    // Scenario info.
     bool m_bIsScenarioEnabled;
     char m_achName[30];
     bool m_bIsGpsSimEnabled;
     char m_achParticipantId[30];
     uint32_t m_un32GpSimSyncId;
+
+    // Participant info.
+    char m_achParticipantName[30];
 
 } SITSScenarioInfo;
 
@@ -94,12 +127,12 @@ typedef struct SITSTxParameters {
 
 } SITSTxParameters;
 
-typedef struct SQueueElement {
+typedef struct SDataContainerElement {
 
-    int32_t n32Data;
+    int32_t m_n32Data;
     char *m_pchData;
 
-} SQueueElement;
+} SDataContainerElement;
 
 /*
  *******************************************************************************
@@ -108,7 +141,7 @@ typedef struct SQueueElement {
  */
 
 // Global configuration.
-SITSStationInfo g_sStationInfo;
+SITSStationInfo g_sLocalStationInfo;
 SITSScenarioInfo g_sScenarioInfo;
 SITSTxParameters g_sTxParameters;
 char *g_pchConfigurationFileDirectoryPath;

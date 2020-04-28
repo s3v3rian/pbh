@@ -8,6 +8,22 @@
 
 /*
  *******************************************************************************
+ * Private function signatures
+ *******************************************************************************
+ */
+
+static int32_t cam_mngr_msg_init(SITSStationInfo *psStationInfo, CAM *psOutputCam);
+static int32_t cam_mngr_msg_encode(uint8_t **p2un8CamPayload, fix_data_t *psPotiFixData, CAM *psOutputCam, ITSMsgCodecErr *psOutputErr);
+static int32_t cam_mngr_msg_decode(uint8_t *pun8RxPayload, int32_t n32RxPayloadLength, btp_handler_recv_indicator_t *psBtpRecvStatus, bool bSspCheck, CAM *psOutputCam, ITSMsgCodecErr *psOutputErr);
+
+static int32_t cam_mngr_set_semi_axis_length(double dMeter);
+static int32_t cam_mngr_set_altitude_confidence(double dMeter);
+static int32_t cam_mngr_set_heading_confidence(double dDegree);
+static int32_t cam_mngr_set_speed_confidence(double dMeterPerSec);
+static int32_t cam_mngr_check_msg_permissions(CAM *psOutputCam, uint8_t *pun8Ssp, uint32_t un32SspLength);
+
+/*
+ *******************************************************************************
  * Private/Extern variables
  *******************************************************************************
  */
@@ -17,15 +33,11 @@ btp_handler_ptr m_pBtpCamHandler;
 btp_handler_send_config_t m_sBtpCamSendConfig;
 
 // CAM generation fields.
-CAM m_asEncodedCam[MAX_MSG_RING_BUFFER_SIZE];
 ITSMsgCodecErr m_sEncodeCamErr;
-uint32_t m_un32EncodedCamBufferIndex = 0;
 
 // CAM decode fields.
 uint8_t m_aun8CamRxPayload[GN_MAX_SDU_SIZE];
-CAM m_asDecodedCam[MAX_MSG_RING_BUFFER_SIZE];
 ITSMsgCodecErr m_sDecodeCamErr;
-uint32_t m_un32DecodedCamBufferIndex = 0;
 btp_handler_recv_indicator_t m_sBtpCamRecvStatus;
 
 /*
@@ -113,14 +125,14 @@ int32_t cam_mngr_init() {
     return n32Result;
 }
 
-int32_t cam_mngr_process_tx(fix_data_t *psPotiFixData, CAM *psOutputCam) {
+int32_t cam_mngr_process_tx(SITSStationInfo *psStationInfo, fix_data_t *psPotiFixData, CAM *psOutputCam) {
 
     int32_t n32Result = PROCEDURE_SUCCESSFULL;
 
     uint8_t *pun8TxPayload = NULL;
     int32_t n32TxPayloadSize = 0;
 
-    cam_mngr_msg_init(&g_sStationInfo, psOutputCam);
+    cam_mngr_msg_init(psStationInfo, psOutputCam);
 
     // Generate CAM message.
     n32TxPayloadSize = cam_mngr_msg_encode(
@@ -209,22 +221,6 @@ int32_t cam_mngr_release() {
     return PROCEDURE_SUCCESSFULL;
 }
 
-CAM *cam_mngr_allocate_encoded_buffer() {
-
-    CAM *psOutputCam = &m_asEncodedCam[m_un32EncodedCamBufferIndex];
-    m_un32EncodedCamBufferIndex = (m_un32EncodedCamBufferIndex + 1) % MAX_MSG_RING_BUFFER_SIZE;
-
-    return psOutputCam;
-}
-
-CAM *cam_mngr_allocate_decoded_buffer() {
-
-    CAM *psOutputCam = &m_asDecodedCam[m_un32EncodedCamBufferIndex];
-    m_un32DecodedCamBufferIndex = (m_un32DecodedCamBufferIndex + 1) % MAX_MSG_RING_BUFFER_SIZE;
-
-    return psOutputCam;
-}
-
 /*
  *******************************************************************************
  * Private functions
@@ -245,6 +241,7 @@ static int32_t cam_mngr_msg_init(SITSStationInfo *psStationInfo, CAM *psOutputCa
 
     /* This DE provides the station type information of the originating ITS-S. */
     psOutputCam->cam.camParameters.basicContainer.stationType = psStationInfo->m_n32StationType;
+    psOutputCam->cam.camParameters.lowFrequencyContainer.u.basicVehicleContainerLowFrequency.vehicleRole = psStationInfo->m_n32SubStationType;
 
     return PROCEDURE_SUCCESSFULL;
 }
@@ -414,7 +411,7 @@ int32_t cam_mngr_msg_encode(uint8_t **p2un8CamPayload, fix_data_t *psPotiFixData
 
 int32_t cam_mngr_msg_decode(uint8_t *pun8RxPayload, int32_t n32RxPayloadLength, btp_handler_recv_indicator_t *psBtpRecvStatus, bool bSspCheck, CAM *psOutputCam, ITSMsgCodecErr *psOutputErr) {
 
-    ItsPduHeader *psItsHeader = NULL;;
+    ItsPduHeader *psItsHeader = NULL;
     int32_t n32Result = PROCEDURE_SUCCESSFULL;
 
     if(psBtpRecvStatus == NULL
@@ -439,10 +436,12 @@ int32_t cam_mngr_msg_decode(uint8_t *pun8RxPayload, int32_t n32RxPayloadLength, 
                 if(FALSE == IS_SUCCESS(n32Result)) {
 
                     printf("Received CAM message is untrustworthy\n");
+                    n32Result = PROCEDURE_SECURITY_ERROR;
 
                 } else {
 
                     memcpy(psOutputCam, psItsHeader, sizeof(CAM));
+                    n32Result = PROCEDURE_SUCCESSFULL;
                 }
             }
 

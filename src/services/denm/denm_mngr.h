@@ -94,23 +94,12 @@
  */
 
 int32_t denm_mngr_init();
-int32_t denm_mngr_process_tx(fix_data_t *psPotiFixData, DENM *psOutputDenm);
+int32_t denm_mngr_process_tx(SITSStationInfo *psStationInfo, fix_data_t *psPotiFixData, DENM *psOutputDenm);
 int32_t denm_mngr_process_rx(DENM *psOutputDenm);
 int32_t denm_mngr_release();
 
-DENM *denm_mngr_allocate_encoded_buffer();
-DENM *denm_mngr_allocate_decoded_buffer();
-
-/*
- *******************************************************************************
- * Private functions
- *******************************************************************************
- */
-
-static int32_t denm_mngr_msg_init(SITSStationInfo *psStationInfo, DENM *psOutputDenm);
-static int32_t denm_mngr_msg_encode(uint8_t **p2un8DenmPayload, fix_data_t *psPotiFixData, DENM *psOutputDenm, ITSMsgCodecErr *psOutputErr);
-static int32_t denm_mngr_msg_decode(uint8_t *pun8RxPayload, int32_t n32RxPayloadLength, btp_handler_recv_indicator_t *psBtpRecvStatus, bool bSspCheck, DENM *psOutputDenm, ITSMsgCodecErr *psOutputErr);
-static int32_t denm_mngr_check_msg_permissions(DENM *psOutputDenm, uint8_t *pun8Ssp, uint32_t un32SspLength);
+int32_t denm_mngr_sprintf_situation(char *pchSentence, SituationContainer *psSituationContainer);
+int32_t denm_mngr_sprintf_stationary(char *pchSentence, StationaryVehicleContainer *psStationaryContainer);
 
 #endif
 

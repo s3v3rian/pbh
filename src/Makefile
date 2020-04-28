@@ -11,11 +11,12 @@ INC_DIR = -Ilib/inc \
 	  -Icommon/file \
 	  -Icommon/utils \
 	  -Icommon/containers \
+	  -Isa/algs \
 	  -Isa
 LIB_PATH = lib/
 LIBS := lib/*.a -pthread -lrt -lm
 LDFLAGS :=-g -L$(LIB_PATH)
-CFLAGS = -g $(INC_DIR) -std=gnu99 -march=armv7-a -mfloat-abi=hard -mfpu=vfpv3-d16 -mthumb --sysroot=/opt/poky-craton2/2.2.1/sysroots/cortexa7t2hf-neon-poky-linux-gnueabi
+CFLAGS = -O3 $(INC_DIR) -std=gnu99 -march=armv7-a -mfloat-abi=hard -mfpu=vfpv3-d16 -mthumb --sysroot=/opt/poky-craton2/2.2.1/sysroots/cortexa7t2hf-neon-poky-linux-gnueabi
 SEC_FLAGS =
 DEPS = $(wildcard *.h) \
       $(wildcard services/*.h) \
@@ -27,6 +28,7 @@ DEPS = $(wildcard *.h) \
       $(wildcard common/file/*.h) \
       $(wildcard common/utils/*.h) \
       $(wildcard common/containers/*.h) \
+      $(wildcard sa/algs/*.h) \
       $(wildcard sa/*.h)
 SRC = $(wildcard *.c) \
       $(wildcard services/*.c) \
@@ -38,6 +40,7 @@ SRC = $(wildcard *.c) \
       $(wildcard common/file/*.c) \
       $(wildcard common/utils/*.c) \
       $(wildcard common/containers/*.c) \
+      $(wildcard sa/algs/*.c) \
       $(wildcard sa/*.c)
 OBJ = $(SRC:.c=.o)
 EXECUTABLES=v2x_car
@@ -47,7 +50,7 @@ EXECUTABLES=v2x_car
 all: $(EXECUTABLES)
 
 %.o: %.c $(DEPS)	
-	$(CC) -D__EN_SECURITY_FEATURE__=1 -D__SERIAL_OUTPUT_ENABLED__=1 -D__GPS_SIMULATOR_ENABLED__=1 -c -o $@ $< $(CFLAGS)
+	$(CC) -D__EN_SECURITY_FEATURE__=1 -D__DEBUG_PRINTING_ENABLED__=1 -D__SERIAL_OUTPUT_ENABLED__=1 -D__SIMULATOR_ENABLED__=1 -c -o $@ $< $(CFLAGS)
 
 v2x_car: $(OBJ)	
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)

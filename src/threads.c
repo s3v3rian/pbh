@@ -47,13 +47,7 @@ void exit_catcher_active(int signal) {
  */
 void *poti_receiver_active(void *p_param __attribute__((unused))) {
 
-    printf("Starting sender\n");
-
-    // -------------------------------------------------
-    // ----------- Initialize Managers -------------
-    // -------------------------------------------------
-
-    sa_mngr_init();
+    printf("Starting POTI receiver\n");
 
     // -------------------------------------------------
     // --------------- Start POTI Loop -----------------

@@ -21,21 +21,6 @@
  *******************************************************************************
  */
 
-typedef struct SStationLLAData {
-
-    double m_dLongitude;
-    double m_dLatitude;
-    double m_dAltitude;
-
-} SStationLLAData;
-
-typedef struct SStationFusionData {
-
-    uint32_t m_un32StationId;
-    SStationLLAData m_sCurrentLLA;
-
-} SStationFusionData;
-
 /*
  *******************************************************************************
  * Global variables
@@ -49,6 +34,7 @@ typedef struct SStationFusionData {
  */
 
 void sa_database_init();
+SStationFusionData *sa_database_add_station_data(uint32_t un32StationId);
 SStationFusionData *sa_database_get_station_data(uint32_t un32StationId);
 
 /*

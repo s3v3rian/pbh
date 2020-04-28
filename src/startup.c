@@ -7,6 +7,8 @@
 
 #include "common/containers/array_queue.h"
 #include "common/containers/spsc_array_queue.h"
+#include "common/containers/blocked_array_queue.h"
+#include "common/containers/ring_buffer.h"
 
 #include "boundary/serial_boundary.h"
 #include "boundary/ethernet_boundary.h"
@@ -37,36 +39,52 @@ bool m_bIsScenarioLoaded;
  * @param pchValue - The value from the above field under the abovex2 section from the ini file.
  * @return - 0 if successfull otherwise a negative value that indicates an error.
  */
-int32_t ini_value_loader(void* pchUser, const char* pchSection, const char* pchName, const char* pchValue) {
+int32_t station_info_ini_loader(void* pchUser, const char* pchSection, const char* pchName, const char* pchValue) {
 
     char *pchError = NULL;
     int32_t n32Reuslt = PROCEDURE_SUCCESSFULL;
 
-    if(0 == strcmp(CONFIGURATION_FILE_STATION_INFO_USER, pchUser)) {
+    if(0 == strcmp("station_info", pchSection)) {
 
-        if(0 == strcmp("station_info", pchSection)) {
+        if(0 == strcmp("station_id", pchName)) {
 
-            if(0 == strcmp("station_id", pchName)) {
+            g_sLocalStationInfo.m_un32StationId = strtol(pchValue, &pchError, 10);
 
-                g_sStationInfo.m_un32StationId = strtol(pchValue, &pchError, 10);
+        } else if(0 == strcmp("station_type", pchName)) {
 
-            } else if(0 == strcmp("station_type", pchName)) {
+            g_sLocalStationInfo.m_n32StationType = strtol(pchValue, &pchError, 10);
 
-                g_sStationInfo.m_n32StationType = strtol(pchValue, &pchError, 10);
-            }
+        } else if(0 == strcmp("sub_station_type", pchName)) {
+
+            g_sLocalStationInfo.m_n32SubStationType = strtol(pchValue, &pchError, 10);
         }
+    }
 
-    } else if(0 == strcmp(CONFIGURATION_FILE_GENERAL_PARAMS_USER, pchUser)) {
+    return n32Reuslt;
+}
 
-        if(0 == strcmp("tx_params", pchSection)) {
+int32_t general_parameters_ini_loader(void* pchUser, const char* pchSection, const char* pchName, const char* pchValue) {
 
-            if(0 == strcmp("tx_frequency_in_10_hz", pchName)) {
+    char *pchError = NULL;
+    int32_t n32Reuslt = PROCEDURE_SUCCESSFULL;
 
-                g_sTxParameters.m_n32TxFrequencyIn10Hz = strtol(pchValue, &pchError, 10);
-            }
+    if(0 == strcmp("tx_params", pchSection)) {
+
+        if(0 == strcmp("tx_frequency_in_10_hz", pchName)) {
+
+            g_sTxParameters.m_n32TxFrequencyIn10Hz = strtol(pchValue, &pchError, 10);
         }
+    }
 
-    } else if(0 == strcmp(CONFIGURATION_FILE_SCENARIO_PARAMS_USER, pchUser)) {
+    return n32Reuslt;
+}
+
+int32_t simulator_info_ini_loader(void* pchUser, const char* pchSection, const char* pchName, const char* pchValue) {
+
+    char *pchError = NULL;
+    int32_t n32Reuslt = PROCEDURE_SUCCESSFULL;
+
+    if(0 == strcmp(CONFIGURATION_FILE_SCENARIO_PARAMS_USER, pchUser)) {
 
         if(0 == strcmp("scenario_info", pchSection)) {
 
@@ -101,6 +119,16 @@ int32_t ini_value_loader(void* pchUser, const char* pchSection, const char* pchN
                 }
             }
         }
+
+    } else if(0 == strcmp(CONFIGURATION_FILE_SCENARIO_PARTICIPANT_PARAMS_USER, pchUser)) {
+
+        if(0 == strcmp("participant_info", pchSection)) {
+
+            if(0 == strcmp("participant_name", pchName)) {
+
+                memcpy(g_sScenarioInfo.m_achParticipantName, pchValue, strlen(pchValue) + 1);
+            }
+        }
     }
 
     return n32Reuslt;
@@ -122,7 +150,7 @@ void print_program_arguments() {
 void print_configuration_parameters() {
 
     printf("-------------------------------------\n");
-    printf("Loaded station info - ID: %d, Type: %d\n", g_sStationInfo.m_un32StationId, g_sStationInfo.m_n32StationType);
+    printf("Loaded station info - ID: %d, Type: %d\n", g_sLocalStationInfo.m_un32StationId, g_sLocalStationInfo.m_n32StationType);
     printf("-------------------------------------\n");
 }
 
@@ -180,22 +208,22 @@ int32_t main(int argc, char **argv) {
     // -------------------------------------------------
 
     // Reset configuration file fields.
-    memset(&g_sStationInfo, 0, sizeof(g_sStationInfo));
+    memset(&g_sLocalStationInfo, 0, sizeof(g_sLocalStationInfo));
     memset(&g_sScenarioInfo, 0, sizeof(g_sScenarioInfo));
     memset(&g_sTxParameters, 0, sizeof(g_sTxParameters));
-
-    m_bIsScenarioLoaded = true;
 
     int32_t n32ProcedureResult = 0;
 
     char achFilePath[100];
 
     sprintf(achFilePath, "%s/station_info.ini", g_pchConfigurationFileDirectoryPath);
-    n32ProcedureResult &= ini_parse(achFilePath, ini_value_loader, CONFIGURATION_FILE_STATION_INFO_USER);
+    n32ProcedureResult &= ini_parse(achFilePath, station_info_ini_loader, CONFIGURATION_FILE_STATION_INFO_USER);
     sprintf(achFilePath, "%s/scenario_parameters.ini", g_pchConfigurationFileDirectoryPath);
-    n32ProcedureResult &= ini_parse(achFilePath, ini_value_loader, CONFIGURATION_FILE_SCENARIO_PARAMS_USER);
+    n32ProcedureResult &= ini_parse(achFilePath, general_parameters_ini_loader, CONFIGURATION_FILE_SCENARIO_PARAMS_USER);
     sprintf(achFilePath, "%s/general_parameters.ini", g_pchConfigurationFileDirectoryPath);
-    n32ProcedureResult &= ini_parse(achFilePath, ini_value_loader, CONFIGURATION_FILE_GENERAL_PARAMS_USER);
+    n32ProcedureResult &= ini_parse(achFilePath, simulator_info_ini_loader, CONFIGURATION_FILE_GENERAL_PARAMS_USER);
+    sprintf(achFilePath, "%s/simulator/%s/%s/participant_parameters.ini", g_pchConfigurationFileDirectoryPath, g_sScenarioInfo.m_achName, g_sScenarioInfo.m_achParticipantId);
+    n32ProcedureResult &= ini_parse(achFilePath, simulator_info_ini_loader, CONFIGURATION_FILE_SCENARIO_PARTICIPANT_PARAMS_USER);
 
     if(PROCEDURE_SUCCESSFULL != n32ProcedureResult) {
 
@@ -219,15 +247,21 @@ int32_t main(int argc, char **argv) {
 
 #endif
 
+    printf("Initializing containers...\n");
+
     // Initialize containers.
     n32ProcedureResult &= array_queue_init();
     n32ProcedureResult &= spsc_array_queue_init();
+    n32ProcedureResult &= blocked_array_queue_init();
+    n32ProcedureResult &= ring_buffer_init();
 
     if(PROCEDURE_SUCCESSFULL != n32ProcedureResult) {
 
         printf("Cannot init containers\n");
         return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
     }
+
+    printf("Initializing SA manager...\n");
 
     // Initialize SA manager.
     n32ProcedureResult &= sa_mngr_init();

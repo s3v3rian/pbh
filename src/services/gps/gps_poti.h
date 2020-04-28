@@ -36,7 +36,11 @@
 
 int32_t gps_poti_init();
 int32_t gps_poti_get_fix_data(fix_data_t *psPotiFixData);
+void gps_poti_sim_pause_fix_data(bool bIsPaused);
+bool gps_poti_sim_is_paused();
 void gps_poti_release();
+
+fix_data_t *gps_poti_allocate_buffer();
 
 /*
  *******************************************************************************

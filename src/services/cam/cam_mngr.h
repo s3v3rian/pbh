@@ -85,28 +85,9 @@
  */
 
 int32_t cam_mngr_init();
-int32_t cam_mngr_process_tx(fix_data_t *psPotiFixData, CAM *psOutputCam);
+int32_t cam_mngr_process_tx(SITSStationInfo *psStationInfo, fix_data_t *psPotiFixData, CAM *psOutputCam);
 int32_t cam_mngr_process_rx(CAM *psOutputCam);
 int32_t cam_mngr_release();
-
-CAM *cam_mngr_allocate_encoded_buffer();
-CAM *cam_mngr_allocate_decoded_buffer();
-
-/*
- *******************************************************************************
- * Private functions
- *******************************************************************************
- */
-
-static int32_t cam_mngr_msg_init(SITSStationInfo *psStationInfo, CAM *psOutputCam);
-static int32_t cam_mngr_msg_encode(uint8_t **p2un8CamPayload, fix_data_t *psPotiFixData, CAM *psOutputCam, ITSMsgCodecErr *psOutputErr);
-static int32_t cam_mngr_msg_decode(uint8_t *pun8RxPayload, int32_t n32RxPayloadLength, btp_handler_recv_indicator_t *psBtpRecvStatus, bool bSspCheck, CAM *psOutputCam, ITSMsgCodecErr *psOutputErr);
-
-static int32_t cam_mngr_set_semi_axis_length(double dMeter);
-static int32_t cam_mngr_set_altitude_confidence(double dMeter);
-static int32_t cam_mngr_set_heading_confidence(double dDegree);
-static int32_t cam_mngr_set_speed_confidence(double dMeterPerSec);
-static int32_t cam_mngr_check_msg_permissions(CAM *psOutputCam, uint8_t *pun8Ssp, uint32_t un32SspLength);
 
 #endif
 

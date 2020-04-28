@@ -36,7 +36,7 @@ int32_t gps_sim_init(const char *pchScenarioName, const char *pchParticipantId) 
     // Set global variables.
     m_bIsPausingFixData = false;
 
-    printf("Loading GPS Simulator - Using scenario %s, Participant ID: %s\n", pchScenarioName, pchParticipantId);
+    printf("Loading GPS Simulator - Using scenario %s, Participant ID: %s, Sync Station: %d\n", pchScenarioName, pchParticipantId, g_sScenarioInfo.m_un32GpSimSyncId);
 
     // Init internal variables.
     m_bIsSimulatorEnabled = true;
@@ -55,13 +55,13 @@ int32_t gps_sim_init(const char *pchScenarioName, const char *pchParticipantId) 
 
     char achFilePath[1000];
 
-    sprintf(achFilePath, "%s/gps_sim/%s/%s/latitude.csv", g_pchConfigurationFileDirectoryPath, pchScenarioName, pchParticipantId);
+    sprintf(achFilePath, "%s/simulator/%s/%s/latitude.csv", g_pchConfigurationFileDirectoryPath, pchScenarioName, pchParticipantId);
     m_n32LatitudeArraySize = read_csv_doubles(achFilePath, &m_pdLatitudeArray);
 
-    sprintf(achFilePath, "%s/gps_sim/%s/%s/longitude.csv", g_pchConfigurationFileDirectoryPath, pchScenarioName, pchParticipantId);
+    sprintf(achFilePath, "%s/simulator/%s/%s/longitude.csv", g_pchConfigurationFileDirectoryPath, pchScenarioName, pchParticipantId);
     m_n32LongitudeArraySize = read_csv_doubles(achFilePath, &m_pdLongitudeArray);
 
-    sprintf(achFilePath, "%s/gps_sim/%s/%s/altitude.csv", g_pchConfigurationFileDirectoryPath, pchScenarioName, pchParticipantId);
+    sprintf(achFilePath, "%s/simulator/%s/%s/altitude.csv", g_pchConfigurationFileDirectoryPath, pchScenarioName, pchParticipantId);
     m_n32AltitudeArraySize = read_csv_doubles(achFilePath, &m_pdAltitudeArray);
 
     int32_t n32Result = PROCEDURE_SUCCESSFULL;
@@ -91,6 +91,8 @@ int32_t gps_sim_init(const char *pchScenarioName, const char *pchParticipantId) 
         n32Result = PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
+    printf("Longitude array size: %d, Latitude array size: %d\n", m_n32LatitudeArraySize, m_n32LongitudeArraySize);
+
     return n32Result;
 }
 
@@ -103,45 +105,31 @@ void gps_sim_update_fix_data(fix_data_t *psPotiFixData) {
 
     //printf("Using simulated GPS fix data\n");
 
-    if(0 != m_n32LatitudeArraySize) {
+    psPotiFixData->latitude = m_pdLatitudeArray[m_n32LatitudeArrayIndex];
+    psPotiFixData->longitude = m_pdLongitudeArray[m_n32LongitudeArrayIndex];
 
-        if(false == m_bIsPausingFixData) {
+    if(true == m_bIsPausingFixData) {
 
-            m_n32LatitudeArrayIndex = (m_n32LatitudeArrayIndex + 1) % m_n32LatitudeArraySize;
-        }
-        psPotiFixData->latitude = m_pdLatitudeArray[m_n32LatitudeArrayIndex];
+        return;
     }
 
-    if(0 != m_n32LongitudeArraySize) {
+    //printf("Updating scenario indexes...\n");
 
-        if(false == m_bIsPausingFixData) {
-
-            m_n32LongitudeArrayIndex = (m_n32LongitudeArrayIndex + 1) % m_n32LongitudeArraySize;
-        }
-        psPotiFixData->longitude = m_pdLongitudeArray[m_n32LongitudeArrayIndex];
-    }
-
-    if(0 != m_n32AltitudeArraySize) {
-
-        if(false == m_bIsPausingFixData) {
-
-            m_n32AltitudeArrayIndex = (m_n32AltitudeArrayIndex + 1) % m_n32AltitudeArraySize;
-        }
-        psPotiFixData->altitude = m_pdAltitudeArray[m_n32AltitudeArrayIndex];
-    }
+    m_n32LatitudeArrayIndex = (m_n32LatitudeArrayIndex + 1) % m_n32LatitudeArraySize;
+    m_n32LongitudeArrayIndex = (m_n32LongitudeArrayIndex + 1) % m_n32LongitudeArraySize;
 }
 
 void gps_sim_pause_fix_data(bool bIsPaused) {
 
     m_bIsPausingFixData = bIsPaused;
 
-    if(false == m_bIsPausingFixData) {
+    if(true == m_bIsPausingFixData) {
 
-        printf("GPS simulator is pausing");
+        printf("GPS simulator is pausing\n");
 
     } else {
 
-        printf("GPS simulator is not pausing");
+        printf("GPS simulator is not pausing\n");
     }
 }
 
@@ -169,4 +157,6 @@ void gps_sim_release() {
         free(m_pdAltitudeArray);
         m_n32AltitudeArraySize = 0;
     }
+
+    m_bIsSimulatorEnabled = false;
 }

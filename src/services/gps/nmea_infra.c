@@ -5,7 +5,18 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "common/globals.h"
+#include "common/utils/geo_utils.h"
+
+/*
+ *******************************************************************************
+ * Private functions
+ *******************************************************************************
+ */
+
+static int8_t nmea_compute_sentence_checksum(char *pchSentence, int32_t n32SentenceSize);
+static char nmea_convert_dec_to_hex(int8_t n8Number);
 
 /*
  *******************************************************************************
@@ -29,8 +40,8 @@ int32_t nmea_get_gga_data(fix_data_t *psPotiFixData, SNmeaGgaData *psGgaData) {
     psGgaData->m_sUcTime.m_un8Second = psPotiFixData->time.utc.sec;
     psGgaData->m_sUcTime.m_un16Milliseconds = psPotiFixData->time.utc.ms;
 
-    psGgaData->m_dLatitude = nmea_convert_decimal_degress_to_degrees_minutes(psPotiFixData->latitude);
-    psGgaData->m_dLongitude = nmea_convert_decimal_degress_to_degrees_minutes(psPotiFixData->longitude);
+    psGgaData->m_dLatitude = geodesic_convert_decimal_degress_to_degrees_minutes(psPotiFixData->latitude);
+    psGgaData->m_dLongitude = geodesic_convert_decimal_degress_to_degrees_minutes(psPotiFixData->longitude);
     psGgaData->m_eGpsFix = NMEA_GPS_QUALITY_FIX_GPS_FIX;
 
     psGgaData->m_n8NumberOfSatellites = psPotiFixData->num_satellites_used;
@@ -54,8 +65,8 @@ int32_t nmea_get_rmc_data(fix_data_t *psPotiFixData, SNmeaRmcData *psRmcData) {
     psRmcData->m_sUcTime.m_un8Second = psPotiFixData->time.utc.sec;
     psRmcData->m_sUcTime.m_un16Milliseconds = psPotiFixData->time.utc.ms;
 
-    psRmcData->m_dLatitude = nmea_convert_decimal_degress_to_degrees_minutes(psPotiFixData->latitude);
-    psRmcData->m_dLongitude = nmea_convert_decimal_degress_to_degrees_minutes(psPotiFixData->longitude);
+    psRmcData->m_dLatitude = geodesic_convert_decimal_degress_to_degrees_minutes(psPotiFixData->latitude);
+    psRmcData->m_dLongitude = geodesic_convert_decimal_degress_to_degrees_minutes(psPotiFixData->longitude);
     psRmcData->m_dVelcoityInKnots = psPotiFixData->horizontal_speed * 1.944;
 
     return PROCEDURE_SUCCESSFULL;
@@ -148,17 +159,6 @@ int32_t nmea_build_rmc_msg(SNmeaRmcData *psRmcData, char *pchOutput) {
     pchOutput[n32SentenceSize - 3] = nmea_convert_dec_to_hex((n8Crc >> 4) & 0x0F);
 
     return n32SentenceSize;
-}
-
-double nmea_convert_decimal_degress_to_degrees_minutes(double dValue) {
-
-    double dFrac = dValue - (uint64_t)dValue;
-    dFrac = dFrac * 60.0;
-    double dNewValue = (uint64_t)dValue;
-    dNewValue = dNewValue * 100.0;
-    dNewValue = dNewValue + dFrac;
-
-    return dNewValue;
 }
 
 static int8_t nmea_compute_sentence_checksum(char *pchSentence, int32_t n32SentenceSize) {

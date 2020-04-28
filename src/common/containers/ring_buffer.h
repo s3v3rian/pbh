@@ -1,5 +1,7 @@
-#ifndef COMMON_UTILS_GEO_UTILS_H_
-#define COMMON_UTILS_GEO_UTILS_H_
+#ifndef COMMON_CONTAINERS_POOL_VECTOR_H_
+#define COMMON_CONTAINERS_POOL_VECTOR_H_
+
+#include "globals.h"
 
 /*
  *******************************************************************************
@@ -31,7 +33,11 @@
  *******************************************************************************
  */
 
-double geodesic_convert_decimal_degress_to_degrees_minutes(double dValue);
+int32_t ring_buffer_init();
+int32_t ring_buffer_container_init(const char *pchName, uint32_t un32ElementSize);
+int32_t ring_buffer_container_allocate(int32_t n32ContainerId, char **p2chElement);
+int32_t ring_buffer_container_release(int32_t n32ContainerId);
+int32_t ring_buffer_release();
 
 /*
  *******************************************************************************
