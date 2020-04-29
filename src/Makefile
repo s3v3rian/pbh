@@ -11,6 +11,7 @@ INC_DIR = -Ilib/inc \
 	  -Icommon/file \
 	  -Icommon/utils \
 	  -Icommon/containers \
+	  -Isa/processors \
 	  -Isa/algs \
 	  -Isa
 LIB_PATH = lib/
@@ -28,6 +29,7 @@ DEPS = $(wildcard *.h) \
       $(wildcard common/file/*.h) \
       $(wildcard common/utils/*.h) \
       $(wildcard common/containers/*.h) \
+      $(wildcard sa/processors/*.h) \
       $(wildcard sa/algs/*.h) \
       $(wildcard sa/*.h)
 SRC = $(wildcard *.c) \
@@ -40,6 +42,7 @@ SRC = $(wildcard *.c) \
       $(wildcard common/file/*.c) \
       $(wildcard common/utils/*.c) \
       $(wildcard common/containers/*.c) \
+      $(wildcard sa/processors/*.c) \
       $(wildcard sa/algs/*.c) \
       $(wildcard sa/*.c)
 OBJ = $(SRC:.c=.o)

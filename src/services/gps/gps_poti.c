@@ -2,7 +2,9 @@
 
 #include "lib/inc/error_code_user.h"
 #include "lib/inc/asn1defs_if.h"
+
 #include "services/gps/gps_sim.h"
+#include "services/gps/nmea_infra.h"
 
 /*
  *******************************************************************************
@@ -12,8 +14,6 @@
 
 poti_service_t *m_pPotiHandler;
 
-fix_data_t m_asFixData[MAX_MSG_RING_BUFFER_SIZE];
-uint32_t m_un32FixDataBufferIndex = 0;
 /*
  *******************************************************************************
  * Public functions
@@ -119,10 +119,29 @@ void gps_poti_release() {
     poti_release_service(m_pPotiHandler);
 }
 
-fix_data_t *gps_poti_allocate_buffer() {
+void gps_poti_mngr_printf_poti(fix_data_t *psPotiFixData) {
 
-    fix_data_t * psOutputFixData = &m_asFixData[m_un32FixDataBufferIndex];
-    m_un32FixDataBufferIndex = (m_un32FixDataBufferIndex + 1) % MAX_MSG_RING_BUFFER_SIZE;
+    int32_t n32SentenceSize = 0;
+    char achSentence[MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES];
 
-    return psOutputFixData;
+    n32SentenceSize += snprintf(
+                achSentence + n32SentenceSize,
+                MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
+                "T%d",
+                g_sLocalStationInfo.m_un32StationId);
+
+    // Convert POTI info to NMEA data.
+    SNmeaGgaData sGgaData;
+    SNmeaRmcData sRmcData;
+
+    memset(&sGgaData, 0, sizeof(sGgaData));
+    memset(&sRmcData, 0, sizeof(sRmcData));
+
+    // Get data from POTI.
+    nmea_get_gga_data(psPotiFixData, &sGgaData);
+    nmea_get_rmc_data(psPotiFixData, &sRmcData);
+
+    // Build and send NMEA sentence.
+    n32SentenceSize += nmea_build_rmc_msg(&sRmcData, achSentence + n32SentenceSize);
+    g_fp_write_to_boundary(achSentence, n32SentenceSize, g_sLocalStationInfo.m_un32StationId);
 }

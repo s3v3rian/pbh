@@ -1,7 +1,12 @@
-#ifndef SA_SA_DATABASE_H_
-#define SA_SA_DATABASE_H_
+#ifndef SERVICES_MAPEM_MAPEM_MNGR_H_
+#define SERVICES_MAPEM_MAPEM_MNGR_H_
 
-#include "common/globals.h"
+#include "lib/inc/itsmsg.h"
+#include "lib/inc/itsmsg_codec.h"
+#include "lib/inc/itsmsg_mapem.h"
+#include "lib/inc/poti_service.h"
+#include "lib/inc/gn_service_user.h"
+#include "globals.h"
 
 /*
  *******************************************************************************
@@ -9,11 +14,18 @@
  *******************************************************************************
  */
 
+#define MAPEM_BTP_PORT                                2003    /* ETSI TS 103 248. */
+
+#define MAPEM_PROTOCOL_VERSION                        1       /* ETSI EN 302 637-2 V1.3.1 (2014-09) */
+
 /*
  *******************************************************************************
  * Macros
  *******************************************************************************
  */
+
+#define MAPEM_SSP_CHECK(x,y) (((x) & (y)) ? 1 : 0)
+#define MAPEM_SSP_LEN 3
 
 /*
  *******************************************************************************
@@ -33,15 +45,10 @@
  *******************************************************************************
  */
 
-void sa_database_init();
-SITSStationFusionData *sa_database_add_station_data(uint32_t un32StationId);
-SITSStationFusionData *sa_database_get_station_data(uint32_t un32StationId);
-
-/*
- *******************************************************************************
- * Private functions
- *******************************************************************************
- */
+int32_t mapem_mngr_init();
+int32_t mapem_mngr_process_tx(SITSStationInfo *psStationInfo, fix_data_t *psPotiFixData, MAPEM *psOutputMapem);
+int32_t mapem_mngr_process_rx(MAPEM *psOutputMapem);
+int32_t mapem_mngr_release();
 
 #endif
 

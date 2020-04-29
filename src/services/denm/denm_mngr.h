@@ -98,8 +98,7 @@ int32_t denm_mngr_process_tx(SITSStationInfo *psStationInfo, fix_data_t *psPotiF
 int32_t denm_mngr_process_rx(DENM *psOutputDenm);
 int32_t denm_mngr_release();
 
-int32_t denm_mngr_sprintf_situation(char *pchSentence, SituationContainer *psSituationContainer);
-int32_t denm_mngr_sprintf_stationary(char *pchSentence, StationaryVehicleContainer *psStationaryContainer);
+void denm_mngr_printf_denm(DENM *psDENM);
 
 #endif
 

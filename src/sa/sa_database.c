@@ -18,7 +18,7 @@
  *******************************************************************************
  */
 
-SStationFusionData m_asStationDb[200]; // TODO Change this to hash map.
+SITSStationFusionData m_asStationDb[200]; // TODO Change this to hash map.
 
 /*
  *******************************************************************************
@@ -40,7 +40,7 @@ void sa_database_init() {
     }
 }
 
-SStationFusionData *sa_database_add_station_data(uint32_t un32StationId) {
+SITSStationFusionData *sa_database_add_station_data(uint32_t un32StationId) {
 
     if(0 == un32StationId) {
 
@@ -48,7 +48,7 @@ SStationFusionData *sa_database_add_station_data(uint32_t un32StationId) {
         return NULL;
     }
 
-    SStationFusionData *psStationData = NULL;
+    SITSStationFusionData *psStationData = NULL;
 
     for(uint32_t un32Index = 0; un32Index < 200; un32Index++) {
 
@@ -63,9 +63,9 @@ SStationFusionData *sa_database_add_station_data(uint32_t un32StationId) {
     return psStationData;
 }
 
-SStationFusionData *sa_database_get_station_data(uint32_t un32StationId) {
+SITSStationFusionData *sa_database_get_station_data(uint32_t un32StationId) {
 
-    SStationFusionData *psStationData = NULL;
+    SITSStationFusionData *psStationData = NULL;
 
     for(uint32_t un32Index = 0; un32Index < 200; un32Index++) {
 

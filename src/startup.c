@@ -13,6 +13,9 @@
 #include "boundary/serial_boundary.h"
 #include "boundary/ethernet_boundary.h"
 
+#include "sa/processors/its_msg_processor_commercial.h"
+#include "sa/processors/its_msg_processor_rsu.h"
+
 #include "sa/sa_mngr.h"
 
 /*
@@ -239,7 +242,7 @@ int32_t main(int argc, char **argv) {
 
 #ifdef __SERIAL_OUTPUT_ENABLED__
 
-    g_fpBoundaryWriter = serial_boundary_write;
+    g_fp_write_to_boundary = serial_boundary_write;
 
 #else
 
@@ -261,7 +264,41 @@ int32_t main(int argc, char **argv) {
         return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
     }
 
+    // -------------------------------------------------
+    // --------- Initialize Situation Awarness ---------
+    // -------------------------------------------------
+
     printf("Initializing SA manager...\n");
+
+    switch(g_sLocalStationInfo.m_n32StationType) {
+
+        case GN_ITS_STATION_HEAVY_TRUCK:
+
+            g_fp_its_processor_init = its_msg_processor_cm_init;
+            g_fp_its_processor_proccess_cam = its_msg_processor_cm_process_cam;
+            g_fp_its_processor_proccess_denm = its_msg_processor_cm_process_denm;
+            g_fp_its_processor_process_poti_cam = its_msg_processor_cm_process_poti_cam;
+            g_fp_its_processor_process_poti_denm = its_msg_processor_cm_process_poti_denm;
+            g_fp_its_processor_clear_cam = its_msg_processor_cm_clear_cam;
+            g_fp_its_processor_clear_denm = its_msg_processor_cm_clear_denm;
+            break;
+
+        case GN_ITS_STATION_ROAD_SIDE_UNIT:
+
+            g_fp_its_processor_init = its_msg_processor_rsu_init;
+            g_fp_its_processor_proccess_cam = its_msg_processor_rsu_process_cam;
+            g_fp_its_processor_proccess_denm = its_msg_processor_rsu_process_denm;
+            g_fp_its_processor_process_poti_cam = its_msg_processor_rsu_process_poti_cam;
+            g_fp_its_processor_process_poti_denm = its_msg_processor_rsu_process_poti_denm;
+            g_fp_its_processor_clear_cam = its_msg_processor_rsu_clear_cam;
+            g_fp_its_processor_clear_denm = its_msg_processor_rsu_clear_denm;
+            break;
+
+        default:
+
+            printf("Cannot set sa callbacks, unsupported its station type\n");
+            return PROCEDURE_INVALID_PARAMETERS_ERROR;
+    }
 
     // Initialize SA manager.
     n32ProcedureResult &= sa_mngr_init();

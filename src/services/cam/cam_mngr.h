@@ -89,6 +89,8 @@ int32_t cam_mngr_process_tx(SITSStationInfo *psStationInfo, fix_data_t *psPotiFi
 int32_t cam_mngr_process_rx(CAM *psOutputCam);
 int32_t cam_mngr_release();
 
+void cam_mngr_printf_cam(CAM *psCam);
+
 #endif
 
 

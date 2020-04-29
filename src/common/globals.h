@@ -38,7 +38,8 @@
 #define PROCEDURE_INVALID_SERVICE_INIT_ERROR  	-2
 #define PROCEDURE_INVALID_SERVICE_TX_ERROR  	-3
 #define PROCEDURE_INVALID_SERVICE_RX_ERROR  	-4
-#define PROCEDURE_SECURITY_ERROR		-5
+#define PROCEDURE_BUFFER_ERROR  		-5
+#define PROCEDURE_SECURITY_ERROR		-6
 
 // ---------------------------------------------------------
 // ------------- Configuration File Definitions ------------
@@ -53,8 +54,10 @@
 // ------------------ Message Definitions ------------------
 // ---------------------------------------------------------
 
-#define MAX_MSG_RING_BUFFER_SIZE		25
+#define INVALID_EVENT_ID			0xFF
 #define POTI_id					0
+#define MAX_ITS_STRING_SIZE_IN_BYTES		20
+#define MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES	1024
 
 /*
  *******************************************************************************
@@ -72,8 +75,20 @@
  *******************************************************************************
  */
 
+// Enumerators.
+
+enum {
+
+    CommercialSubCauseCodeType_statusUpdate1,
+    CommercialSubCauseCodeType_statusUpdate2,
+};
+
 // Callbacks.
 typedef int32_t (*boundary_write)(char *pchSentence, int32_t n32SentenceSize, uint32_t un32StationId);
+
+// ---------------------------------------------------
+// ------------------ SA Structures ------------------
+// ---------------------------------------------------
 
 // Structures.
 typedef struct SStationLLAData {
@@ -90,14 +105,55 @@ typedef struct SStationFinalizedEventData {
 
 } SStationFinalizedEventData;
 
-typedef struct SStationFusionData {
+typedef struct SITSStationFusionData {
 
     uint32_t m_un32StationId;
+    int32_t m_n32StationType;
+
+    double m_dLastPotiTAI;
 
     SStationLLAData m_sCurrentLLAData;
     SStationFinalizedEventData m_sCurrentEventData;
 
-} SStationFusionData;
+} SITSStationFusionData;
+
+// ---------------------------------------------------
+// --------------- Station Structures ----------------
+// ---------------------------------------------------
+
+typedef struct SITSVehicleStationInfo {
+
+    char m_achVehicleDriverName[MAX_ITS_STRING_SIZE_IN_BYTES];
+    char m_achVehicleLicensePlate[MAX_ITS_STRING_SIZE_IN_BYTES];
+
+    // Dimensions.
+    int32_t m_n32VehicleLength;
+    int32_t m_n32VehicleWidth;
+    int32_t m_n32VehicleHeight;
+    int32_t m_n32VehicleWeight;
+
+} SITSVehicleStationInfo;
+
+typedef struct SITSCommercialStationInfo {
+
+    // Common vehicle info.
+    SITSVehicleStationInfo m_sVehicleInfo;
+
+    double m_dDeparturePointLatitude;
+    double m_dDeparturePointLongitude;
+    double m_dDestinationPointLatitude;
+    double m_dDestinationPointLongitude;
+
+    bool m_bIsDangerousGoods;
+    int32_t m_eDangerousGoodsType;
+
+    bool m_bIsTrailerAttached;
+    int32_t m_n32TrailerLength;
+    int32_t m_n32TrailerHeight;
+    int32_t m_n32TrailerWidth;
+    int32_t m_n32TrailerWeight;
+
+} SITSCommercialStationInfo;
 
 typedef struct SITSStationInfo {
 
@@ -105,7 +161,34 @@ typedef struct SITSStationInfo {
     int32_t m_n32StationType;
     int32_t m_n32SubStationType;
 
+    union {
+
+        SITSCommercialStationInfo m_sCommercialStationInfo;
+
+    } m_usAdditionals;
+
 } SITSStationInfo;
+
+typedef struct SITSTxParameters {
+
+    int32_t m_n32TxFrequencyIn10Hz;
+
+} SITSTxParameters;
+
+// ---------------------------------------------------
+// -------------- Container Structures ---------------
+// ---------------------------------------------------
+
+typedef struct SDataContainerElement {
+
+    int32_t m_n32Data;
+    char *m_pchData;
+
+} SDataContainerElement;
+
+// ---------------------------------------------------
+// -------------- Simulator Structures ---------------
+// ---------------------------------------------------
 
 typedef struct SITSScenarioInfo {
 
@@ -121,19 +204,6 @@ typedef struct SITSScenarioInfo {
 
 } SITSScenarioInfo;
 
-typedef struct SITSTxParameters {
-
-    int32_t m_n32TxFrequencyIn10Hz;
-
-} SITSTxParameters;
-
-typedef struct SDataContainerElement {
-
-    int32_t m_n32Data;
-    char *m_pchData;
-
-} SDataContainerElement;
-
 /*
  *******************************************************************************
  * Global variables
@@ -147,7 +217,7 @@ SITSTxParameters g_sTxParameters;
 char *g_pchConfigurationFileDirectoryPath;
 
 // Callbacks.
-boundary_write g_fpBoundaryWriter;
+boundary_write g_fp_write_to_boundary;
 
 /*
  *******************************************************************************

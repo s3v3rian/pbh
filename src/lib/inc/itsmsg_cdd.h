@@ -151,6 +151,7 @@ enum { /* Pre-defined values of CauseCodeType */
        CauseCodeType_accident = 2,
        CauseCodeType_roadworks = 3,
        CauseCodeType_redLight = 4,
+       CauseCodeType_commercialVehicleSituation = 5,
        CauseCodeType_adverseWeatherCondition_Adhesion = 6,
        CauseCodeType_hazardousLocation_SurfaceCondition = 9,
        CauseCodeType_hazardousLocation_ObstacleOnTheRoad = 10,

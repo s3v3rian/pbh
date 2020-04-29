@@ -234,33 +234,80 @@ int32_t denm_mngr_release() {
     return PROCEDURE_SUCCESSFULL;
 }
 
-int32_t denm_mngr_sprintf_situation(char *pchSentence, SituationContainer *psSituationContainer) {
+void denm_mngr_printf_denm(DENM *psDenm) {
 
     int32_t n32SentenceSize = 0;
+    char achSentence[MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES];
 
-    switch(psSituationContainer->eventType.causeCode) {
+    // Always write station id first.
+    n32SentenceSize += snprintf(
+                achSentence + n32SentenceSize,
+                MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
+                "T%d",
+                psDenm->header.stationID);
 
-        case CauseCodeType_redLight:
+    // Write to boundary current situation event.
+    if(TRUE == psDenm->denm.situation_option) {
 
-            n32SentenceSize = sprintf(pchSentence, "EVENT,RED_LIGHT\n");
-            break;
+        switch(psDenm->denm.situation.eventType.causeCode) {
 
-        default:
+            case CauseCodeType_commercialVehicleSituation:
 
-            n32SentenceSize = sprintf(pchSentence, "EVENT,%d\n", psSituationContainer->eventType.causeCode);
-            break;
+                n32SentenceSize += snprintf(
+                            achSentence + n32SentenceSize,
+                            MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
+                            ",EVENT,COMMERCIAL_VEHICLE_STATUS\n");
+                break;
+
+            case CauseCodeType_redLight:
+
+                n32SentenceSize += snprintf(
+                            achSentence + n32SentenceSize,
+                            MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
+                            "EVENT,RED_LIGHT\n");
+                break;
+
+            default:
+
+                n32SentenceSize += snprintf(
+                            achSentence + n32SentenceSize,
+                            MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
+                            "EVENT,%d\n", psDenm->denm.situation.eventType.causeCode);
+                break;
+        }
     }
 
-    return n32SentenceSize;
-}
+    // Write to boundary alacarte container stuff.
+    if(TRUE == psDenm->denm.alacarte_option) {
 
-int32_t denm_mngr_sprintf_stationary(char *pchSentence, StationaryVehicleContainer *psStationaryContainer) {
+        // Write to boundary stationary vehicle stuff.
+        if(TRUE == psDenm->denm.alacarte.stationaryVehicle_option) {
 
-    int32_t n32SentenceSize = 0;
+            // Write to boundary vehicle identification stuff.
+            if(TRUE == psDenm->denm.alacarte.stationaryVehicle.vehicleIdentification_option) {
 
-    n32SentenceSize = sprintf(pchSentence, "Company Name: %s, :Length: %s\n", psStationaryContainer->carryingDangerousGoods.companyName.buf, psStationaryContainer->carryingDangerousGoods.companyName.len);
+                if(TRUE == psDenm->denm.alacarte.stationaryVehicle.vehicleIdentification.vDS_option) {
 
-    return n32SentenceSize;
+                    n32SentenceSize += snprintf(
+                                achSentence + n32SentenceSize,
+                                MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
+                                ",VDS,%s",
+                                psDenm->denm.alacarte.stationaryVehicle.vehicleIdentification.vDS.buf);
+                }
+
+                if(TRUE == psDenm->denm.alacarte.stationaryVehicle.vehicleIdentification.wMInumber_option) {
+
+                    n32SentenceSize += snprintf(
+                                achSentence + n32SentenceSize,
+                                MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
+                                ",wMInumber,%s",
+                                psDenm->denm.alacarte.stationaryVehicle.vehicleIdentification.wMInumber.buf);
+                }
+            }
+        }
+    }
+
+    g_fp_write_to_boundary(achSentence, n32SentenceSize, psDenm->header.stationID);
 }
 
 /*
@@ -270,9 +317,6 @@ int32_t denm_mngr_sprintf_stationary(char *pchSentence, StationaryVehicleContain
  */
 
 static int32_t denm_mngr_msg_init(SITSStationInfo *psStationInfo, DENM *psOutputDenm) {
-
-    /* Make sure we reset the data structure at least once. */
-    memset(psOutputDenm, 0, sizeof(DENM));
 
     // Set header info.
 
@@ -315,120 +359,111 @@ int32_t denm_mngr_msg_encode(uint8_t **p2un8DenmPayload, fix_data_t *psPotiFixDa
      */
     asn1_new_integer_u64(&psOutputDenm->denm.management.referenceTime, (uint64_t)fmod(psPotiFixData->time.tai_since_2004 * 1000.0, 65536));
 
-    /* This DE indicates if the type of generated DENM is a cancellation DENM or a negation DENM. */
-    psOutputDenm->denm.management.termination_option = FALSE; /* Send DENM_trigger for demonstration, no need to enable termination field. */
-    //psOutputDenm->denm.management.termination =
+//    /* This DE indicates if the type of generated DENM is a cancellation DENM or a negation DENM. */
+//    psOutputDenm->denm.management.termination_option = FALSE; /* Send DENM_trigger for demonstration, no need to enable termination field. */
+//    //psOutputDenm->denm.management.termination =
 
-    /* Geographical position of the detected event. */
-    psOutputDenm->denm.management.eventPosition.latitude = (int32_t)(DENM_EVENT_GET_POSITION_LAT() * 10000000.0); /* Convert to 1/10 micro degree. */
-    psOutputDenm->denm.management.eventPosition.longitude = (int32_t)(DENM_EVENT_GET_POSITION_LONG() * 10000000.0); /* Convert to 1/10 micro degree. */
-    psOutputDenm->denm.management.eventPosition.positionConfidenceEllipse.semiMajorConfidence = DENM_EVENT_GET_POSITION_MAJOR_CONFIDENCE(); /* Convert to centimetre. */
-    psOutputDenm->denm.management.eventPosition.positionConfidenceEllipse.semiMinorConfidence = DENM_EVENT_GET_POSITION_MINOR_CONFIDENCE(); /* Convert to centimetre. */
-    psOutputDenm->denm.management.eventPosition.positionConfidenceEllipse.semiMajorOrientation = (int32_t)(DENM_EVENT_GET_POSITION_MAJOR_ORIENTATION() * 10.0); /* Convert to 0.1 degree from North. */
-    psOutputDenm->denm.management.eventPosition.altitude.altitudeValue = (int32_t)(psPotiFixData->altitude * 100.0); /* Convert to 0.01 metre. */
-    psOutputDenm->denm.management.eventPosition.altitude.altitudeConfidence = DENM_EVENT_GET_POSITION_ALT_CONFIDENCE();
+//    /* The distance within which the event is considered relevant to the receiving ITS-S. */
+//    psOutputDenm->denm.management.relevanceDistance_option = FALSE;
+//    //psOutputDenm->denm.management.relevanceDistance =
 
-    /* The distance within which the event is considered relevant to the receiving ITS-S. */
-    psOutputDenm->denm.management.relevanceDistance_option = FALSE;
-    //psOutputDenm->denm.management.relevanceDistance =
+//    /* The traffic direction along which the event information is relevant for the receiving ITS-S. */
+//    psOutputDenm->denm.management.relevanceTrafficDirection_option = FALSE;
+//    //psOutputDenm->denm.management.relevanceTrafficDirection =
 
-    /* The traffic direction along which the event information is relevant for the receiving ITS-S. */
-    psOutputDenm->denm.management.relevanceTrafficDirection_option = FALSE;
-    //psOutputDenm->denm.management.relevanceTrafficDirection =
+//    /* Validity duration of a DENM. */
+//    psOutputDenm->denm.management.validityDuration = DENM_VALIDITY_DURATION_DEF; /* ValidityDuration (0..86400) */
 
-    /* Validity duration of a DENM. */
-    psOutputDenm->denm.management.validityDuration = DENM_VALIDITY_DURATION_DEF; /* ValidityDuration (0..86400) */
+//    /* Time interval for DENM transmission as defined by the originating ITS-S. */
+//    psOutputDenm->denm.management.transmissionInterval_option = FALSE;
+//    //psOutputDenm->denm.management.transmissionInterval = /* TransmissionInterval (1..10000) */
 
-    /* Time interval for DENM transmission as defined by the originating ITS-S. */
-    psOutputDenm->denm.management.transmissionInterval_option = FALSE;
-    //psOutputDenm->denm.management.transmissionInterval = /* TransmissionInterval (1..10000) */
+//    // ---------------------------------------------------------
+//    // ---------------- Set Situation Options ------------------
+//    // ---------------------------------------------------------
 
-    // ---------------------------------------------------------
-    // ---------------- Set Situation Options ------------------
-    // ---------------------------------------------------------
+//    /*
+//     *  The situation container includes information that describes the detected event.
+//     */
+//    psOutputDenm->denm.situation_option = TRUE; // TRUE; TODO DEBUG
+//    psOutputDenm->denm.situation.informationQuality = 0; /* InformationQuality (0..7), If the information is unknown, the DE shall be set to 0. */
+//    psOutputDenm->denm.situation.eventType.causeCode = 0; //CauseCodeType_redLight; //TODO DEUBG
+//    psOutputDenm->denm.situation.eventType.subCauseCode = 0; // WrongWayDrivingSubCauseCode_unavailable; // TODO DEBUG
 
-    /*
-     *  The situation container includes information that describes the detected event.
-     */
-    psOutputDenm->denm.situation_option = TRUE; // TRUE; TODO DEBUG
-    psOutputDenm->denm.situation.informationQuality = 0; /* InformationQuality (0..7), If the information is unknown, the DE shall be set to 0. */
-    psOutputDenm->denm.situation.eventType.causeCode = 0; //CauseCodeType_redLight; //TODO DEUBG
-    psOutputDenm->denm.situation.eventType.subCauseCode = 0; // WrongWayDrivingSubCauseCode_unavailable; // TODO DEBUG
+//    psOutputDenm->denm.situation.linkedCause_option = FALSE;
+//    //psOutputDenm->denm.situation.linkedCause =
+//    psOutputDenm->denm.situation.eventHistory_option = FALSE;
+//    //psOutputDenm->denm.situation.eventHistory =
 
-    psOutputDenm->denm.situation.linkedCause_option = FALSE;
-    //psOutputDenm->denm.situation.linkedCause =
-    psOutputDenm->denm.situation.eventHistory_option = FALSE;
-    //psOutputDenm->denm.situation.eventHistory =
+//    // ---------------------------------------------------------
+//    // ---------------- Set Location Options -------------------
+//    // ---------------------------------------------------------
 
-    // ---------------------------------------------------------
-    // ---------------- Set Location Options -------------------
-    // ---------------------------------------------------------
+//    /*
+//     * The location container describes the location of the detected event.
+//     */
+//    psOutputDenm->denm.location_option = TRUE;
+//    psOutputDenm->denm.location.eventSpeed_option = TRUE;
+//    psOutputDenm->denm.location.eventSpeed.speedValue = SpeedValue_unavailable; /* 0,01 m/s */
+//    psOutputDenm->denm.location.eventSpeed.speedConfidence = SpeedConfidence_equalOrWithinOneMeterPerSec;
+//    psOutputDenm->denm.location.eventPositionHeading_option = FALSE;
+//    //psOutputDenm->denm.location.eventPositionHeading =
 
-    /*
-     * The location container describes the location of the detected event.
-     */
-    psOutputDenm->denm.location_option = TRUE;
-    psOutputDenm->denm.location.eventSpeed_option = TRUE;
-    psOutputDenm->denm.location.eventSpeed.speedValue = SpeedValue_unavailable; /* 0,01 m/s */
-    psOutputDenm->denm.location.eventSpeed.speedConfidence = SpeedConfidence_equalOrWithinOneMeterPerSec;
-    psOutputDenm->denm.location.eventPositionHeading_option = FALSE;
-    //psOutputDenm->denm.location.eventPositionHeading =
+//    /* Allocate and initialize each entries and paths. */
+//    psOutputDenm->denm.location.traces.count = 1;
+//    psOutputDenm->denm.location.traces.tab = (PathHistory_ITS *)calloc(sizeof(PathHistory_ITS), psOutputDenm->denm.location.traces.count);
+//    psOutputDenm->denm.location.traces.tab[0].count = 2;
+//    psOutputDenm->denm.location.traces.tab[0].tab = (PathPoint *)calloc(sizeof(PathPoint), psOutputDenm->denm.location.traces.tab[0].count);
+//    psOutputDenm->denm.location.traces.tab[0].tab[0].pathPosition.deltaLatitude = -123010;
+//    psOutputDenm->denm.location.traces.tab[0].tab[0].pathPosition.deltaLongitude = -131068;
+//    psOutputDenm->denm.location.traces.tab[0].tab[0].pathPosition.deltaAltitude = -12693;
+//    psOutputDenm->denm.location.traces.tab[0].tab[1].pathPosition.deltaLatitude = -131058;
+//    psOutputDenm->denm.location.traces.tab[0].tab[1].pathPosition.deltaLongitude = -131055;
+//    psOutputDenm->denm.location.traces.tab[0].tab[1].pathPosition.deltaAltitude = -11769;
+//    psOutputDenm->denm.location.traces.tab[0].tab[1].pathDeltaTime_option = TRUE;
+//    psOutputDenm->denm.location.traces.tab[0].tab[1].pathDeltaTime = -151310;
 
-    /* Allocate and initialize each entries and paths. */
-    psOutputDenm->denm.location.traces.count = 1;
-    psOutputDenm->denm.location.traces.tab = (PathHistory_ITS *)calloc(sizeof(PathHistory_ITS), psOutputDenm->denm.location.traces.count);
-    psOutputDenm->denm.location.traces.tab[0].count = 2;
-    psOutputDenm->denm.location.traces.tab[0].tab = (PathPoint *)calloc(sizeof(PathPoint), psOutputDenm->denm.location.traces.tab[0].count);
-    psOutputDenm->denm.location.traces.tab[0].tab[0].pathPosition.deltaLatitude = -123010;
-    psOutputDenm->denm.location.traces.tab[0].tab[0].pathPosition.deltaLongitude = -131068;
-    psOutputDenm->denm.location.traces.tab[0].tab[0].pathPosition.deltaAltitude = -12693;
-    psOutputDenm->denm.location.traces.tab[0].tab[1].pathPosition.deltaLatitude = -131058;
-    psOutputDenm->denm.location.traces.tab[0].tab[1].pathPosition.deltaLongitude = -131055;
-    psOutputDenm->denm.location.traces.tab[0].tab[1].pathPosition.deltaAltitude = -11769;
-    psOutputDenm->denm.location.traces.tab[0].tab[1].pathDeltaTime_option = TRUE;
-    psOutputDenm->denm.location.traces.tab[0].tab[1].pathDeltaTime = -151310;
+//    psOutputDenm->denm.location.roadType_option = FALSE;
+//    //psOutputDenm->denm.location.roadType
 
-    psOutputDenm->denm.location.roadType_option = FALSE;
-    //psOutputDenm->denm.location.roadType
+//    // ---------------------------------------------------------
+//    // ---------------- Set ALACARTE Options -------------------
+//    // ---------------------------------------------------------
 
-    // ---------------------------------------------------------
-    // ---------------- Set ALACARTE Options -------------------
-    // ---------------------------------------------------------
-
-    /*
-     * The a la carte container contains additional information that is not provided by other containers.
-     */
-    psOutputDenm->denm.alacarte_option = TRUE;
-    psOutputDenm->denm.alacarte.stationaryVehicle_option = TRUE;
-    psOutputDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods_option = TRUE;
-    psOutputDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods.companyName_option = TRUE;
-    psOutputDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods.companyName.buf = (uint8_t*)g_sScenarioInfo.m_achParticipantName;
-    psOutputDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods.companyName.len = strlen(g_sScenarioInfo.m_achParticipantName) + 1;
-    /*
-    psOutputDenm->denm.alacarte_option = TRUE;
-    psOutputDenm->denm.alacarte.impactReduction_option = TRUE;
-    psOutputDenm->denm.alacarte.impactReduction.heightLonCarrLeft = 1;
-    psOutputDenm->denm.alacarte.impactReduction.heightLonCarrRight = 1;
-    psOutputDenm->denm.alacarte.impactReduction.posLonCarrLeft = 1;
-    psOutputDenm->denm.alacarte.impactReduction.posLonCarrRight = 1;
-    psOutputDenm->denm.alacarte.impactReduction.posCentMass = 1;
-    psOutputDenm->denm.alacarte.impactReduction.wheelBaseVehicle = 1;
-    psOutputDenm->denm.alacarte.impactReduction.turningRadius = 1;
-    psOutputDenm->denm.alacarte.impactReduction.posFrontAx = 1;
-    psOutputDenm->denm.alacarte.impactReduction.positionOfOccupants. = 20;
-    psOutputDenm->denm.alacarte.impactReduction.vehicleMass = 16;
-    */
-    //psOutputDenm->denm.alacarte.lanePosition_option =
-    //psOutputDenm->denm.alacarte.lanePosition =
-    //psOutputDenm->denm.alacarte.impactReduction_option =
-    //psOutputDenm->denm.alacarte.externalTemperature_option =
-    //psOutputDenm->denm.alacarte.externalTemperature =
-    //psOutputDenm->denm.alacarte.roadWorks_option =
-    //psOutputDenm->denm.alacarte.roadWorks =
-    //psOutputDenm->denm.alacarte.positioningSolution_option =
-    //psOutputDenm->denm.alacarte.positioningSolution =
-    //psOutputDenm->denm.alacarte.stationaryVehicle_option =
-    //psOutputDenm->denm.alacarte.stationaryVehicle =
+//    /*
+//     * The a la carte container contains additional information that is not provided by other containers.
+//     */
+//    psOutputDenm->denm.alacarte_option = TRUE;
+//    psOutputDenm->denm.alacarte.stationaryVehicle_option = TRUE;
+//    psOutputDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods_option = TRUE;
+//    psOutputDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods.companyName_option = TRUE;
+//    psOutputDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods.companyName.buf = (uint8_t*)g_sScenarioInfo.m_achParticipantName;
+//    psOutputDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods.companyName.len = strlen(g_sScenarioInfo.m_achParticipantName) + 1;
+//    /*
+//    psOutputDenm->denm.alacarte_option = TRUE;
+//    psOutputDenm->denm.alacarte.impactReduction_option = TRUE;
+//    psOutputDenm->denm.alacarte.impactReduction.heightLonCarrLeft = 1;
+//    psOutputDenm->denm.alacarte.impactReduction.heightLonCarrRight = 1;
+//    psOutputDenm->denm.alacarte.impactReduction.posLonCarrLeft = 1;
+//    psOutputDenm->denm.alacarte.impactReduction.posLonCarrRight = 1;
+//    psOutputDenm->denm.alacarte.impactReduction.posCentMass = 1;
+//    psOutputDenm->denm.alacarte.impactReduction.wheelBaseVehicle = 1;
+//    psOutputDenm->denm.alacarte.impactReduction.turningRadius = 1;
+//    psOutputDenm->denm.alacarte.impactReduction.posFrontAx = 1;
+//    psOutputDenm->denm.alacarte.impactReduction.positionOfOccupants. = 20;
+//    psOutputDenm->denm.alacarte.impactReduction.vehicleMass = 16;
+//    */
+//    //psOutputDenm->denm.alacarte.lanePosition_option =
+//    //psOutputDenm->denm.alacarte.lanePosition =
+//    //psOutputDenm->denm.alacarte.impactReduction_option =
+//    //psOutputDenm->denm.alacarte.externalTemperature_option =
+//    //psOutputDenm->denm.alacarte.externalTemperature =
+//    //psOutputDenm->denm.alacarte.roadWorks_option =
+//    //psOutputDenm->denm.alacarte.roadWorks =
+//    //psOutputDenm->denm.alacarte.positioningSolution_option =
+//    //psOutputDenm->denm.alacarte.positioningSolution =
+//    //psOutputDenm->denm.alacarte.stationaryVehicle_option =
+//    //psOutputDenm->denm.alacarte.stationaryVehicle =
 
     // ---------------------------------------------------------
     // ----------------- Encode ITS Message --------------------
@@ -436,9 +471,9 @@ int32_t denm_mngr_msg_encode(uint8_t **p2un8DenmPayload, fix_data_t *psPotiFixDa
 
     n32EncodedBufferLength = itsmsg_encode(p2un8DenmPayload, (ItsPduHeader *)psOutputDenm, psOutputErr);
 
-    /* Release allocated memory. */
-    free(psOutputDenm->denm.location.traces.tab[0].tab);
-    free(psOutputDenm->denm.location.traces.tab);
+    // Release allocated memory.
+//    free(psOutputDenm->denm.location.traces.tab[0].tab);
+//    free(psOutputDenm->denm.location.traces.tab);
     asn1_free_integer(&psOutputDenm->denm.management.detectionTime);
     asn1_free_integer(&psOutputDenm->denm.management.referenceTime);
 

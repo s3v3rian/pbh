@@ -20,11 +20,13 @@ INCLUDEPATH += threads.h \
     services/mapem/ \
     services/rtcmem/ \
     services/gps/ \
+    sa/processors \
     sa/algs \
     sa \
     lib/inc/ \
 
 SOURCES = startup.c \
+    sa/processors/its_msg_processor_rsu.c \
     threads.c \
     boundary/serial_ouput.c \
     common/ring_buffers.c \
@@ -36,13 +38,13 @@ SOURCES = startup.c \
     common/containers/blocked_array_queue.c \
     common/containers/array_queue.c \
     common/containers/ring_buffer.c \
-    services/cam/cam_infra.c \
     services/cam/cam_mngr.c \
-    services/denm/denm_infra.c \
     services/denm/denm_mngr.c \
+    services/mapem/mapem_mngr.c \
     services/gps/gps_poti.c \
     services/gps/gps_sim.c \
     services/gps/nmea_infra. \
+    sa/processors/commercial_its_processor.c \
     sa/algs/alg_haversine.c \
     sa/sa_database.c \
     sa/sa_mngr.c \

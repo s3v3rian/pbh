@@ -40,7 +40,7 @@ void gps_poti_sim_pause_fix_data(bool bIsPaused);
 bool gps_poti_sim_is_paused();
 void gps_poti_release();
 
-fix_data_t *gps_poti_allocate_buffer();
+void gps_poti_mngr_printf_poti(fix_data_t *psPotiFixData);
 
 /*
  *******************************************************************************

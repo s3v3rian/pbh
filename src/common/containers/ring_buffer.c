@@ -2,7 +2,6 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <stdatomic.h>
 
 /*
  *******************************************************************************
@@ -18,8 +17,8 @@
 
 typedef struct SPoolDescriptor {
 
-    _Atomic bool m_baIsInUse;
-    _Atomic uint32_t m_un32aCurrentAllocateIndex;
+    bool m_bIsInUse;
+    uint32_t m_un32CurrentAllocateIndex;
     uint32_t m_un32ElementSize;
     SDataContainerElement m_sContainerData;
 
@@ -46,8 +45,8 @@ int32_t ring_buffer_init() {
 
     for(uint32_t un32Index = 0; un32Index < MAX_NUMBER_OF_CONTAINERS; un32Index++) {
 
-        m_asContainers[un32Index].m_baIsInUse = false;
-        m_asContainers[un32Index].m_un32aCurrentAllocateIndex = 0;
+        m_asContainers[un32Index].m_bIsInUse = false;
+        m_asContainers[un32Index].m_un32CurrentAllocateIndex = 0;
     }
 
     return PROCEDURE_SUCCESSFULL;
@@ -60,9 +59,9 @@ int32_t ring_buffer_container_init(const char *pchName, uint32_t un32ElementSize
     int32_t n32PoolIndex = INVALID_CONTAINER_ID;
     for(int32_t n32Index = 0; n32Index < MAX_NUMBER_OF_CONTAINERS; n32Index++) {
 
-        if(false == m_asContainers[n32Index].m_baIsInUse) {
+        if(false == m_asContainers[n32Index].m_bIsInUse) {
 
-            m_asContainers[n32Index].m_baIsInUse = true;
+            m_asContainers[n32Index].m_bIsInUse = true;
             m_asContainers[n32Index].m_un32ElementSize = un32ElementSize;
             n32PoolIndex= n32Index;
 
@@ -115,15 +114,26 @@ int32_t ring_buffer_container_allocate(int32_t n32ContainerId, char **p2chElemen
 
     SPoolDescriptor *psPoolDescriptor = &m_asContainers[n32ContainerId];
 
-    if(false == psPoolDescriptor->m_baIsInUse) {
+    if(false == psPoolDescriptor->m_bIsInUse) {
 
         printf("spsc pop operation failed, container %d is not in use\n", n32ContainerId);
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
-    *p2chElement = psPoolDescriptor->m_sContainerData.m_pchData + psPoolDescriptor->m_un32ElementSize * psPoolDescriptor->m_un32aCurrentAllocateIndex;
+    *p2chElement = psPoolDescriptor->m_sContainerData.m_pchData + psPoolDescriptor->m_un32ElementSize * psPoolDescriptor->m_un32CurrentAllocateIndex;
 
-    psPoolDescriptor->m_un32aCurrentAllocateIndex = ((psPoolDescriptor->m_un32aCurrentAllocateIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
+    /* Make sure we reset the data structure at least once. */
+    memset(*p2chElement, 0, psPoolDescriptor->m_un32ElementSize);
+
+    for(int32_t n32Index = 0; n32Index < MAX_NUMBER_OF_CONTAINERS; n32Index++) {
+
+        if(true == m_asContainers[n32Index].m_bIsInUse) {
+
+            free(m_asContainers[n32Index].m_sContainerData.m_pchData);
+        }
+    }
+
+    psPoolDescriptor->m_un32CurrentAllocateIndex = ((psPoolDescriptor->m_un32CurrentAllocateIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
 
     return PROCEDURE_SUCCESSFULL;
 }
@@ -137,7 +147,7 @@ int32_t ring_buffer_container_release(int32_t n32ContainerId) {
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
-    m_asContainers[n32ContainerId].m_baIsInUse = false;
+    m_asContainers[n32ContainerId].m_bIsInUse = false;
     free(m_asContainers[n32ContainerId].m_sContainerData.m_pchData);
 
     return PROCEDURE_SUCCESSFULL;
@@ -147,14 +157,10 @@ int32_t ring_buffer_release() {
 
     for(int32_t n32Index = 0; n32Index < MAX_NUMBER_OF_CONTAINERS; n32Index++) {
 
-        m_asContainers[n32Index].m_baIsInUse = false;
-    }
-
-    for(int32_t n32Index = 0; n32Index < MAX_NUMBER_OF_CONTAINERS * MAX_NUMBER_OF_CONTAINERS_ELEMENTS; n32Index++) {
-
-        if(true == m_asContainers[n32Index].m_baIsInUse) {
+        if(true == m_asContainers[n32Index].m_bIsInUse) {
 
             free(m_asContainers[n32Index].m_sContainerData.m_pchData);
+            m_asContainers[n32Index].m_bIsInUse = false;
         }
     }
 

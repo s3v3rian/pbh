@@ -16,10 +16,7 @@ int32_t serial_boundary_write(char *pchSentence, int32_t n32SentenceSize, uint32
 
     int8_t n32Result = 0;
 
-    char achNewSentence[n32SentenceSize + 10];
-    n32SentenceSize = sprintf(achNewSentence, "T%d,%s", un32StationId, pchSentence);
-
-    if(n32SentenceSize != write(n32Fd, achNewSentence, n32SentenceSize)) {
+    if(n32SentenceSize != write(n32Fd, pchSentence, n32SentenceSize)) {
 
         n32Result = -2;
     }
