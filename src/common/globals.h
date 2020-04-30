@@ -55,7 +55,7 @@
 // ---------------------------------------------------------
 
 #define INVALID_EVENT_ID			0xFF
-#define POTI_id					0
+#define POTI_id					10
 #define MAX_ITS_STRING_SIZE_IN_BYTES		20
 #define MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES	1024
 
@@ -77,12 +77,6 @@
 
 // Enumerators.
 
-enum {
-
-    CommercialSubCauseCodeType_statusUpdate1,
-    CommercialSubCauseCodeType_statusUpdate2,
-};
-
 // Callbacks.
 typedef int32_t (*boundary_write)(char *pchSentence, int32_t n32SentenceSize, uint32_t un32StationId);
 
@@ -99,6 +93,12 @@ typedef struct SStationLLAData {
 
 } SStationLLAData;
 
+typedef struct SStationDynamicData {
+
+    double m_dCurrentHaversine;
+
+} SStationDynamicData;
+
 typedef struct SStationFinalizedEventData {
 
     uint64_t m_un64Events;
@@ -114,6 +114,7 @@ typedef struct SITSStationFusionData {
 
     SStationLLAData m_sCurrentLLAData;
     SStationFinalizedEventData m_sCurrentEventData;
+    SStationDynamicData m_sCurrentDynamicData;
 
 } SITSStationFusionData;
 
@@ -121,28 +122,10 @@ typedef struct SITSStationFusionData {
 // --------------- Station Structures ----------------
 // ---------------------------------------------------
 
-typedef struct SITSVehicleStationInfo {
-
-    char m_achVehicleDriverName[MAX_ITS_STRING_SIZE_IN_BYTES];
-    char m_achVehicleLicensePlate[MAX_ITS_STRING_SIZE_IN_BYTES];
-
-    // Dimensions.
-    int32_t m_n32VehicleLength;
-    int32_t m_n32VehicleWidth;
-    int32_t m_n32VehicleHeight;
-    int32_t m_n32VehicleWeight;
-
-} SITSVehicleStationInfo;
-
 typedef struct SITSCommercialStationInfo {
 
-    // Common vehicle info.
-    SITSVehicleStationInfo m_sVehicleInfo;
-
-    double m_dDeparturePointLatitude;
-    double m_dDeparturePointLongitude;
-    double m_dDestinationPointLatitude;
-    double m_dDestinationPointLongitude;
+    SStationLLAData m_sDepartureLocation;
+    SStationLLAData m_sDestinationLocation;
 
     bool m_bIsDangerousGoods;
     int32_t m_eDangerousGoodsType;
@@ -155,25 +138,42 @@ typedef struct SITSCommercialStationInfo {
 
 } SITSCommercialStationInfo;
 
+typedef struct SITSVehicleStationInfo {
+
+    char m_achVehicleDriverName[MAX_ITS_STRING_SIZE_IN_BYTES];
+    char m_achVehicleLicensePlate[MAX_ITS_STRING_SIZE_IN_BYTES];
+
+    // Dimensions.
+    int32_t m_n32VehicleLength;
+    int32_t m_n32VehicleWidth;
+    int32_t m_n32VehicleHeight;
+    int32_t m_n32VehicleWeight;
+    double m_dVehicleSpeed;
+
+    union {
+
+        SITSCommercialStationInfo m_sCommercialVehicleInfo;
+
+    } m_usSpecifics;
+
+} SITSVehicleStationInfo;
+
+typedef struct SITSStationGeneralParameters {
+
+    int32_t m_n32TxFrequencyIn10Hz;
+
+} SITSStationGeneralParameters;
+
 typedef struct SITSStationInfo {
 
     uint32_t m_un32StationId;
     int32_t m_n32StationType;
     int32_t m_n32SubStationType;
 
-    union {
-
-        SITSCommercialStationInfo m_sCommercialStationInfo;
-
-    } m_usAdditionals;
+    SITSStationGeneralParameters m_sParameters;
+    SITSVehicleStationInfo m_sVehicleInfo;
 
 } SITSStationInfo;
-
-typedef struct SITSTxParameters {
-
-    int32_t m_n32TxFrequencyIn10Hz;
-
-} SITSTxParameters;
 
 // ---------------------------------------------------
 // -------------- Container Structures ---------------
@@ -212,8 +212,7 @@ typedef struct SITSScenarioInfo {
 
 // Global configuration.
 SITSStationInfo g_sLocalStationInfo;
-SITSScenarioInfo g_sScenarioInfo;
-SITSTxParameters g_sTxParameters;
+SITSScenarioInfo g_sLocalScenarioInfo;
 char *g_pchConfigurationFileDirectoryPath;
 
 // Callbacks.

@@ -15,16 +15,18 @@
 
 #include "sa/processors/its_msg_processor_commercial.h"
 #include "sa/processors/its_msg_processor_rsu.h"
-
 #include "sa/sa_mngr.h"
+
+#include "sim/processors/sim_processor_commercial.h"
+#include "sim/processors/sim_processor_rsu.h"
+
+#include "sim/sim_mngr.h"
 
 /*
  *******************************************************************************
  * Private/Extern variables
  *******************************************************************************
  */
-
-bool m_bIsScenarioLoaded;
 
 /*
  *******************************************************************************
@@ -75,62 +77,7 @@ int32_t general_parameters_ini_loader(void* pchUser, const char* pchSection, con
 
         if(0 == strcmp("tx_frequency_in_10_hz", pchName)) {
 
-            g_sTxParameters.m_n32TxFrequencyIn10Hz = strtol(pchValue, &pchError, 10);
-        }
-    }
-
-    return n32Reuslt;
-}
-
-int32_t simulator_info_ini_loader(void* pchUser, const char* pchSection, const char* pchName, const char* pchValue) {
-
-    char *pchError = NULL;
-    int32_t n32Reuslt = PROCEDURE_SUCCESSFULL;
-
-    if(0 == strcmp(CONFIGURATION_FILE_SCENARIO_PARAMS_USER, pchUser)) {
-
-        if(0 == strcmp("scenario_info", pchSection)) {
-
-            if(false == m_bIsScenarioLoaded) {
-
-                if(0 == strcmp("scenario_en", pchName)) {
-
-                    if(0 < strtol(pchValue, &pchError, 10)) {
-
-                        g_sScenarioInfo.m_bIsScenarioEnabled = true;
-                    }
-
-                } else if(true == g_sScenarioInfo.m_bIsScenarioEnabled) {
-
-                    if(0 == strcmp("scenario_name", pchName)) {
-
-                        memcpy(g_sScenarioInfo.m_achName, pchValue, strlen(pchValue) + 1);
-
-                    } else if(0 == strcmp("scenario_gps_sim_en", pchName)) {
-
-                        g_sScenarioInfo.m_bIsGpsSimEnabled = strtol(pchValue, &pchError, 10);
-
-                    } else if(0 == strcmp("scenario_gps_sim_id", pchName)) {
-
-                        memcpy(g_sScenarioInfo.m_achParticipantId, pchValue, strlen(pchValue) + 1);
-
-                    } else if(0 == strcmp("scenario_gps_sim_sync_id", pchName)) {
-
-                        g_sScenarioInfo.m_un32GpSimSyncId = strtol(pchValue, &pchError, 10);
-                        m_bIsScenarioLoaded = true;
-                    }
-                }
-            }
-        }
-
-    } else if(0 == strcmp(CONFIGURATION_FILE_SCENARIO_PARTICIPANT_PARAMS_USER, pchUser)) {
-
-        if(0 == strcmp("participant_info", pchSection)) {
-
-            if(0 == strcmp("participant_name", pchName)) {
-
-                memcpy(g_sScenarioInfo.m_achParticipantName, pchValue, strlen(pchValue) + 1);
-            }
+            g_sLocalStationInfo.m_sParameters.m_n32TxFrequencyIn10Hz = strtol(pchValue, &pchError, 10);
         }
     }
 
@@ -212,21 +159,16 @@ int32_t main(int argc, char **argv) {
 
     // Reset configuration file fields.
     memset(&g_sLocalStationInfo, 0, sizeof(g_sLocalStationInfo));
-    memset(&g_sScenarioInfo, 0, sizeof(g_sScenarioInfo));
-    memset(&g_sTxParameters, 0, sizeof(g_sTxParameters));
+    memset(&g_sLocalScenarioInfo, 0, sizeof(g_sLocalScenarioInfo));
 
-    int32_t n32ProcedureResult = 0;
+    int32_t n32ProcedureResult = PROCEDURE_SUCCESSFULL;
 
     char achFilePath[100];
 
     sprintf(achFilePath, "%s/station_info.ini", g_pchConfigurationFileDirectoryPath);
-    n32ProcedureResult &= ini_parse(achFilePath, station_info_ini_loader, CONFIGURATION_FILE_STATION_INFO_USER);
-    sprintf(achFilePath, "%s/scenario_parameters.ini", g_pchConfigurationFileDirectoryPath);
-    n32ProcedureResult &= ini_parse(achFilePath, general_parameters_ini_loader, CONFIGURATION_FILE_SCENARIO_PARAMS_USER);
+    ini_parse(achFilePath, station_info_ini_loader, CONFIGURATION_FILE_STATION_INFO_USER);
     sprintf(achFilePath, "%s/general_parameters.ini", g_pchConfigurationFileDirectoryPath);
-    n32ProcedureResult &= ini_parse(achFilePath, simulator_info_ini_loader, CONFIGURATION_FILE_GENERAL_PARAMS_USER);
-    sprintf(achFilePath, "%s/simulator/%s/%s/participant_parameters.ini", g_pchConfigurationFileDirectoryPath, g_sScenarioInfo.m_achName, g_sScenarioInfo.m_achParticipantId);
-    n32ProcedureResult &= ini_parse(achFilePath, simulator_info_ini_loader, CONFIGURATION_FILE_SCENARIO_PARTICIPANT_PARAMS_USER);
+    ini_parse(achFilePath, general_parameters_ini_loader, CONFIGURATION_FILE_GENERAL_PARAMS_USER);
 
     if(PROCEDURE_SUCCESSFULL != n32ProcedureResult) {
 
@@ -234,35 +176,74 @@ int32_t main(int argc, char **argv) {
         return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
     }
 
+    printf("Successfully loaded configuration files\n");
+
+#ifdef __EN_SIMULATOR_FEATURE__
+
+    printf("Initializing simulator\n");
+
+    // Set station type callbacks.
+    switch(g_sLocalStationInfo.m_n32StationType) {
+
+        case GN_ITS_STATION_HEAVY_TRUCK:
+
+            g_fp_sim_processor_init = sim_processor_commercial_init;
+            g_fp_sim_processor_do = sim_processor_commercial_do;
+            break;
+
+        case GN_ITS_STATION_ROAD_SIDE_UNIT:
+
+            g_fp_sim_processor_init = sim_processor_rsu_init;
+            g_fp_sim_processor_do = sim_processor_rsu_do;
+            break;
+
+        default:
+            break;
+    }
+
+    n32ProcedureResult |= sim_mngr_init();
+
+    if(PROCEDURE_SUCCESSFULL != n32ProcedureResult) {
+
+        printf("Cannot initialize simulator\n");
+        return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
+    }
+
+#endif
+
     print_configuration_parameters();
 
     // -------------------------------------------------
     // -------------- Initialize Services --------------
     // -------------------------------------------------
 
-#ifdef __SERIAL_OUTPUT_ENABLED__
+#ifdef __EN_SERIAL_OUTPUT_FEATURE__
 
+    printf("Set boundary writer to serial interface\n");
     g_fp_write_to_boundary = serial_boundary_write;
 
 #else
 
+    printf("Set boundary writer to ethernet interface\n");
     g_fpBoundaryWriter = ethernet_boundary_write;
 
 #endif
 
-    printf("Initializing containers...\n");
+    printf("Initializing containers\n");
 
     // Initialize containers.
-    n32ProcedureResult &= array_queue_init();
-    n32ProcedureResult &= spsc_array_queue_init();
-    n32ProcedureResult &= blocked_array_queue_init();
-    n32ProcedureResult &= ring_buffer_init();
+    n32ProcedureResult |= array_queue_init();
+    n32ProcedureResult |= spsc_array_queue_init();
+    n32ProcedureResult |= blocked_array_queue_init();
+    n32ProcedureResult |= ring_buffer_init();
 
     if(PROCEDURE_SUCCESSFULL != n32ProcedureResult) {
 
         printf("Cannot init containers\n");
         return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
     }
+
+    printf("Successfully initialized containers\n");
 
     // -------------------------------------------------
     // --------- Initialize Situation Awarness ---------
@@ -275,23 +256,17 @@ int32_t main(int argc, char **argv) {
         case GN_ITS_STATION_HEAVY_TRUCK:
 
             g_fp_its_processor_init = its_msg_processor_cm_init;
-            g_fp_its_processor_proccess_cam = its_msg_processor_cm_process_cam;
-            g_fp_its_processor_proccess_denm = its_msg_processor_cm_process_denm;
-            g_fp_its_processor_process_poti_cam = its_msg_processor_cm_process_poti_cam;
-            g_fp_its_processor_process_poti_denm = its_msg_processor_cm_process_poti_denm;
-            g_fp_its_processor_clear_cam = its_msg_processor_cm_clear_cam;
-            g_fp_its_processor_clear_denm = its_msg_processor_cm_clear_denm;
+            g_fp_its_processor_process_poti = its_msg_processor_cm_process_poti;
+            g_fp_its_processor_proccess_cam = its_msg_processor_cm_process_rx_cam;
+            g_fp_its_processor_proccess_denm = its_msg_processor_cm_process_rx_denm;
             break;
 
         case GN_ITS_STATION_ROAD_SIDE_UNIT:
 
             g_fp_its_processor_init = its_msg_processor_rsu_init;
-            g_fp_its_processor_proccess_cam = its_msg_processor_rsu_process_cam;
-            g_fp_its_processor_proccess_denm = its_msg_processor_rsu_process_denm;
-            g_fp_its_processor_process_poti_cam = its_msg_processor_rsu_process_poti_cam;
-            g_fp_its_processor_process_poti_denm = its_msg_processor_rsu_process_poti_denm;
-            g_fp_its_processor_clear_cam = its_msg_processor_rsu_clear_cam;
-            g_fp_its_processor_clear_denm = its_msg_processor_rsu_clear_denm;
+            g_fp_its_processor_process_poti = its_msg_processor_rsu_process_poti;
+            g_fp_its_processor_proccess_cam = its_msg_processor_rsu_process_rx_cam;
+            g_fp_its_processor_proccess_denm = its_msg_processor_rsu_process_rx_denm;
             break;
 
         default:
@@ -301,7 +276,7 @@ int32_t main(int argc, char **argv) {
     }
 
     // Initialize SA manager.
-    n32ProcedureResult &= sa_mngr_init();
+    n32ProcedureResult |= sa_mngr_init();
 
     if(PROCEDURE_SUCCESSFULL != n32ProcedureResult) {
 
@@ -330,6 +305,12 @@ int32_t main(int argc, char **argv) {
     // -------------------------------------------------
 
     printf("Releasing all resources...\n");
+
+#ifdef __EN_SIMULATOR_FEATURE__
+
+    sim_mngr_release();
+
+#endif
 
     // Shutdown situation awareness manager.
     sa_mngr_release();

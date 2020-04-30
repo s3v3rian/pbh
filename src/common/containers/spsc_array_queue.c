@@ -52,7 +52,7 @@ int32_t spsc_array_queue_init() {
     }
 
     // Create queue elements array.
-    m_psContainerArray = malloc(sizeof(SDataContainerElement) * MAX_NUMBER_OF_CONTAINERS * MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
+    m_psContainerArray = calloc(MAX_NUMBER_OF_CONTAINERS * MAX_NUMBER_OF_CONTAINERS_ELEMENTS, sizeof(SDataContainerElement));
 
     for(uint32_t un32Index = 0; un32Index < MAX_NUMBER_OF_CONTAINERS * MAX_NUMBER_OF_CONTAINERS_ELEMENTS; un32Index++) {
 

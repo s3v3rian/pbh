@@ -3,7 +3,6 @@
 #include "lib/inc/error_code_user.h"
 #include "lib/inc/asn1defs_if.h"
 
-#include "services/gps/gps_sim.h"
 #include "services/gps/nmea_infra.h"
 
 /*
@@ -13,6 +12,10 @@
  */
 
 poti_service_t *m_pPotiHandler;
+
+fix_data_t m_asPotiRingBuffer[MAX_NUMBER_OF_CONTAINERS_ELEMENTS];
+
+int32_t m_n32PotiRingBufferIndex = 0;
 
 /*
  *******************************************************************************
@@ -32,37 +35,14 @@ int32_t gps_poti_init() {
         return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
     }
 
-    // Initialize GPS simulator.
-#ifdef __SIMULATOR_ENABLED__
-
-    if(true == g_sScenarioInfo.m_bIsScenarioEnabled) {
-
-        n32ProcedureResult = gps_sim_init(g_sScenarioInfo.m_achName, g_sScenarioInfo.m_achParticipantId);
-
-        if(PROCEDURE_SUCCESSFULL != n32ProcedureResult) {
-
-            printf("Cannot initialize gps simulator\n");
-            return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
-
-        } else {
-
-            gps_sim_pause_fix_data(true);
-
-            if(0 == g_sScenarioInfo.m_un32GpSimSyncId
-                || g_sScenarioInfo.m_un32GpSimSyncId == g_sLocalStationInfo.m_un32StationId) {
-
-                gps_sim_pause_fix_data(false);
-            }
-        }
-    }
-
-#endif
-
     return n32ProcedureResult;
 
 }
 
-int32_t gps_poti_get_fix_data(fix_data_t *psPotiFixData) {
+int32_t gps_poti_get_fix_data(fix_data_t **p2sPotiFixData) {
+
+    fix_data_t *psPotiFixData = &m_asPotiRingBuffer[m_n32PotiRingBufferIndex++];
+    m_n32PotiRingBufferIndex = (m_n32PotiRingBufferIndex % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
 
     if(NULL == psPotiFixData) {
 
@@ -89,32 +69,12 @@ int32_t gps_poti_get_fix_data(fix_data_t *psPotiFixData) {
         return PROCEDURE_INVALID_SERVICE_RX_ERROR;
     }
 
-#ifdef __SIMULATOR_ENABLED__
-
-    gps_sim_update_fix_data(psPotiFixData);
-
-#endif
+    *p2sPotiFixData = psPotiFixData;
 
     return n32ProcedureResult;
 }
 
-void gps_poti_sim_pause_fix_data(bool bIsPaused) {
-
-    gps_sim_pause_fix_data(bIsPaused);
-}
-
-bool gps_poti_sim_is_paused() {
-
-    return gps_sim_is_paused();
-}
-
 void gps_poti_release() {
-
-#ifdef __SIMULATOR_ENABLED__
-
-    gps_sim_release();
-
-#endif
 
     poti_release_service(m_pPotiHandler);
 }
@@ -127,7 +87,7 @@ void gps_poti_mngr_printf_poti(fix_data_t *psPotiFixData) {
     n32SentenceSize += snprintf(
                 achSentence + n32SentenceSize,
                 MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
-                "T%d",
+                "T%d,",
                 g_sLocalStationInfo.m_un32StationId);
 
     // Convert POTI info to NMEA data.

@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <semaphore.h>
+#include <fcntl.h>
 
 /*
  *******************************************************************************
@@ -18,11 +20,12 @@
 
 typedef struct SQueueDescriptor {
 
-    bool m_bIsInUse;
-    uint32_t m_un32CurrentPushIndex;
-    uint32_t m_un32CurrentPopIndex;
     pthread_mutex_t m_Mutex;
-    pthread_cond_t m_Conditon;
+    pthread_cond_t m_ConditionEmpty;
+
+    bool m_bIsInUse;
+    int32_t m_n32CurrentPushIndex;
+    int32_t m_n32CurrentPopIndex;
 
 } SQueueDescriptor;
 
@@ -49,12 +52,12 @@ int32_t blocked_array_queue_init() {
     for(uint32_t un32Index = 0; un32Index < MAX_NUMBER_OF_CONTAINERS; un32Index++) {
 
         m_asContainers[un32Index].m_bIsInUse = false;
-        m_asContainers[un32Index].m_un32CurrentPushIndex = 0;
-        m_asContainers[un32Index].m_un32CurrentPopIndex = 0;
+        m_asContainers[un32Index].m_n32CurrentPushIndex = 0;
+        m_asContainers[un32Index].m_n32CurrentPopIndex = 0;
     }
 
     // Create queue elements array.
-    m_psContainerArray = malloc(sizeof(SDataContainerElement) * MAX_NUMBER_OF_CONTAINERS * MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
+    m_psContainerArray = calloc(MAX_NUMBER_OF_CONTAINERS * MAX_NUMBER_OF_CONTAINERS_ELEMENTS, sizeof(SDataContainerElement));
 
     for(uint32_t un32Index = 0; un32Index < MAX_NUMBER_OF_CONTAINERS * MAX_NUMBER_OF_CONTAINERS_ELEMENTS; un32Index++) {
 
@@ -67,7 +70,7 @@ int32_t blocked_array_queue_init() {
 
 int32_t blocked_array_queue_container_init(const char *pchName) {
 
-    printf("Creating SPSC Array Queue - %s\n", pchName);
+    printf("Creating Blocked Array Queue - %s\n", pchName);
 
     int32_t n32QueueIndex = INVALID_CONTAINER_ID;
     for(int32_t n32Index = 0; n32Index < MAX_NUMBER_OF_CONTAINERS; n32Index++) {
@@ -76,6 +79,14 @@ int32_t blocked_array_queue_container_init(const char *pchName) {
 
             m_asContainers[n32Index].m_bIsInUse = true;
             n32QueueIndex= n32Index;
+
+            pthread_mutex_init(&m_asContainers[n32Index].m_Mutex, NULL);
+            pthread_cond_init(&m_asContainers[n32Index].m_ConditionEmpty, NULL);
+
+           // m_asContainers[n32Index].m_pSemEmpty = sem_open("/empty", O_CREAT, 0644, 10);
+            //m_asContainers[n32Index].m_pSemFull = sem_open("/full", O_CREAT, 0644, 0);
+            //m_asContainers[n32Index].m_pSemMutex = sem_open("/mutex", O_CREAT, 0644, 1);
+
             break;
         }
     }
@@ -99,16 +110,28 @@ int32_t blocked_array_queue_container_push(int32_t n32ContainerId, int32_t n32El
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
+    printf("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO\n");
+
+    //sem_wait(psQueueDescriptor->m_pSemEmpty);
+    //sem_wait(psQueueDescriptor->m_pSemMutex);
+
     pthread_mutex_lock(&psQueueDescriptor->m_Mutex);
 
+    printf("Locked and loaded\n");
 
-    SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_un32CurrentPushIndex);
+    SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_n32CurrentPushIndex);
     psQueueElement->m_n32Data = n32ElementId;
     psQueueElement->m_pchData = pchElement;
-    psQueueDescriptor->m_un32CurrentPushIndex = ((psQueueDescriptor->m_un32CurrentPushIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
+    psQueueDescriptor->m_n32CurrentPushIndex = ((psQueueDescriptor->m_n32CurrentPushIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
 
-    pthread_cond_signal(&psQueueDescriptor->m_Conditon);
+    //sem_post(psQueueDescriptor->m_pSemMutex);
+    //sem_post(psQueueDescriptor->m_pSemFull);
+
+    pthread_cond_broadcast(&psQueueDescriptor->m_ConditionEmpty);
+    printf("Finishing 2....\n");
     pthread_mutex_unlock(&psQueueDescriptor->m_Mutex);
+
+    printf("Finishing....\n");
 
     return PROCEDURE_SUCCESSFULL;
 }
@@ -130,22 +153,29 @@ int32_t blocked_array_queue_container_pop(int32_t n32ContainerId, int32_t *pn32E
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
+    //sem_wait(psQueueDescriptor->m_pSemFull);
+    //sem_wait(psQueueDescriptor->m_pSemMutex);
     pthread_mutex_lock(&psQueueDescriptor->m_Mutex);
-    pthread_cond_wait(&psQueueDescriptor->m_Conditon, &psQueueDescriptor->m_Mutex);
+    pthread_cond_wait(&psQueueDescriptor->m_ConditionEmpty, &psQueueDescriptor->m_Mutex);
 
-    void *pvQueueElement = m_psContainerArray + ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_un32CurrentPopIndex);
+    printf("Popping an item\n");
+
+    void *pvQueueElement = m_psContainerArray + ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_n32CurrentPopIndex);
 
     if(NULL != pvQueueElement) {
 
-        SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_un32CurrentPopIndex);
+        SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_n32CurrentPopIndex);
         *pn32ElementId = psQueueElement->m_n32Data;
         *p2chElement = psQueueElement->m_pchData;
 
         psQueueElement->m_n32Data = INVALID_CONTAINER_ELEMENT_ID;
         psQueueElement->m_pchData = NULL;
 
-        psQueueDescriptor->m_un32CurrentPopIndex = ((psQueueDescriptor->m_un32CurrentPopIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
+        psQueueDescriptor->m_n32CurrentPopIndex = ((psQueueDescriptor->m_n32CurrentPopIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
     }
+
+   // sem_post(psQueueDescriptor->m_pSemMutex);
+   // sem_post(psQueueDescriptor->m_pSemEmpty);
 
     pthread_mutex_unlock(&psQueueDescriptor->m_Mutex);
 

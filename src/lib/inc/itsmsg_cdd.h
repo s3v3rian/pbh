@@ -150,8 +150,6 @@ enum { /* Pre-defined values of CauseCodeType */
        CauseCodeType_trafficCondition = 1,
        CauseCodeType_accident = 2,
        CauseCodeType_roadworks = 3,
-       CauseCodeType_redLight = 4,
-       CauseCodeType_commercialVehicleSituation = 5,
        CauseCodeType_adverseWeatherCondition_Adhesion = 6,
        CauseCodeType_hazardousLocation_SurfaceCondition = 9,
        CauseCodeType_hazardousLocation_ObstacleOnTheRoad = 10,
@@ -173,6 +171,7 @@ enum { /* Pre-defined values of CauseCodeType */
        CauseCodeType_collisionRisk = 97,
        CauseCodeType_signalViolation = 98,
        CauseCodeType_dangerousSituation = 99,
+       CauseCodeType_commercialVehicleSituation = 100,
 };
 
 typedef struct CauseCode {
@@ -190,6 +189,8 @@ enum { /* Pre-defined values of TrafficConditionSubCauseCode */
        TrafficConditionSubCauseCode_trafficJamSlightlyDecreasing = 6,
        TrafficConditionSubCauseCode_trafficJamDecreasing = 7,
        TrafficConditionSubCauseCode_trafficJamStronglyDecreasing = 8,
+       TrafficConditionSubCauseCode_trafficRedLight = 9,
+       TrafficConditionSubCauseCode_trafficGreenLight =10, // TODO Remove
 };
 enum { /* One enum to represent CauseCodeType and SubCauseCode of TrafficCondition */
        TrafficCondition_unavailable = 1 << 4 | 0,

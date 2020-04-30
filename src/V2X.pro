@@ -4,9 +4,9 @@ CONFIG =
 LIBS += -L/home/s3v3rian/V2X/pbh/src/lib/ -lpthread -lrt -lm -litsg5_protocol -ltomcrypt -ltommath
 
 DEFINES += __EN_SECURITY_FEATURE__=1
-DEFINES += __SIMULATOR_ENABLED__=1
-DEFINES += __DEBUG_PRINTING_ENABLED__=1
-DEFINES += __SERIAL_OUTPUT_ENABLED__=1
+DEFINES += __EN_SIMULATOR_FEATURE__=1
+DEFINES += __EN_DEBUG_PRINTING_FEATURE__=1
+DEFINES += __EN_SERIAL_OUTPUT_FEATURE__=1
 
 INCLUDEPATH += threads.h \
     boundary/ \
@@ -20,13 +20,14 @@ INCLUDEPATH += threads.h \
     services/mapem/ \
     services/rtcmem/ \
     services/gps/ \
-    sa/processors \
-    sa/algs \
-    sa \
+    sa/processors/ \
+    sa/algs/ \
+    sa/ \
+    sim/processors/ \
+    sim/ \
     lib/inc/ \
 
 SOURCES = startup.c \
-    sa/processors/its_msg_processor_rsu.c \
     threads.c \
     boundary/serial_ouput.c \
     common/ring_buffers.c \
@@ -42,10 +43,15 @@ SOURCES = startup.c \
     services/denm/denm_mngr.c \
     services/mapem/mapem_mngr.c \
     services/gps/gps_poti.c \
-    services/gps/gps_sim.c \
     services/gps/nmea_infra. \
-    sa/processors/commercial_its_processor.c \
+    sa/processors/its_msg_processor.c \
+    sa/processors/its_msg_processor_rsu.c \
+    sa/processors/its_msg_processor_commercial.c \
     sa/algs/alg_haversine.c \
     sa/sa_database.c \
     sa/sa_mngr.c \
+    sim/processors/sim_processor_rsu.c \
+    sim/processors/sim_processor_commercial.c \
+    sim/sim_mngr.c \
+    sim/gps_sim.c \
 

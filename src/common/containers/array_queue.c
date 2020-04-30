@@ -51,7 +51,7 @@ int32_t array_queue_init() {
     }
 
     // Create queue elements array.
-    m_psContainerArray = malloc(sizeof(SDataContainerElement) * MAX_NUMBER_OF_CONTAINERS * MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
+    m_psContainerArray = calloc(MAX_NUMBER_OF_CONTAINERS * MAX_NUMBER_OF_CONTAINERS_ELEMENTS, sizeof(SDataContainerElement));
 
     for(uint32_t un32Index = 0; un32Index < MAX_NUMBER_OF_CONTAINERS * MAX_NUMBER_OF_CONTAINERS_ELEMENTS; un32Index++) {
 
@@ -66,7 +66,7 @@ int32_t array_queue_init() {
 
 int32_t array_queue_container_init(const char *pchName) {
 
-    printf("Creating SPSC Array Queue - %s\n", pchName);
+    printf("Creating Array Queue - %s\n", pchName);
 
     int32_t n32QueueIndex = INVALID_CONTAINER_ID;
     for(int32_t n32Index = 0; n32Index < MAX_NUMBER_OF_CONTAINERS; n32Index++) {

@@ -13,7 +13,9 @@ INC_DIR = -Ilib/inc \
 	  -Icommon/containers \
 	  -Isa/processors \
 	  -Isa/algs \
-	  -Isa
+	  -Isa \
+	  -Isim/processors \
+	  -Isim
 LIB_PATH = lib/
 LIBS := lib/*.a -pthread -lrt -lm
 LDFLAGS :=-g -L$(LIB_PATH)
@@ -31,7 +33,9 @@ DEPS = $(wildcard *.h) \
       $(wildcard common/containers/*.h) \
       $(wildcard sa/processors/*.h) \
       $(wildcard sa/algs/*.h) \
-      $(wildcard sa/*.h)
+      $(wildcard sa/*.h) \
+      $(wildcard sim/processors/*.h) \
+      $(wildcard sim/*.h)
 SRC = $(wildcard *.c) \
       $(wildcard services/*.c) \
       $(wildcard services/denm/*.c) \
@@ -44,7 +48,9 @@ SRC = $(wildcard *.c) \
       $(wildcard common/containers/*.c) \
       $(wildcard sa/processors/*.c) \
       $(wildcard sa/algs/*.c) \
-      $(wildcard sa/*.c)
+      $(wildcard sa/*.c) \
+      $(wildcard sim/processors/*.c) \
+      $(wildcard sim/*.c)
 OBJ = $(SRC:.c=.o)
 EXECUTABLES=v2x_car
 
@@ -53,7 +59,7 @@ EXECUTABLES=v2x_car
 all: $(EXECUTABLES)
 
 %.o: %.c $(DEPS)	
-	$(CC) -D__EN_SECURITY_FEATURE__=1 -D__DEBUG_PRINTING_ENABLED__=1 -D__SERIAL_OUTPUT_ENABLED__=1 -D__SIMULATOR_ENABLED__=1 -c -o $@ $< $(CFLAGS)
+	$(CC) -D__EN_SECURITY_FEATURE__=1 -D__EN_DEBUG_PRINTING_FEATURE__=1 -D__EN_SERIAL_OUTPUT_FEATURE__=1 -D__EN_SIMULATOR_FEATURE__=1 -c -o $@ $< $(CFLAGS)
 
 v2x_car: $(OBJ)	
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)

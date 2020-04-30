@@ -136,6 +136,8 @@ int32_t cam_mngr_process_tx(SITSStationInfo *psStationInfo, fix_data_t *psPotiFi
     uint8_t *pun8TxPayload = NULL;
     int32_t n32TxPayloadSize = 0;
 
+    //printf("Preparing CAM message\n");
+
     cam_mngr_msg_init(psStationInfo, psOutputCam);
 
     // Generate CAM message.
@@ -151,6 +153,8 @@ int32_t cam_mngr_process_tx(SITSStationInfo *psStationInfo, fix_data_t *psPotiFi
         printf("Failed to generate CAM message\n");
         return PROCEDURE_INVALID_SERVICE_TX_ERROR;
     }
+
+    //printf("Sending CAM message\n");
 
     /* Broadcast the CAM message (BTP-B, SHB). */
     n32Result = btp_send(m_pBtpCamHandler, &m_sBtpCamSendConfig, pun8TxPayload, n32TxPayloadSize);
@@ -233,7 +237,7 @@ void cam_mngr_printf_cam(CAM *psCam) {
     n32SentenceSize += snprintf(
                 achSentence + n32SentenceSize,
                 MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
-                "T%d",
+                "T%d,",
                 psCam->header.stationID);
 
     SNmeaRmcData sRmcData;
@@ -279,7 +283,6 @@ static int32_t cam_mngr_msg_init(SITSStationInfo *psStationInfo, CAM *psOutputCa
 
 int32_t cam_mngr_msg_encode(uint8_t **p2un8CamPayload, fix_data_t *psPotiFixData, CAM *psOutputCam, ITSMsgCodecErr *psOutputErr) {
 
-    ITSMsgCodecErr err;
     int buf_len = 0;
 
     /*
@@ -316,122 +319,118 @@ int32_t cam_mngr_msg_encode(uint8_t **p2un8CamPayload, fix_data_t *psPotiFixData
     psOutputCam->cam.camParameters.basicContainer.referencePosition.altitude.altitudeValue = (int32_t)(psPotiFixData->altitude * 100.0); /* Convert to 0.01 metre. */
     psOutputCam->cam.camParameters.basicContainer.referencePosition.altitude.altitudeConfidence = cam_mngr_set_altitude_confidence(psPotiFixData->err_altitude);
 
-//    /*
-//     * The mandatory high frequency container of CAM.
-//     */
+    /*
+     * The mandatory high frequency container of CAM.
+     */
 
-//    /* Heading. */
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.heading.headingValue = (int32_t)(psPotiFixData->course_over_ground * 10.0); /* Convert to 0.1 degree from North. */
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.heading.headingConfidence = cam_mngr_set_heading_confidence(psPotiFixData->err_course_over_ground); /* Convert to 1 ~ 127 enumeration. */
+    /* Heading. */
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.heading.headingValue = (int32_t)(psPotiFixData->course_over_ground * 10.0); /* Convert to 0.1 degree from North. */
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.heading.headingConfidence = cam_mngr_set_heading_confidence(psPotiFixData->err_course_over_ground); /* Convert to 1 ~ 127 enumeration. */
 
-//    /* Speed, 0.01 m/s */
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.speed.speedValue = (int16_t)(psPotiFixData->horizontal_speed * 100.0); /* Convert to 0.01 metre per second. */
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.speed.speedConfidence = cam_mngr_set_speed_confidence(psPotiFixData->err_horizontal_speed);
+    /* Speed, 0.01 m/s */
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.speed.speedValue = (int16_t)(psPotiFixData->horizontal_speed * 100.0); /* Convert to 0.01 metre per second. */
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.speed.speedConfidence = cam_mngr_set_speed_confidence(psPotiFixData->err_horizontal_speed);
 
-//    /* Direction. */
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.driveDirection = CAM_SENSOR_GET_DRIVE_DIRECTION();
+    /* Direction. */
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.driveDirection = CAM_SENSOR_GET_DRIVE_DIRECTION();
 
-//    /* Vehicle length, 0.1 metre  */
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.vehicleLength.vehicleLengthValue = CAM_SENSOR_GET_VEHICLE_LENGTH_VALUE();
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.vehicleLength.vehicleLengthConfidenceIndication = CAM_SENSOR_GET_VEHICLE_LENGTH_CONF();
+    /* Vehicle length, 0.1 metre  */
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.vehicleLength.vehicleLengthValue = CAM_SENSOR_GET_VEHICLE_LENGTH_VALUE();
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.vehicleLength.vehicleLengthConfidenceIndication = CAM_SENSOR_GET_VEHICLE_LENGTH_CONF();
 
-//    /* Vehicle width, 0.1 metre */
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.vehicleWidth = CAM_SENSOR_GET_VEGICLE_WIDTH_VALUE();
+    /* Vehicle width, 0.1 metre */
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.vehicleWidth = CAM_SENSOR_GET_VEGICLE_WIDTH_VALUE();
 
-//    /* Longitudinal acceleration, 0.1 m/s^2 */
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.longitudinalAcceleration.longitudinalAccelerationValue = CAM_SENSOR_GET_LONG_ACCEL_VALUE();
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.longitudinalAcceleration.longitudinalAccelerationConfidence = CAM_SENSOR_GET_LONG_ACCEL_CONF();
+    /* Longitudinal acceleration, 0.1 m/s^2 */
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.longitudinalAcceleration.longitudinalAccelerationValue = CAM_SENSOR_GET_LONG_ACCEL_VALUE();
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.longitudinalAcceleration.longitudinalAccelerationConfidence = CAM_SENSOR_GET_LONG_ACCEL_CONF();
 
-//    /*
-//     * Curvature value, 1 over 30000 meters, (-30000 .. 30001)
-//     * The confidence value shall be set to:
-//     *      0 if the accuracy is less than or equal to 0,00002 m-1
-//     *      1 if the accuracy is less than or equal to 0,0001 m-1
-//     *      2 if the accuracy is less than or equal to 0,0005 m-1
-//     *      3 if the accuracy is less than or equal to 0,002 m-1
-//     *      4 if the accuracy is less than or equal to 0,01 m-1
-//     *      5 if the accuracy is less than or equal to 0,1 m-1
-//     *      6 if the accuracy is out of range, i.e. greater than 0,1 m-1
-//     *      7 if the information is not available
-//     */
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.curvature.curvatureValue = CAM_SENSOR_GET_CURVATURE_VALUE();
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.curvature.curvatureConfidence = CAM_SENSOR_GET_CURVATURE_CONF();
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.curvatureCalculationMode = CAM_SENSOR_GET_CURVATURE_CONF_CAL_MODE();
+    /*
+     * Curvature value, 1 over 30000 meters, (-30000 .. 30001)
+     * The confidence value shall be set to:
+     *      0 if the accuracy is less than or equal to 0,00002 m-1
+     *      1 if the accuracy is less than or equal to 0,0001 m-1
+     *      2 if the accuracy is less than or equal to 0,0005 m-1
+     *      3 if the accuracy is less than or equal to 0,002 m-1
+     *      4 if the accuracy is less than or equal to 0,01 m-1
+     *      5 if the accuracy is less than or equal to 0,1 m-1
+     *      6 if the accuracy is out of range, i.e. greater than 0,1 m-1
+     *      7 if the information is not available
+     */
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.curvature.curvatureValue = CAM_SENSOR_GET_CURVATURE_VALUE();
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.curvature.curvatureConfidence = CAM_SENSOR_GET_CURVATURE_CONF();
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.curvatureCalculationMode = CAM_SENSOR_GET_CURVATURE_CONF_CAL_MODE();
+    /* YAW rate, 0,01 degree per second. */
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.yawRate.yawRateValue = CAM_SENSOR_GET_YAW_RATE_VALUE();
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.yawRate.yawRateConfidence = CAM_SENSOR_GET_YAW_RATE_CONF();
+    /* Optional fields, disable all by default. */
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.accelerationControl_option = FALSE;
+    //cam_tx_encode_fmt.cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.accelerationControl =
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.lanePosition_option = FALSE;
+    //cam_tx_encode_fmt.cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.lanePosition =
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.steeringWheelAngle_option = FALSE;
+    //cam_tx_encode_fmt.cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.steeringWheelAngle =
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.lateralAcceleration_option = FALSE;
+    //cam_tx_encode_fmt.cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.lateralAcceleration =
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.verticalAcceleration_option = FALSE;
+    //cam_tx_encode_fmt.cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.verticalAcceleration =
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.performanceClass_option = FALSE;
+    //cam_tx_encode_fmt.cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.performanceClass =
+    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.cenDsrcTollingZone_option = FALSE;
+    //cam_tx_encode_fmt.cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.cenDsrcTollingZone =
 
-//    /* YAW rate, 0,01 degree per second. */
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.yawRate.yawRateValue = CAM_SENSOR_GET_YAW_RATE_VALUE();
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.yawRate.yawRateConfidence = CAM_SENSOR_GET_YAW_RATE_CONF();
+    /*
+    *   If stationType is set to specialVehicles(10)
+    *       LowFrequencyContainer shall be set to BasicVehicleContainerLowFrequency
+    *       SpecialVehicleContainer shall be set to EmergencyContainer
+    */
+    if(psOutputCam->cam.camParameters.basicContainer.stationType == GN_ITS_STATION_SPECIAL_VEHICLE) {
+        /*
+        * The optional low frequency container of CAM.
+        *      vehicleRole: emergency(6)
+        *      exteriorLights: select highBeamHeadlightsOn (1)
+        *           lowBeamHeadlightsOn (0),
+        *           highBeamHeadlightsOn (1),
+        *           leftTurnSignalOn (2),
+        *           rightTurnSignalOn (3),
+        *           daytimeRunningLightsOn (4),
+        *           reverseLightOn (5),
+        *           fogLightOn (6),
+        *           parkingLightsOn (7)
+        *      pathHistory: set zero historical path points
+        */
+        //psOutputCam->cam.camParameters.lowFrequencyContainer_option = true;
+        //psOutputCam->cam.camParameters.lowFrequencyContainer.u.basicVehicleContainerLowFrequency.vehicleRole = VehicleRole_emergency;
+        /* alloc and set the bit of bitstring */
+        //asn1_bstr_alloc_set_bit(&(psOutputCam->cam.camParameters.lowFrequencyContainer.u.basicVehicleContainerLowFrequency.exteriorLights), ExteriorLights_MAX_BITS_ITS, ExteriorLights_highBeamHeadlightsOn_ITS);
+        //psOutputCam->cam.camParameters.lowFrequencyContainer.u.basicVehicleContainerLowFrequency.pathHistory.count = 0;
 
-//    /* Optional fields, disable all by default. */
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.accelerationControl_option = FALSE;
-//    //cam_tx_encode_fmt.cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.accelerationControl =
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.lanePosition_option = FALSE;
-//    //cam_tx_encode_fmt.cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.lanePosition =
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.steeringWheelAngle_option = FALSE;
-//    //cam_tx_encode_fmt.cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.steeringWheelAngle =
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.lateralAcceleration_option = FALSE;
-//    //cam_tx_encode_fmt.cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.lateralAcceleration =
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.verticalAcceleration_option = FALSE;
-//    //cam_tx_encode_fmt.cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.verticalAcceleration =
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.performanceClass_option = FALSE;
-//    //cam_tx_encode_fmt.cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.performanceClass =
-//    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.cenDsrcTollingZone_option = FALSE;
-//    //cam_tx_encode_fmt.cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.cenDsrcTollingZone =
-
-
-//    /*
-//    *   If stationType is set to specialVehicles(10)
-//    *       LowFrequencyContainer shall be set to BasicVehicleContainerLowFrequency
-//    *       SpecialVehicleContainer shall be set to EmergencyContainer
-//    */
-//    if(psOutputCam->cam.camParameters.basicContainer.stationType == GN_ITS_STATION_SPECIAL_VEHICLE) {
-//        /*
-//        * The optional low frequency container of CAM.
-//        *      vehicleRole: emergency(6)
-//        *      exteriorLights: select highBeamHeadlightsOn (1)
-//        *           lowBeamHeadlightsOn (0),
-//        *           highBeamHeadlightsOn (1),
-//        *           leftTurnSignalOn (2),
-//        *           rightTurnSignalOn (3),
-//        *           daytimeRunningLightsOn (4),
-//        *           reverseLightOn (5),
-//        *           fogLightOn (6),
-//        *           parkingLightsOn (7)
-//        *      pathHistory: set zero historical path points
-//        */
-//        psOutputCam->cam.camParameters.lowFrequencyContainer_option = true;
-//        psOutputCam->cam.camParameters.lowFrequencyContainer.u.basicVehicleContainerLowFrequency.vehicleRole = VehicleRole_emergency;
-//        /* alloc and set the bit of bitstring */
-//        asn1_bstr_alloc_set_bit(&(psOutputCam->cam.camParameters.lowFrequencyContainer.u.basicVehicleContainerLowFrequency.exteriorLights), ExteriorLights_MAX_BITS_ITS, ExteriorLights_highBeamHeadlightsOn_ITS);
-//        psOutputCam->cam.camParameters.lowFrequencyContainer.u.basicVehicleContainerLowFrequency.pathHistory.count = 0;
-
-//        /*
-//        * The optional special vehicle container of CAM.
-//        *       lightBarSirenInUse: select sirenActivated (1)
-//        *           lightBarActivated (0)
-//        *           sirenActivated (1)
-//        *       emergencyPriority: enable , select requestForFreeCrossingAtATrafficLight (1)
-//        *           requestForRightOfWay (0)
-//        *           requestForFreeCrossingAtATrafficLight (1)
-//        *       causeCode/subCauseCode: disable
-//        */
-//        psOutputCam->cam.camParameters.specialVehicleContainer_option = true;
-//        psOutputCam->cam.camParameters.specialVehicleContainer.choice = SpecialVehicleContainer_emergencyContainer;
-//        /* alloc and set the bit of bitstring */
-//        asn1_bstr_alloc_set_bit(&(psOutputCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.lightBarSirenInUse), LightBarSirenInUse_MAX_BITS, LightBarSirenInUse_sirenActivated);
-//        psOutputCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.emergencyPriority_option = true;
-//        asn1_bstr_alloc_set_bit(&(psOutputCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.emergencyPriority), EmergencyPriority_MAX_BITS, EmergencyPriority_requestForFreeCrossingAtATrafficLight);
-//        psOutputCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.incidentIndication_option = false;
-//    }
+        /*
+        * The optional special vehicle container of CAM.
+        *       lightBarSirenInUse: select sirenActivated (1)
+        *           lightBarActivated (0)
+        *           sirenActivated (1)
+        *       emergencyPriority: enable , select requestForFreeCrossingAtATrafficLight (1)
+        *           requestForRightOfWay (0)
+        *           requestForFreeCrossingAtATrafficLight (1)
+        *       causeCode/subCauseCode: disable
+        */
+        //psOutputCam->cam.camParameters.specialVehicleContainer_option = true;
+        //psOutputCam->cam.camParameters.specialVehicleContainer.choice = SpecialVehicleContainer_emergencyContainer;
+        /* alloc and set the bit of bitstring */
+        //asn1_bstr_alloc_set_bit(&(psOutputCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.lightBarSirenInUse), LightBarSirenInUse_MAX_BITS, LightBarSirenInUse_sirenActivated);
+        //psOutputCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.emergencyPriority_option = true;
+        //asn1_bstr_alloc_set_bit(&(psOutputCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.emergencyPriority), EmergencyPriority_MAX_BITS, EmergencyPriority_requestForFreeCrossingAtATrafficLight);
+        //psOutputCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.incidentIndication_option = false;
+    }
 
     /* Encode the CAM message. */
     buf_len = itsmsg_encode(p2un8CamPayload, (ItsPduHeader *)psOutputCam, psOutputErr);
 
     if(buf_len <= 0) {
-        printf("itsmsg_encode error: %s\n", err.msg);
+        printf("itsmsg_encode error: %s\n", psOutputErr->msg);
     }
 
-    /*
     if(psOutputCam->cam.camParameters.basicContainer.stationType == GN_ITS_STATION_SPECIAL_VEHICLE) {
 
         // free the memory for encoding/
@@ -439,7 +438,7 @@ int32_t cam_mngr_msg_encode(uint8_t **p2un8CamPayload, fix_data_t *psPotiFixData
         asn1_bstr_free(&(psOutputCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.lightBarSirenInUse));
         asn1_bstr_free(&(psOutputCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.emergencyPriority));
     }
-    */
+
     return buf_len;
 }
 

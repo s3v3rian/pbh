@@ -1,5 +1,5 @@
-#ifndef SA_PROCESSORS_COMMERICAL_ITS_PROCESSOR_H_
-#define SA_PROCESSORS_COMMERICAL_ITS_PROCESSOR_H_
+#ifndef SA_PROCESSORS_ITS_MSG_PROCESSOR_COMMERICAL_H_
+#define SA_PROCESSORS_ITS_MSG_PROCESSOR_COMMERICAL_H_
 
 #include "lib/inc/poti_service.h"
 #include "lib/inc/itsmsg_cam.h"
@@ -38,12 +38,9 @@
  */
 
 int32_t its_msg_processor_cm_init();
-int32_t its_msg_processor_cm_process_cam(CAM *psCam, SITSStationFusionData *psLocalStationData, SITSStationFusionData *psRemoteStationData);
-int32_t its_msg_processor_cm_process_denm(DENM *psDenm, SITSStationFusionData *psLocalStationData, SITSStationFusionData *psRemoteStationData);
-int32_t its_msg_processor_cm_process_poti_cam(fix_data_t *psPotiFixData, CAM **p2sCam);
-int32_t its_msg_processor_cm_process_poti_denm(fix_data_t *psPotiFixData, DENM **p2sDenm);
-int32_t its_msg_processor_cm_clear_cam();
-int32_t its_msg_processor_cm_clear_denm();
+int32_t its_msg_processor_cm_process_poti(fix_data_t *psPotiFixData);
+int32_t its_msg_processor_cm_process_rx_cam(CAM *psCam, SITSStationFusionData *psLocalStationData, SITSStationFusionData *psRemoteStationData);
+int32_t its_msg_processor_cm_process_rx_denm(DENM *psDenm, SITSStationFusionData *psLocalStationData, SITSStationFusionData *psRemoteStationData);
 
 #endif
 

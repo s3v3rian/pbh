@@ -30,12 +30,9 @@
 // ---------------------------------------
 
 typedef int32_t (*its_processor_init)();
-typedef int32_t (*its_processor_process_cam)(CAM *psCam, SITSStationFusionData *psLocalStationData, SITSStationFusionData *psRemoteStationData);
-typedef int32_t (*its_processor_process_denm)(DENM *psDenm, SITSStationFusionData *psLocalStationData, SITSStationFusionData *psRemoteStationData);
-typedef int32_t (*its_processor_process_poti_cam)(fix_data_t *psPotiFixData, CAM **p2sCam);
-typedef int32_t (*its_processor_process_poti_denm)(fix_data_t *psPotiFixData, DENM **p2sDenm);
-typedef int32_t (*its_processor_clear_cam)();
-typedef int32_t (*its_processor_clear_denm)();
+typedef int32_t (*its_processor_process_poti)(fix_data_t *psPotiFixData);
+typedef int32_t (*its_processor_process_rx_cam)(CAM *psCam, SITSStationFusionData *psLocalStationData, SITSStationFusionData *psRemoteStationData);
+typedef int32_t (*its_processor_process_rx_denm)(DENM *psDenm, SITSStationFusionData *psLocalStationData, SITSStationFusionData *psRemoteStationData);
 
 /*
  *******************************************************************************
@@ -48,12 +45,9 @@ typedef int32_t (*its_processor_clear_denm)();
 // ---------------------------------------
 
 its_processor_init g_fp_its_processor_init;
-its_processor_process_cam g_fp_its_processor_proccess_cam;
-its_processor_process_denm g_fp_its_processor_proccess_denm;
-its_processor_process_poti_cam g_fp_its_processor_process_poti_cam;
-its_processor_process_poti_denm g_fp_its_processor_process_poti_denm;
-its_processor_clear_cam g_fp_its_processor_clear_cam;
-its_processor_clear_denm g_fp_its_processor_clear_denm;
+its_processor_process_poti g_fp_its_processor_process_poti;
+its_processor_process_rx_cam g_fp_its_processor_proccess_cam;
+its_processor_process_rx_denm g_fp_its_processor_proccess_denm;
 
 /*
  *******************************************************************************

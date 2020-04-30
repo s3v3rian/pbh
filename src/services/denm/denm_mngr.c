@@ -135,6 +135,8 @@ int32_t denm_mngr_process_tx(SITSStationInfo *psStationInfo, fix_data_t *psPotiF
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
+    //printf("Preparing DENM message\n");
+
     // Init denm message.
     denm_mngr_msg_init(psStationInfo, psOutputDenm);
 
@@ -152,6 +154,8 @@ int32_t denm_mngr_process_tx(SITSStationInfo *psStationInfo, fix_data_t *psPotiF
         return PROCEDURE_INVALID_SERVICE_TX_ERROR;
     }
 
+    //printf("Setting special DENM parameters\n");
+
     /* BTP send packet default configuration (GBC/BTP-B). */
     BTP_SEND_CONFIG_INIT(&m_sBtpDenmSendConfig);
 
@@ -167,6 +171,8 @@ int32_t denm_mngr_process_tx(SITSStationInfo *psStationInfo, fix_data_t *psPotiF
     m_sBtpDenmSendConfig.gn_optional.dest_area.distance_a = 100; /* Distance a of the geometric shape, meters. */
     m_sBtpDenmSendConfig.gn_optional.dest_area.distance_b = 100; /* Distance b of the geometric shape, meters. */
     m_sBtpDenmSendConfig.gn_optional.dest_area.angle = 0; /* Angle of the geometric shape, degrees from North. */
+
+    //printf("Sending DENM message\n");
 
     /* Broadcast the DENM message (BTP-B, SHB). */
     n32Result = btp_send(m_pBtpDenmHandler, &m_sBtpDenmSendConfig, pun8TxPayload, n32TxPayloadSize);
@@ -259,12 +265,15 @@ void denm_mngr_printf_denm(DENM *psDenm) {
                             ",EVENT,COMMERCIAL_VEHICLE_STATUS\n");
                 break;
 
-            case CauseCodeType_redLight:
+            case CauseCodeType_signalViolation:
 
-                n32SentenceSize += snprintf(
-                            achSentence + n32SentenceSize,
-                            MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
-                            "EVENT,RED_LIGHT\n");
+                if(SignalViolation_trafficLightViolation == psDenm->denm.situation.eventType.subCauseCode) {
+
+                    n32SentenceSize += snprintf(
+                                achSentence + n32SentenceSize,
+                                MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
+                                ",EVENT,SIGNAL_VIOLATION\n");
+                }
                 break;
 
             default:
@@ -272,7 +281,7 @@ void denm_mngr_printf_denm(DENM *psDenm) {
                 n32SentenceSize += snprintf(
                             achSentence + n32SentenceSize,
                             MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
-                            "EVENT,%d\n", psDenm->denm.situation.eventType.causeCode);
+                            ",EVENT,%d\n", psDenm->denm.situation.eventType.causeCode);
                 break;
         }
     }
@@ -360,22 +369,22 @@ int32_t denm_mngr_msg_encode(uint8_t **p2un8DenmPayload, fix_data_t *psPotiFixDa
     asn1_new_integer_u64(&psOutputDenm->denm.management.referenceTime, (uint64_t)fmod(psPotiFixData->time.tai_since_2004 * 1000.0, 65536));
 
 //    /* This DE indicates if the type of generated DENM is a cancellation DENM or a negation DENM. */
-//    psOutputDenm->denm.management.termination_option = FALSE; /* Send DENM_trigger for demonstration, no need to enable termination field. */
+    psOutputDenm->denm.management.termination_option = FALSE; /* Send DENM_trigger for demonstration, no need to enable termination field. */
 //    //psOutputDenm->denm.management.termination =
 
 //    /* The distance within which the event is considered relevant to the receiving ITS-S. */
-//    psOutputDenm->denm.management.relevanceDistance_option = FALSE;
+    psOutputDenm->denm.management.relevanceDistance_option = FALSE;
 //    //psOutputDenm->denm.management.relevanceDistance =
 
 //    /* The traffic direction along which the event information is relevant for the receiving ITS-S. */
-//    psOutputDenm->denm.management.relevanceTrafficDirection_option = FALSE;
+    psOutputDenm->denm.management.relevanceTrafficDirection_option = FALSE;
 //    //psOutputDenm->denm.management.relevanceTrafficDirection =
 
 //    /* Validity duration of a DENM. */
-//    psOutputDenm->denm.management.validityDuration = DENM_VALIDITY_DURATION_DEF; /* ValidityDuration (0..86400) */
+    psOutputDenm->denm.management.validityDuration = DENM_VALIDITY_DURATION_DEF; /* ValidityDuration (0..86400) */
 
 //    /* Time interval for DENM transmission as defined by the originating ITS-S. */
-//    psOutputDenm->denm.management.transmissionInterval_option = FALSE;
+    psOutputDenm->denm.management.transmissionInterval_option = FALSE;
 //    //psOutputDenm->denm.management.transmissionInterval = /* TransmissionInterval (1..10000) */
 
 //    // ---------------------------------------------------------

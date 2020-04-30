@@ -36,7 +36,7 @@ int32_t gps_sim_init(const char *pchScenarioName, const char *pchParticipantId) 
     // Set global variables.
     m_bIsPausingFixData = false;
 
-    printf("Loading GPS Simulator - Using scenario %s, Participant ID: %s, Sync Station: %d\n", pchScenarioName, pchParticipantId, g_sScenarioInfo.m_un32GpSimSyncId);
+    printf("Loading GPS Simulator - Using scenario %s, Participant ID: %s, Sync Station: %d\n", pchScenarioName, pchParticipantId, g_sLocalScenarioInfo.m_un32GpSimSyncId);
 
     // Init internal variables.
     m_bIsSimulatorEnabled = true;

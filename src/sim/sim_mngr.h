@@ -1,11 +1,9 @@
-#ifndef SA_PROCESSORS_ITS_MSG_PROCESSOR_RSU_H_
-#define SA_PROCESSORS_ITS_MSG_PROCESSOR_RSU_H_
+#ifndef SIM_SIM_MNGR_H_
+#define SIM_SIM_MNGR_H_
 
 #include "lib/inc/poti_service.h"
-#include "lib/inc/itsmsg_cam.h"
-#include "lib/inc/itsmsg_denm.h"
 
-#include "globals.h"
+#include "common/globals.h"
 
 /*
  *******************************************************************************
@@ -25,11 +23,24 @@
  *******************************************************************************
  */
 
+// ---------------------------------------
+// ---- SIMULATOR PROCESSOR CALLBACKS ----
+// ---------------------------------------
+
+typedef int32_t (*sim_processor_init)();
+typedef void (*sim_processor_do)();
+
 /*
  *******************************************************************************
  * Global variables
  *******************************************************************************
  */
+
+// ---------------------------------------
+// ---- SIMULATOR PROCESSOR CALLBACKS ----
+// ---------------------------------------
+sim_processor_init g_fp_sim_processor_init;
+sim_processor_do g_fp_sim_processor_do;
 
 /*
  *******************************************************************************
@@ -37,10 +48,11 @@
  *******************************************************************************
  */
 
-int32_t its_msg_processor_rsu_init();
-int32_t its_msg_processor_rsu_process_poti(fix_data_t *psPotiFixData);
-int32_t its_msg_processor_rsu_process_rx_cam(CAM *psCam, SITSStationFusionData *psLocalStationData, SITSStationFusionData *psRemoteStationData);
-int32_t its_msg_processor_rsu_process_rx_denm(DENM *psDenm, SITSStationFusionData *psLocalStationData, SITSStationFusionData *psRemoteStationData);
+int32_t sim_mngr_init();
+void sim_mngr_gps_sim_update_fix_data(fix_data_t *psPotiFixData);
+void sim_mngr_gps_sim_pause_fix_data(bool bIsPaused);
+bool sim_mngr_gps_sim_is_paused();
+void sim_mngr_release();
 
 #endif
 

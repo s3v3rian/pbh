@@ -26,7 +26,11 @@ int32_t m_bIsThreadsActive = true;
  */
 void error_catcher_active(int signal) {
 
+    printf("Caught error signal - %d\n", signal);
+
     m_bIsThreadsActive = false;
+
+    exit(1);
 }
 
 /**
@@ -35,9 +39,13 @@ void error_catcher_active(int signal) {
  */
 void exit_catcher_active(int signal) {
 
+    printf("Caught exit signal - %d\n", signal);
+
     m_bIsThreadsActive = false;
 
     usleep(100000);
+
+    exit(0);
 }
 
 /**
