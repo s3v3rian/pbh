@@ -69,10 +69,12 @@ int32_t sim_processor_ini_loader(void* pchUser, const char* pchSection, const ch
         if(0 == strcmp("vehicle_driver_name", pchName)) {
 
             memcpy(g_sLocalStationInfo.m_sVehicleInfo.m_achVehicleDriverName, pchValue, strlen(pchValue) + 1);
+            g_sLocalStationInfo.m_sVehicleInfo.m_achVehicleDriverName[strlen(pchValue) + 1] = '\0';
 
         } else if(0 == strcmp("vehicle_license_plate", pchName)) {
 
             memcpy(g_sLocalStationInfo.m_sVehicleInfo.m_achVehicleLicensePlate, pchValue, strlen(pchValue) + 1);
+            g_sLocalStationInfo.m_sVehicleInfo.m_achVehicleLicensePlate[strlen(pchValue) + 1] = '\0';
 
         } else if(0 == strcmp("vehicle_weight_in_kg", pchName)) {
 

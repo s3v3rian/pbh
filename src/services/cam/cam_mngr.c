@@ -234,6 +234,8 @@ void cam_mngr_printf_cam(CAM *psCam) {
     int32_t n32SentenceSize = 0;
     char achSentence[MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES];
 
+    memset(achSentence, 0, MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES);
+
     n32SentenceSize += snprintf(
                 achSentence + n32SentenceSize,
                 MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,

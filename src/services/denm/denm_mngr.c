@@ -245,6 +245,8 @@ void denm_mngr_printf_denm(DENM *psDenm) {
     int32_t n32SentenceSize = 0;
     char achSentence[MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES];
 
+    memset(achSentence, 0, MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES);
+
     // Always write station id first.
     n32SentenceSize += snprintf(
                 achSentence + n32SentenceSize,
@@ -262,7 +264,7 @@ void denm_mngr_printf_denm(DENM *psDenm) {
                 n32SentenceSize += snprintf(
                             achSentence + n32SentenceSize,
                             MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
-                            ",EVENT,COMMERCIAL_VEHICLE_STATUS\n");
+                            ",Event,commercial_vehicle_status");
                 break;
 
             case CauseCodeType_signalViolation:
@@ -272,8 +274,16 @@ void denm_mngr_printf_denm(DENM *psDenm) {
                     n32SentenceSize += snprintf(
                                 achSentence + n32SentenceSize,
                                 MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
-                                ",EVENT,SIGNAL_VIOLATION\n");
+                                ",Event,signal_violation");
                 }
+                break;
+
+        case CauseCodeType_slowVehicle:
+
+                n32SentenceSize += snprintf(
+                            achSentence + n32SentenceSize,
+                            MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
+                            ",Event,slow_vehicle");
                 break;
 
             default:
@@ -281,13 +291,25 @@ void denm_mngr_printf_denm(DENM *psDenm) {
                 n32SentenceSize += snprintf(
                             achSentence + n32SentenceSize,
                             MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
-                            ",EVENT,%d\n", psDenm->denm.situation.eventType.causeCode);
+                            ",Event,%d", psDenm->denm.situation.eventType.causeCode);
                 break;
         }
+
+    } else {
+
+        n32SentenceSize += snprintf(
+                    achSentence + n32SentenceSize,
+                    MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
+                    ",No event");
     }
 
     // Write to boundary alacarte container stuff.
     if(TRUE == psDenm->denm.alacarte_option) {
+
+        n32SentenceSize += snprintf(
+            achSentence + n32SentenceSize,
+            MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
+            ",Alacarte");
 
         // Write to boundary stationary vehicle stuff.
         if(TRUE == psDenm->denm.alacarte.stationaryVehicle_option) {
@@ -314,7 +336,31 @@ void denm_mngr_printf_denm(DENM *psDenm) {
                 }
             }
         }
+
+        if(TRUE == psDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods_option) {
+
+            n32SentenceSize += snprintf(
+                        achSentence + n32SentenceSize,
+                        MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
+                        ",IsCarryDangerous,true,Type,%d,CompanyName,%s",
+                        psDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods.dangerousGoodsType,
+                        psDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods.companyName.buf);
+
+        } else {
+
+            n32SentenceSize += snprintf(
+                        achSentence + n32SentenceSize,
+                        MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
+                        ",IsCarryDangerous,false");
+        }
     }
+
+    n32SentenceSize += snprintf(
+                achSentence + n32SentenceSize,
+                MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
+                ",Lat,%d,Lon,%d\n",
+                psDenm->denm.management.eventPosition.latitude,
+                psDenm->denm.management.eventPosition.longitude);
 
     g_fp_write_to_boundary(achSentence, n32SentenceSize, psDenm->header.stationID);
 }

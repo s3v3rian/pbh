@@ -84,6 +84,8 @@ void gps_poti_mngr_printf_poti(fix_data_t *psPotiFixData) {
     int32_t n32SentenceSize = 0;
     char achSentence[MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES];
 
+    memset(achSentence, 0, MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES);
+
     n32SentenceSize += snprintf(
                 achSentence + n32SentenceSize,
                 MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
@@ -98,7 +100,6 @@ void gps_poti_mngr_printf_poti(fix_data_t *psPotiFixData) {
     memset(&sRmcData, 0, sizeof(sRmcData));
 
     // Get data from POTI.
-    nmea_get_gga_data(psPotiFixData, &sGgaData);
     nmea_get_rmc_data(psPotiFixData, &sRmcData);
 
     // Build and send NMEA sentence.

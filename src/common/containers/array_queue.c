@@ -18,8 +18,8 @@
 typedef struct SQueueDescriptor {
 
     bool m_bIsInUse;
-    uint32_t m_un32CurrentPushIndex;
-    uint32_t m_un32CurrentPopIndex;
+    int32_t m_n32CurrentPushIndex;
+    int32_t m_n32CurrentPopIndex;
 
 } SQueueDescriptor;
 
@@ -46,8 +46,8 @@ int32_t array_queue_init() {
     for(uint32_t un32Index = 0; un32Index < MAX_NUMBER_OF_CONTAINERS; un32Index++) {
 
         m_asContainers[un32Index].m_bIsInUse = false;
-        m_asContainers[un32Index].m_un32CurrentPushIndex = 0;
-        m_asContainers[un32Index].m_un32CurrentPopIndex = 0;
+        m_asContainers[un32Index].m_n32CurrentPushIndex = 0;
+        m_asContainers[un32Index].m_n32CurrentPopIndex = 0;
     }
 
     // Create queue elements array.
@@ -98,10 +98,10 @@ int32_t array_queue_container_push(int32_t n32ContainerId, int32_t n32ElementId,
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
-    SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_un32CurrentPushIndex);
+    SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_n32CurrentPushIndex);
     psQueueElement->m_n32Data = n32ElementId;
     psQueueElement->m_pchData = pchElement;
-    psQueueDescriptor->m_un32CurrentPushIndex = ((psQueueDescriptor->m_un32CurrentPushIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
+    psQueueDescriptor->m_n32CurrentPushIndex = ((psQueueDescriptor->m_n32CurrentPushIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
 
     return PROCEDURE_SUCCESSFULL;
 }
@@ -123,14 +123,19 @@ int32_t array_queue_container_pop(int32_t n32ContainerId, int32_t *pn32ElementId
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
-    SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_un32CurrentPopIndex);
+    if(0 == (psQueueDescriptor->m_n32CurrentPopIndex - psQueueDescriptor->m_n32CurrentPushIndex)) {
+
+        return PROCEDURE_SUCCESSFULL;
+    }
+
+    SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_n32CurrentPopIndex);
     *pn32ElementId = psQueueElement->m_n32Data;
     *p2chElement = psQueueElement->m_pchData;
 
     psQueueElement->m_n32Data = INVALID_CONTAINER_ELEMENT_ID;
     psQueueElement->m_pchData = NULL;
 
-    psQueueDescriptor->m_un32CurrentPopIndex = ((psQueueDescriptor->m_un32CurrentPopIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
+    psQueueDescriptor->m_n32CurrentPopIndex = ((psQueueDescriptor->m_n32CurrentPopIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
 
     return PROCEDURE_SUCCESSFULL;
 }

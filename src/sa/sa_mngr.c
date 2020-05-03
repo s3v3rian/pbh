@@ -36,6 +36,7 @@ static void sa_mngr_handle_publish(fix_data_t *psPotiFixData);
 
 // Container ID's.
 int32_t m_n32FusionThreadQueueId = INVALID_CONTAINER_ID;
+int32_t m_n32GnssUpdateCount = 0;
 
 /*
  *******************************************************************************
@@ -90,7 +91,7 @@ void sa_mngr_process_fusion() {
 
     //printf("Trying to pop data for fusion\n");
 
-    usleep(10000); // TODO Make this by event.
+    usleep(1000); // TODO Make this by event.
 
     spsc_array_queue_container_pop(m_n32FusionThreadQueueId, &n32MsgId, &pchMsgData);
 
@@ -122,20 +123,19 @@ void sa_mngr_process_fusion() {
 void sa_mngr_process_poti() {
 
     fix_data_t *psPotiFixData = NULL;
-    int32_t n32GnssUpdateCount = 0;
     int32_t n32ProcedureResult = 0;
 
     //printf("Processing received POTI data...\n");
 
     n32ProcedureResult = gps_poti_get_fix_data(&psPotiFixData);
 
-    if(g_sLocalStationInfo.m_sParameters.m_n32TxFrequencyIn10Hz > n32GnssUpdateCount) {
+    if(g_sLocalStationInfo.m_sParameters.m_n32TxFrequencyIn10Hz > m_n32GnssUpdateCount) {
 
-        n32GnssUpdateCount++;
+        m_n32GnssUpdateCount++;
         return;
     }
 
-    n32GnssUpdateCount = 0;
+    m_n32GnssUpdateCount = 0;
 
     /* Make sure the navigation information is valid. */
     if(psPotiFixData->status == FIX_STATUS_NA
@@ -177,7 +177,9 @@ void sa_mngr_process_cam() {
 
     cam_mngr_printf_cam(psOutputCam);
 
-    spsc_array_queue_container_push(m_n32FusionThreadQueueId, CAM_Id, (char*)psOutputCam);
+    if(GN_ITS_STATION_HEAVY_TRUCK == g_sLocalStationInfo.m_n32StationType) {
+        spsc_array_queue_container_push(m_n32FusionThreadQueueId, CAM_Id, (char*)psOutputCam);
+    }
 }
 
 void sa_mngr_process_denm() {
@@ -198,7 +200,9 @@ void sa_mngr_process_denm() {
 
     denm_mngr_printf_denm(psOutputDenm);
 
-    spsc_array_queue_container_push(m_n32FusionThreadQueueId, DENM_Id, (char*)psOutputDenm);
+    if(GN_ITS_STATION_HEAVY_TRUCK == g_sLocalStationInfo.m_n32StationType) {
+        spsc_array_queue_container_push(m_n32FusionThreadQueueId, DENM_Id, (char*)psOutputDenm);
+    }
 }
 
 void sa_mngr_release() {
@@ -275,7 +279,7 @@ static void sa_mngr_handle_cam(CAM *psCam) {
     // Compute distance to target.
     psRemoteStationData->m_sCurrentDynamicData.m_dCurrentHaversine = alg_haversine_compute(&psLocalStationData->m_sCurrentLLAData, &psRemoteStationData->m_sCurrentLLAData);
 
-    printf("Computed haversine value %f from station %d to station %d\n", psRemoteStationData->m_sCurrentDynamicData.m_dCurrentHaversine, g_sLocalStationInfo.m_un32StationId, psCam->header.stationID);
+    //printf("Computed haversine value %f from station %d to station %d\n", psRemoteStationData->m_sCurrentDynamicData.m_dCurrentHaversine, g_sLocalStationInfo.m_un32StationId, psCam->header.stationID);
 
     // --------------------------------------------------
     // ------------- Make Event Decision ----------------
@@ -372,6 +376,13 @@ static void sa_mngr_handle_publish(fix_data_t *psPotiFixData) {
 
     cam_mngr_process_tx(&g_sLocalStationInfo, psPotiFixData, psOutputCam);
     denm_mngr_process_tx(&g_sLocalStationInfo, psPotiFixData, psOutputDenm);
+
+    if(CauseCodeType_commercialVehicleSituation == psOutputDenm->denm.situation.eventType.causeCode) {
+
+        psOutputCam = NULL;
+        its_msg_processor_get_tx_denm_msg(&psOutputDenm);
+        denm_mngr_process_tx(&g_sLocalStationInfo, psPotiFixData, psOutputDenm);
+    }
 
     // ----------------------------------------------------
     // ---------------- Post Processing -------------------
