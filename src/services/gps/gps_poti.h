@@ -38,8 +38,6 @@ int32_t gps_poti_init();
 int32_t gps_poti_get_fix_data(fix_data_t **p2sPotiFixData);
 void gps_poti_release();
 
-void gps_poti_mngr_printf_poti(fix_data_t *psPotiFixData);
-
 /*
  *******************************************************************************
  * Private functions

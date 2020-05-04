@@ -46,7 +46,7 @@
  */
 
 int32_t mapem_mngr_init();
-int32_t mapem_mngr_process_tx(SITSStationInfo *psStationInfo, fix_data_t *psPotiFixData, MAPEM *psOutputMapem);
+int32_t mapem_mngr_process_tx(SStationInfo *psStationInfo, fix_data_t *psPotiFixData, MAPEM *psOutputMapem);
 int32_t mapem_mngr_process_rx(MAPEM *psOutputMapem);
 int32_t mapem_mngr_release();
 

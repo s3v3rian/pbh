@@ -33,7 +33,7 @@
  *******************************************************************************
  */
 
-double alg_haversine_compute(SStationLLAData *psLocalLLAData, SStationLLAData *psRemoteLLAData);
+double alg_haversine_compute(SDistanceData *psLocalLLAData, SDistanceData *psRemoteLLAData);
 
 /*
  *******************************************************************************

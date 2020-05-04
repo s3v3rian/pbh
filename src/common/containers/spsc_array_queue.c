@@ -19,8 +19,8 @@
 typedef struct SQueueDescriptor {
 
     _Atomic bool m_baIsInUse;
-    _Atomic uint32_t m_un32aCurrentPushIndex;
-    _Atomic uint32_t m_un32aCurrentPopIndex;
+    _Atomic int32_t m_n32aCurrentPushIndex;
+    _Atomic int32_t m_n32aCurrentPopIndex;
 
 } SQueueDescriptor;
 
@@ -47,8 +47,8 @@ int32_t spsc_array_queue_init() {
     for(uint32_t un32Index = 0; un32Index < MAX_NUMBER_OF_CONTAINERS; un32Index++) {
 
         m_asContainers[un32Index].m_baIsInUse = false;
-        m_asContainers[un32Index].m_un32aCurrentPushIndex = 0;
-        m_asContainers[un32Index].m_un32aCurrentPopIndex = 0;
+        m_asContainers[un32Index].m_n32aCurrentPushIndex = 0;
+        m_asContainers[un32Index].m_n32aCurrentPopIndex = 0;
     }
 
     // Create queue elements array.
@@ -59,6 +59,18 @@ int32_t spsc_array_queue_init() {
         m_psContainerArray[un32Index].m_n32Data = INVALID_CONTAINER_ELEMENT_ID;
         m_psContainerArray[un32Index].m_pchData = NULL;
     }
+
+    return PROCEDURE_SUCCESSFULL;
+}
+
+int32_t spsc_array_queue_release() {
+
+    for(int32_t n32Index = 0; n32Index < MAX_NUMBER_OF_CONTAINERS; n32Index++) {
+
+        m_asContainers[n32Index].m_baIsInUse = false;
+    }
+
+    free(m_psContainerArray);
 
     return PROCEDURE_SUCCESSFULL;
 }
@@ -80,12 +92,26 @@ int32_t spsc_array_queue_container_init(const char *pchName) {
     return n32QueueIndex;
 }
 
+int32_t spsc_array_queue_container_release(int32_t n32ContainerId) {
+
+    if(0 > n32ContainerId
+            || MAX_NUMBER_OF_CONTAINERS <= n32ContainerId) {
+
+        printf("Invalid container id for spsc release operation\n");
+        return PROCEDURE_INVALID_PARAMETERS_ERROR;
+    }
+
+    m_asContainers[n32ContainerId].m_baIsInUse = false;
+
+    return PROCEDURE_SUCCESSFULL;
+}
+
 int32_t spsc_array_queue_container_push(int32_t n32ContainerId, int32_t n32ElementId, char *pchElement) {
 
     if(0 > n32ContainerId
             || MAX_NUMBER_OF_CONTAINERS <= n32ContainerId) {
 
-        printf("spsc push operation, invalid container id\n");
+        printf("spsc array push operation failed, invalid container id\n");
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
@@ -93,14 +119,20 @@ int32_t spsc_array_queue_container_push(int32_t n32ContainerId, int32_t n32Eleme
 
     if(false == psQueueDescriptor->m_baIsInUse) {
 
-        printf("spsc push operation failed, container %d is not in use\n", n32ContainerId);
+        printf("spsc array push operation failed, container %d is not in use\n", n32ContainerId);
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
-    SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_un32aCurrentPushIndex);
+    SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_n32aCurrentPushIndex);
+
+    if(NULL != psQueueElement->m_pchData) {
+
+        return PROCEDURE_BUFFER_ERROR;
+    }
+
     psQueueElement->m_n32Data = n32ElementId;
     psQueueElement->m_pchData = pchElement;
-    psQueueDescriptor->m_un32aCurrentPushIndex = ((psQueueDescriptor->m_un32aCurrentPushIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
+    psQueueDescriptor->m_n32aCurrentPushIndex = ((psQueueDescriptor->m_n32aCurrentPushIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
 
     return PROCEDURE_SUCCESSFULL;
 }
@@ -122,40 +154,39 @@ int32_t spsc_array_queue_container_pop(int32_t n32ContainerId, int32_t *pn32Elem
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
-    SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_un32aCurrentPopIndex);
+    if(0 == (psQueueDescriptor->m_n32aCurrentPopIndex - psQueueDescriptor->m_n32aCurrentPushIndex)) {
+
+        return PROCEDURE_SUCCESSFULL;
+    }
+
+    SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_n32aCurrentPopIndex);
     *pn32ElementId = psQueueElement->m_n32Data;
     *p2chElement = psQueueElement->m_pchData;
 
     psQueueElement->m_n32Data = INVALID_CONTAINER_ELEMENT_ID;
     psQueueElement->m_pchData = NULL;
 
-    psQueueDescriptor->m_un32aCurrentPopIndex = ((psQueueDescriptor->m_un32aCurrentPopIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
+    psQueueDescriptor->m_n32aCurrentPopIndex = ((psQueueDescriptor->m_n32aCurrentPopIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
 
     return PROCEDURE_SUCCESSFULL;
 }
 
-int32_t spsc_array_queue_container_release(int32_t n32ContainerId) {
+bool spsc_array_queue_is_container_empty(int32_t n32ContainerId) {
 
     if(0 > n32ContainerId
             || MAX_NUMBER_OF_CONTAINERS <= n32ContainerId) {
 
-        printf("Invalid container id for spsc release operation\n");
-        return PROCEDURE_INVALID_PARAMETERS_ERROR;
+        printf("array pop operation, invalid container id\n");
+        return true;
     }
 
-    m_asContainers[n32ContainerId].m_baIsInUse = false;
+    SQueueDescriptor *psQueueDescriptor = &m_asContainers[n32ContainerId];
 
-    return PROCEDURE_SUCCESSFULL;
-}
+    if(false == psQueueDescriptor->m_baIsInUse) {
 
-int32_t spsc_array_queue_release() {
-
-    for(int32_t n32Index = 0; n32Index < MAX_NUMBER_OF_CONTAINERS; n32Index++) {
-
-        m_asContainers[n32Index].m_baIsInUse = false;
+        printf("array pop operation failed, container %d is not in use\n", n32ContainerId);
+        return true;
     }
 
-    free(m_psContainerArray);
-
-    return PROCEDURE_SUCCESSFULL;
+    return 0 == (psQueueDescriptor->m_n32aCurrentPopIndex - psQueueDescriptor->m_n32aCurrentPushIndex);
 }

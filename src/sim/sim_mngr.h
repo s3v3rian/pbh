@@ -40,7 +40,7 @@ typedef void (*sim_processor_do)();
 // ---- SIMULATOR PROCESSOR CALLBACKS ----
 // ---------------------------------------
 sim_processor_init g_fp_sim_processor_init;
-sim_processor_do g_fp_sim_processor_do;
+sim_processor_do g_fp_sim_processor_do_fusion;
 
 /*
  *******************************************************************************
@@ -49,10 +49,10 @@ sim_processor_do g_fp_sim_processor_do;
  */
 
 int32_t sim_mngr_init();
-void sim_mngr_gps_sim_update_fix_data(fix_data_t *psPotiFixData);
-void sim_mngr_gps_sim_pause_fix_data(bool bIsPaused);
-bool sim_mngr_gps_sim_is_paused();
 void sim_mngr_release();
+void sim_mngr_process_fusion();
+void sim_mngr_process_fix_data(fix_data_t *psPotiFixData);
+
 
 #endif
 

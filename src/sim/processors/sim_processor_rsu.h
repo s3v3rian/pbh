@@ -34,7 +34,7 @@
  */
 
 int32_t sim_processor_rsu_init();
-void sim_processor_rsu_do();
+void sim_processor_rsu_do_fusion();
 
 #endif
 

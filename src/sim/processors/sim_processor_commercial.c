@@ -8,7 +8,7 @@
  *******************************************************************************
  */
 
-int32_t sim_processor_ini_loader(void* pchUser, const char* pchSection, const char* pchName, const char* pchValue);
+static int32_t sim_processor_ini_loader(void* pchUser, const char* pchSection, const char* pchName, const char* pchValue);
 
 /*
  *******************************************************************************
@@ -46,13 +46,13 @@ int32_t sim_processor_commercial_init() {
 
     char achFilePath[MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES];
 
-    sprintf(achFilePath, "%s/simulator/%s/%s/participant_parameters.ini", g_pchConfigurationFileDirectoryPath, g_sLocalScenarioInfo.m_achName, g_sLocalScenarioInfo.m_achParticipantId);
+    sprintf(achFilePath, "%s/simulator/%s/%s/participant_parameters.ini", g_pchConfigurationFileDirectoryPath, g_sLocalScenarioInfo.m_achScenarioName, g_sLocalScenarioInfo.m_achParticipantId);
     ini_parse(achFilePath, sim_processor_ini_loader, CONFIGURATION_FILE_SCENARIO_PARTICIPANT_PARAMS_USER);
 
     return PROCEDURE_SUCCESSFULL;
 }
 
-void sim_processor_commercial_do() {
+void sim_processor_commercial_do_fusion() {
 
 }
 
@@ -64,7 +64,14 @@ void sim_processor_commercial_do() {
 
 int32_t sim_processor_ini_loader(void* pchUser, const char* pchSection, const char* pchName, const char* pchValue) {
 
-    if(0 == strcmp("vehicle_info", pchSection)) {
+    if(0 == strcmp("participant_info", pchSection)) {
+
+        if(0 == strcmp("participant_sync_id", pchName)) {
+
+            g_sLocalScenarioInfo.m_un32GpSimSyncId = strtol(pchValue, NULL, 10);
+        }
+
+    } else if(0 == strcmp("vehicle_info", pchSection)) {
 
         if(0 == strcmp("vehicle_driver_name", pchName)) {
 
@@ -94,7 +101,11 @@ int32_t sim_processor_ini_loader(void* pchUser, const char* pchSection, const ch
 
         } else if(0 == strcmp("vehicle_speed_in_kph", pchName)) {
 
-            g_sLocalStationInfo.m_sVehicleInfo.m_dVehicleSpeed = strtod(pchValue, NULL);
+            g_sLocalStationInfo.m_sVehicleInfo.m_dVehicleSpeedInKph = strtod(pchValue, NULL);
+
+        } else if(0 == strcmp("vehicle_collision_warning_threshold_in_meters", pchName)) {
+
+            g_sLocalStationInfo.m_sVehicleInfo.m_dCollisionWarningThresholdInMeters = strtol(pchValue, NULL, 10);
         }
 
     } else if(0 == strcmp("commercial_vehicle_info", pchSection)) {

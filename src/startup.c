@@ -10,13 +10,16 @@
 #include "common/containers/blocked_array_queue.h"
 #include "common/containers/ring_buffer.h"
 
+#include "boundary/boundary_writer.h"
 #include "boundary/serial_boundary.h"
 #include "boundary/ethernet_boundary.h"
 
+#include "sa/processors/its_msg_processor_passenger.h"
 #include "sa/processors/its_msg_processor_commercial.h"
 #include "sa/processors/its_msg_processor_rsu.h"
 #include "sa/sa_mngr.h"
 
+#include "sim/processors/sim_processor_passenger.h"
 #include "sim/processors/sim_processor_commercial.h"
 #include "sim/processors/sim_processor_rsu.h"
 
@@ -34,16 +37,6 @@
  *******************************************************************************
  */
 
-/**
- * @brief ini_value_loader
- * Save value from ini file field.
- *
- * @param pchUser - The requested user info - Indicates the file we are currently loading.
- * @param pchSection - The section from ini file.
- * @param pchName - The field name under the above section from the ini file.
- * @param pchValue - The value from the above field under the abovex2 section from the ini file.
- * @return - 0 if successfull otherwise a negative value that indicates an error.
- */
 int32_t station_info_ini_loader(void* pchUser, const char* pchSection, const char* pchName, const char* pchValue) {
 
     char *pchError = NULL;
@@ -101,6 +94,16 @@ void print_configuration_parameters() {
 
     printf("-------------------------------------\n");
     printf("Loaded station info - ID: %d, Type: %d\n", g_sLocalStationInfo.m_un32StationId, g_sLocalStationInfo.m_n32StationType);
+    printf("-------------------------------------\n");
+}
+
+/**
+ * @brief print_simulator_parameters
+ */
+void print_simulator_parameters() {
+
+    printf("-------------------------------------\n");
+    printf("Loaded Simulator - Scenario: %s, Participant ID: %s, Sync Station: %d\n", g_sLocalScenarioInfo.m_achScenarioName, g_sLocalScenarioInfo.m_achParticipantId, g_sLocalScenarioInfo.m_un32GpSimSyncId);
     printf("-------------------------------------\n");
 }
 
@@ -182,25 +185,6 @@ int32_t main(int argc, char **argv) {
 
     printf("Initializing simulator\n");
 
-    // Set station type callbacks.
-    switch(g_sLocalStationInfo.m_n32StationType) {
-
-        case GN_ITS_STATION_HEAVY_TRUCK:
-
-            g_fp_sim_processor_init = sim_processor_commercial_init;
-            g_fp_sim_processor_do = sim_processor_commercial_do;
-            break;
-
-        case GN_ITS_STATION_ROAD_SIDE_UNIT:
-
-            g_fp_sim_processor_init = sim_processor_rsu_init;
-            g_fp_sim_processor_do = sim_processor_rsu_do;
-            break;
-
-        default:
-            break;
-    }
-
     n32ProcedureResult |= sim_mngr_init();
 
     if(PROCEDURE_SUCCESSFULL != n32ProcedureResult) {
@@ -208,6 +192,39 @@ int32_t main(int argc, char **argv) {
         printf("Cannot initialize simulator\n");
         return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
     }
+
+    // Set station type callbacks.
+    switch(g_sLocalStationInfo.m_n32StationType) {
+
+        case GN_ITS_STATION_PASSENGER_CAR:
+
+            g_fp_sim_processor_init = sim_processor_passenger_init;
+            g_fp_sim_processor_do_fusion = sim_processor_passenger_do_fusion;
+            break;
+
+        case GN_ITS_STATION_HEAVY_TRUCK:
+
+            g_fp_sim_processor_init = sim_processor_commercial_init;
+            g_fp_sim_processor_do_fusion = sim_processor_commercial_do_fusion;
+            break;
+
+        case GN_ITS_STATION_ROAD_SIDE_UNIT:
+
+            g_fp_sim_processor_init = sim_processor_rsu_init;
+            g_fp_sim_processor_do_fusion = sim_processor_rsu_do_fusion;
+            break;
+
+        default:
+            break;
+    }
+
+    // Init sim processer.
+    g_fp_sim_processor_init();
+
+    // Set simulator as boundary controller.
+    g_fp_access_host_controller = sim_mngr_process_fusion;
+
+    print_simulator_parameters();
 
 #endif
 
@@ -220,12 +237,16 @@ int32_t main(int argc, char **argv) {
 #ifdef __EN_SERIAL_OUTPUT_FEATURE__
 
     printf("Set boundary writer to serial interface\n");
-    g_fp_write_to_boundary = serial_boundary_write;
+    g_fp_write_to_boundary_sentence = serial_boundary_write_sentence;
+    g_fp_write_to_boundary_event = serial_boundary_write_event;
+    g_fp_write_to_boundary_poti = serial_boundary_write_poti;
+    g_fp_write_to_boundary_cam = serial_boundary_write_cam;
+    g_fp_write_to_boundary_denm = serial_boundary_write_denm;
 
 #else
 
     printf("Set boundary writer to ethernet interface\n");
-    g_fpBoundaryWriter = ethernet_boundary_write;
+    //g_fpBoundaryWriter = ethernet_boundary_write;
 
 #endif
 
@@ -253,18 +274,26 @@ int32_t main(int argc, char **argv) {
 
     switch(g_sLocalStationInfo.m_n32StationType) {
 
+        case GN_ITS_STATION_PASSENGER_CAR:
+
+            g_fp_its_processor_init = its_msg_processor_passenger_init;
+            g_fp_its_processor_process_tx = its_msg_processor_passenger_process_tx;
+            g_fp_its_processor_proccess_cam = its_msg_processor_passenger_process_rx_cam;
+            g_fp_its_processor_proccess_denm = its_msg_processor_passenger_process_rx_denm;
+            break;
+
         case GN_ITS_STATION_HEAVY_TRUCK:
 
-            g_fp_its_processor_init = its_msg_processor_cm_init;
-            g_fp_its_processor_process_poti = its_msg_processor_cm_process_poti;
-            g_fp_its_processor_proccess_cam = its_msg_processor_cm_process_rx_cam;
-            g_fp_its_processor_proccess_denm = its_msg_processor_cm_process_rx_denm;
+            g_fp_its_processor_init = its_msg_processor_commercial_init;
+            g_fp_its_processor_process_tx = its_msg_processor_commercial_process_tx;
+            g_fp_its_processor_proccess_cam = its_msg_processor_commercial_process_rx_cam;
+            g_fp_its_processor_proccess_denm = its_msg_processor_commercial_process_rx_denm;
             break;
 
         case GN_ITS_STATION_ROAD_SIDE_UNIT:
 
             g_fp_its_processor_init = its_msg_processor_rsu_init;
-            g_fp_its_processor_process_poti = its_msg_processor_rsu_process_poti;
+            g_fp_its_processor_process_tx = its_msg_processor_rsu_process_tx;
             g_fp_its_processor_proccess_cam = its_msg_processor_rsu_process_rx_cam;
             g_fp_its_processor_proccess_denm = its_msg_processor_rsu_process_rx_denm;
             break;
@@ -276,7 +305,7 @@ int32_t main(int argc, char **argv) {
     }
 
     // Initialize SA manager.
-    n32ProcedureResult |= sa_mngr_init();
+    n32ProcedureResult = sa_mngr_init();
 
     if(PROCEDURE_SUCCESSFULL != n32ProcedureResult) {
 

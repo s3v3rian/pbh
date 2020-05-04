@@ -45,9 +45,9 @@
 // ------------- Configuration File Definitions ------------
 // ---------------------------------------------------------
 
-#define CONFIGURATION_FILE_STATION_INFO_USER	"STATION_INFO_USER"
-#define CONFIGURATION_FILE_SCENARIO_PARAMS_USER	"SCENARIO_INFO_USER"
-#define CONFIGURATION_FILE_GENERAL_PARAMS_USER	"GENERAL_PARAMS_USER"
+#define CONFIGURATION_FILE_STATION_INFO_USER			"STATION_INFO_USER"
+#define CONFIGURATION_FILE_SCENARIO_PARAMS_USER			"SCENARIO_INFO_USER"
+#define CONFIGURATION_FILE_GENERAL_PARAMS_USER			"GENERAL_PARAMS_USER"
 #define CONFIGURATION_FILE_SCENARIO_PARTICIPANT_PARAMS_USER	"SCENARIO_PARTICIPANT_USER"
 
 // ---------------------------------------------------------
@@ -75,57 +75,77 @@
  *******************************************************************************
  */
 
-// Enumerators.
+// ---------------------------------------------------
+// ------------------- Enumerators -------------------
+// ---------------------------------------------------
 
-// Callbacks.
-typedef int32_t (*boundary_write)(char *pchSentence, int32_t n32SentenceSize, uint32_t un32StationId);
+// ---------------------------------------------------
+// -------------- Callback Definitions ---------------
+// ---------------------------------------------------
+
+// Host controller callback definitions.
+typedef void (*host_controller)();
 
 // ---------------------------------------------------
 // ------------------ SA Structures ------------------
 // ---------------------------------------------------
 
-// Structures.
-typedef struct SStationLLAData {
+typedef struct SDistanceData {
 
     double m_dLongitude;
     double m_dLatitude;
     double m_dAltitude;
+    double m_dDistanceToLocalInMeters;
 
-} SStationLLAData;
+} SDistanceData;
 
-typedef struct SStationDynamicData {
+typedef struct SMovementData {
 
-    double m_dCurrentHaversine;
+    double m_dCurrentSpeedInKph;
 
-} SStationDynamicData;
+} SMovementData;
 
-typedef struct SStationFinalizedEventData {
-
-    uint64_t m_un64Events;
-
-} SStationFinalizedEventData;
-
-typedef struct SITSStationFusionData {
+typedef struct SStationFullFusionData {
 
     uint32_t m_un32StationId;
     int32_t m_n32StationType;
 
-    double m_dLastPotiTAI;
+    double m_dLastPotiTAI; // Relevant to local station.
 
-    SStationLLAData m_sCurrentLLAData;
-    SStationFinalizedEventData m_sCurrentEventData;
-    SStationDynamicData m_sCurrentDynamicData;
+    SDistanceData m_sDistanceData;
+    SMovementData m_sMovementData;
 
-} SITSStationFusionData;
+} SStationFullFusionData;
 
 // ---------------------------------------------------
-// --------------- Station Structures ----------------
+// ------------- RSU Station Structures --------------
 // ---------------------------------------------------
 
-typedef struct SITSCommercialStationInfo {
+typedef struct STrafficLightRsuStationInfo {
 
-    SStationLLAData m_sDepartureLocation;
-    SStationLLAData m_sDestinationLocation;
+    bool m_bIsRedLight;
+    int32_t m_n32SignalViolationThresholdInMeters;
+
+} STrafficLightRsuStationInfo;
+
+typedef struct SRsuStationInfo {
+
+    union {
+
+        STrafficLightRsuStationInfo m_sTrafficLightInfo;
+
+    } m_usSpecifics;
+
+} SRsuStationInfo;
+
+// ---------------------------------------------------
+// ----------- Vehicle Station Structures ------------
+// ---------------------------------------------------
+
+typedef struct SCommercialVehicleStationInfo {
+
+    SDistanceData m_sDepartureLocation;
+    SDistanceData m_sDestinationLocation;
 
     bool m_bIsDangerousGoods;
     int32_t m_eDangerousGoodsType;
@@ -136,9 +156,9 @@ typedef struct SITSCommercialStationInfo {
     int32_t m_n32TrailerWidth;
     int32_t m_n32TrailerWeight;
 
-} SITSCommercialStationInfo;
+} SCommercialVehicleStationInfo;
 
-typedef struct SITSVehicleStationInfo {
+typedef struct SVehicleStationInfo {
 
     char m_achVehicleDriverName[MAX_ITS_STRING_SIZE_IN_BYTES];
     char m_achVehicleLicensePlate[MAX_ITS_STRING_SIZE_IN_BYTES];
@@ -148,32 +168,40 @@ typedef struct SITSVehicleStationInfo {
     int32_t m_n32VehicleWidth;
     int32_t m_n32VehicleHeight;
     int32_t m_n32VehicleWeight;
-    double m_dVehicleSpeed;
+    double m_dVehicleSpeedInKph;
+
+    double m_dCollisionWarningThresholdInMeters;
 
     union {
 
-        SITSCommercialStationInfo m_sCommercialVehicleInfo;
+        SCommercialVehicleStationInfo m_sCommercialVehicleInfo;
 
     } m_usSpecifics;
 
-} SITSVehicleStationInfo;
+} SVehicleStationInfo;
 
-typedef struct SITSStationGeneralParameters {
+// ---------------------------------------------------
+// ------------ Common Station Structures ------------
+// ---------------------------------------------------
+
+typedef struct SStationGeneralParameters {
 
     int32_t m_n32TxFrequencyIn10Hz;
 
-} SITSStationGeneralParameters;
+} SStationGeneralParameters;
 
-typedef struct SITSStationInfo {
+typedef struct SStationInfo {
 
     uint32_t m_un32StationId;
     int32_t m_n32StationType;
     int32_t m_n32SubStationType;
 
-    SITSStationGeneralParameters m_sParameters;
-    SITSVehicleStationInfo m_sVehicleInfo;
+    SStationGeneralParameters m_sParameters;
 
-} SITSStationInfo;
+    SVehicleStationInfo m_sVehicleInfo;
+    SRsuStationInfo m_sRsuInfo;
+
+} SStationInfo;
 
 // ---------------------------------------------------
 // -------------- Container Structures ---------------
@@ -190,19 +218,26 @@ typedef struct SDataContainerElement {
 // -------------- Simulator Structures ---------------
 // ---------------------------------------------------
 
-typedef struct SITSScenarioInfo {
+typedef struct SSimulatorVehicleInfo {
 
-    // Scenario info.
+    double m_dVehicleSpeedDeltaInKph;
+    int32_t m_dVehicleSpeedDeltaInMs;
+
+} SSimulatorVehicleInfo;
+
+typedef struct SSimulatorScenarioInfo {
+
+    // General Scenario info.
     bool m_bIsScenarioEnabled;
-    char m_achName[30];
-    bool m_bIsGpsSimEnabled;
+    char m_achScenarioName[30];
+
+    // GPS Simulator info.
     char m_achParticipantId[30];
     uint32_t m_un32GpSimSyncId;
 
-    // Participant info.
-    char m_achParticipantName[30];
+    SSimulatorVehicleInfo m_sVehicleInfo;
 
-} SITSScenarioInfo;
+} SSimulatorScenarioInfo;
 
 /*
  *******************************************************************************
@@ -211,12 +246,12 @@ typedef struct SITSScenarioInfo {
  */
 
 // Global configuration.
-SITSStationInfo g_sLocalStationInfo;
-SITSScenarioInfo g_sLocalScenarioInfo;
+SStationInfo g_sLocalStationInfo;
+SSimulatorScenarioInfo g_sLocalScenarioInfo;
 char *g_pchConfigurationFileDirectoryPath;
 
-// Callbacks.
-boundary_write g_fp_write_to_boundary;
+// Host controller callbacks.
+host_controller g_fp_access_host_controller;
 
 /*
  *******************************************************************************

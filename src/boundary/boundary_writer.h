@@ -1,7 +1,9 @@
-#ifndef SA_SA_DATABASE_H_
-#define SA_SA_DATABASE_H_
+#ifndef COMMON_BOUNDARY_WRITER_H_
+#define COMMON_BOUNDARY_WRITER_H_
 
-#include "common/globals.h"
+#include "lib/inc/poti_service.h"
+#include "lib/inc/itsmsg_cam.h"
+#include "lib/inc/itsmsg_denm.h"
 
 /*
  *******************************************************************************
@@ -21,25 +23,29 @@
  *******************************************************************************
  */
 
+// Host boundary callback definitions.
+typedef int32_t (*host_boundary_write_sentence)(char *pchSentence, int32_t n32SentenceSize);
+typedef int32_t (*host_boundary_write_event)(int32_t n32EventId);
+typedef int32_t (*host_boundary_write_poti)(fix_data_t *psPotiFixData);
+typedef int32_t (*host_boundary_write_cam)(CAM *psCam);
+typedef int32_t (*host_boundary_write_denm)(DENM *psDenm);
+
 /*
  *******************************************************************************
  * Global variables
  *******************************************************************************
  */
 
+// Host boundary callbacks.
+host_boundary_write_sentence g_fp_write_to_boundary_sentence;
+host_boundary_write_event g_fp_write_to_boundary_event;
+host_boundary_write_poti g_fp_write_to_boundary_poti;
+host_boundary_write_cam g_fp_write_to_boundary_cam;
+host_boundary_write_denm g_fp_write_to_boundary_denm;
+
 /*
  *******************************************************************************
  * Public functions
- *******************************************************************************
- */
-
-void sa_database_init();
-SITSStationFusionData *sa_database_add_station_data(uint32_t un32StationId);
-SITSStationFusionData *sa_database_get_station_data(uint32_t un32StationId);
-
-/*
- *******************************************************************************
- * Private functions
  *******************************************************************************
  */
 

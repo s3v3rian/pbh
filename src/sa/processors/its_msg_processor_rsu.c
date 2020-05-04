@@ -1,5 +1,7 @@
 #include "its_msg_processor_rsu.h"
 
+#include <unistd.h>
+
 #include "lib/inc/gn_public.h"
 
 #include "common/containers/ring_buffer.h"
@@ -37,7 +39,7 @@
  *******************************************************************************
  */
 
-static bool m_bIsDoingDenmStatusUpdate;
+static bool m_bIsDoingStatusUpdate;
 
 /*
  *******************************************************************************
@@ -51,33 +53,99 @@ int32_t its_msg_processor_rsu_init() {
 
     int32_t n32ProcedureResult = its_msg_processor_init();
 
-    m_bIsDoingDenmStatusUpdate = false;
+    m_bIsDoingStatusUpdate = false;
 
     return n32ProcedureResult;
 }
 
-int32_t its_msg_processor_rsu_process_poti(fix_data_t *psPotiFixData) {
+int32_t its_msg_processor_rsu_process_tx(fix_data_t *psPotiFixData) {
 
-    m_bIsDoingDenmStatusUpdate = false;
+    // Call base function.
+//    its_msg_processor_process_tx_pending_denms(psPotiFixData);
 
-    return PROCEDURE_SUCCESSFULL;
-}
+    // Prepare CAM message.
+    CAM *psCam = NULL;
+    if(PROCEDURE_SUCCESSFULL != its_msg_processor_allocate_tx_cam_msg(&psCam)) {
 
-int32_t its_msg_processor_rsu_process_rx_cam(CAM *psCam, SITSStationFusionData *psLocalStationData, SITSStationFusionData *psRemoteStationData) {
-
-    return PROCEDURE_SUCCESSFULL;
-}
-
-int32_t its_msg_processor_rsu_process_rx_denm(DENM *psDenm, SITSStationFusionData *psLocalStationData, SITSStationFusionData *psRemoteStationData) {
-
-    /*
-    if(GN_ITS_STATION_HEAVY_TRUCK == psRemoteStationData->m_n32StationType
-            || GN_ITS_STATION_LIGHT_TRUCK == psRemoteStationData->m_n32StationType
-            || GN_ITS_STATION_PASSENGER_CAR == psRemoteStationData->m_n32StationType
-            || GN_ITS_STATION_BUS == psRemoteStationData->m_n32StationType) {
-
+        printf("Failed to allocate from ring buffer, cam status update failed\n");
+        return PROCEDURE_BUFFER_ERROR;
     }
-    */
+
+    // Set CAM container options.
+    psCam->cam.camParameters.highFrequencyContainer.choice = HighFrequencyContainer_rsuContainerHighFrequency;
+    psCam->cam.camParameters.highFrequencyContainer.u.rsuContainerHighFrequency.protectedCommunicationZonesRSU_option = FALSE;
+    psCam->cam.camParameters.lowFrequencyContainer_option = FALSE;
+    psCam->cam.camParameters.specialVehicleContainer_option = FALSE;
+
+    // Always send a CAM.
+    its_msg_processor_push_tx_cam_msg(psCam);
+    its_msg_processor_process_tx_cam(psPotiFixData);
+
+    // Prepare general status message.
+    DENM *psDenm = NULL;
+    if(PROCEDURE_SUCCESSFULL != its_msg_processor_allocate_tx_denm_msg(&psDenm)) {
+
+        printf("Failed to allocate from ring buffer, denm status update failed\n");
+        return PROCEDURE_BUFFER_ERROR;
+    }
+
+    psDenm->denm.situation_option = TRUE;
+
+    // If currently red light is on then send traffic condition message.
+    if(true == g_sLocalStationInfo.m_sRsuInfo.m_usSpecifics.m_sTrafficLightInfo.m_bIsRedLight) {
+
+        // Set traffic light event data.
+        psDenm->denm.situation.eventType.causeCode = CauseCodeType_trafficCondition;
+        psDenm->denm.situation.eventType.subCauseCode = TrafficConditionSubCauseCode_trafficRedLight;
+
+    } else {
+
+        // Set traffic light event data.
+        psDenm->denm.situation.eventType.causeCode = CauseCodeType_trafficCondition;
+        psDenm->denm.situation.eventType.subCauseCode = TrafficConditionSubCauseCode_trafficGreenLight;
+    }
+
+    // Set LLA data.
+    psDenm->denm.management.eventPosition.latitude = psPotiFixData->latitude * 10000000.0;
+    psDenm->denm.management.eventPosition.longitude = psPotiFixData->longitude * 10000000.0;
+    psDenm->denm.management.transmissionInterval_option = FALSE;
+    psDenm->denm.management.transmissionInterval = 1;
+
+    //printf("Pushing DENM periodic traffic light status\n");
+
+    // Send periodic status.
+    its_msg_processor_push_tx_denm_msg(psDenm);
+    its_msg_processor_process_tx_denm(psPotiFixData);
+
+    // TODO Get procedure reuslt from above procedures.
+    return PROCEDURE_SUCCESSFULL;
+}
+
+int32_t its_msg_processor_rsu_process_rx_cam(CAM *psCam, SStationFullFusionData *psLocalFusionData, SStationFullFusionData *psRemoteFusionData) {
+
+    // If currently red light is on and current distance to target is less then X meters then send signal violation.
+    if(true == g_sLocalStationInfo.m_sRsuInfo.m_usSpecifics.m_sTrafficLightInfo.m_bIsRedLight) {
+
+        if(g_sLocalStationInfo.m_sRsuInfo.m_usSpecifics.m_sTrafficLightInfo.m_n32SignalViolationThresholdInMeters > psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters) {
+
+            DENM *psDenm = NULL;
+            if(PROCEDURE_SUCCESSFULL != its_msg_processor_allocate_tx_denm_msg(&psDenm)) {
+
+                printf("Failed to allocate from ring buffer, denm status update failed\n");
+                return PROCEDURE_BUFFER_ERROR;
+            }
+
+            psDenm->denm.situation_option = TRUE;
+            psDenm->denm.situation.eventType.causeCode = CauseCodeType_signalViolation;
+
+            //its_msg_processor_push_tx_denm_msg(psDenm);
+        }
+    }
+
+    return PROCEDURE_SUCCESSFULL;
+}
+
+int32_t its_msg_processor_rsu_process_rx_denm(DENM *psDenm, SStationFullFusionData *psLocalFusionData, SStationFullFusionData *psRemoteFusionData) {
 
     return PROCEDURE_SUCCESSFULL;
 }

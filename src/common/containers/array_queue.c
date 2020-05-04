@@ -64,6 +64,18 @@ int32_t array_queue_init() {
     return PROCEDURE_SUCCESSFULL;
 }
 
+int32_t array_queue_release() {
+
+    for(int32_t n32Index = 0; n32Index < MAX_NUMBER_OF_CONTAINERS; n32Index++) {
+
+        m_asContainers[n32Index].m_bIsInUse = false;
+    }
+
+    free(m_psContainerArray);
+
+    return PROCEDURE_SUCCESSFULL;
+}
+
 int32_t array_queue_container_init(const char *pchName) {
 
     printf("Creating Array Queue - %s\n", pchName);
@@ -79,6 +91,20 @@ int32_t array_queue_container_init(const char *pchName) {
         }
     }
     return n32QueueIndex;
+}
+
+int32_t array_queue_container_release(int32_t n32ContainerId) {
+
+    if(0 > n32ContainerId
+            || MAX_NUMBER_OF_CONTAINERS <= n32ContainerId) {
+
+        printf("Invalid container id for array release operation\n");
+        return PROCEDURE_INVALID_PARAMETERS_ERROR;
+    }
+
+    m_asContainers[n32ContainerId].m_bIsInUse = false;
+
+    return PROCEDURE_SUCCESSFULL;
 }
 
 int32_t array_queue_container_push(int32_t n32ContainerId, int32_t n32ElementId, char *pchElement) {
@@ -99,6 +125,12 @@ int32_t array_queue_container_push(int32_t n32ContainerId, int32_t n32ElementId,
     }
 
     SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_n32CurrentPushIndex);
+
+    if(NULL != psQueueElement->m_pchData) {
+
+        return PROCEDURE_BUFFER_ERROR;
+    }
+
     psQueueElement->m_n32Data = n32ElementId;
     psQueueElement->m_pchData = pchElement;
     psQueueDescriptor->m_n32CurrentPushIndex = ((psQueueDescriptor->m_n32CurrentPushIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
@@ -140,28 +172,22 @@ int32_t array_queue_container_pop(int32_t n32ContainerId, int32_t *pn32ElementId
     return PROCEDURE_SUCCESSFULL;
 }
 
-int32_t array_queue_container_release(int32_t n32ContainerId) {
+bool array_queue_is_container_empty(int32_t n32ContainerId) {
 
     if(0 > n32ContainerId
             || MAX_NUMBER_OF_CONTAINERS <= n32ContainerId) {
 
-        printf("Invalid container id for array release operation\n");
-        return PROCEDURE_INVALID_PARAMETERS_ERROR;
+        printf("array pop operation, invalid container id\n");
+        return true;
     }
 
-    m_asContainers[n32ContainerId].m_bIsInUse = false;
+    SQueueDescriptor *psQueueDescriptor = &m_asContainers[n32ContainerId];
 
-    return PROCEDURE_SUCCESSFULL;
-}
+    if(false == psQueueDescriptor->m_bIsInUse) {
 
-int32_t array_queue_release() {
-
-    for(int32_t n32Index = 0; n32Index < MAX_NUMBER_OF_CONTAINERS; n32Index++) {
-
-        m_asContainers[n32Index].m_bIsInUse = false;
+        printf("array pop operation failed, container %d is not in use\n", n32ContainerId);
+        return true;
     }
 
-    free(m_psContainerArray);
-
-    return PROCEDURE_SUCCESSFULL;
+    return 0 == (psQueueDescriptor->m_n32CurrentPopIndex - psQueueDescriptor->m_n32CurrentPushIndex);
 }

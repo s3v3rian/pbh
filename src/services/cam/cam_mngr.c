@@ -16,7 +16,7 @@
  *******************************************************************************
  */
 
-static int32_t cam_mngr_msg_init(SITSStationInfo *psStationInfo, CAM *psOutputCam);
+static int32_t cam_mngr_msg_init(SStationInfo *psStationInfo, CAM *psOutputCam);
 static int32_t cam_mngr_msg_encode(uint8_t **p2un8CamPayload, fix_data_t *psPotiFixData, CAM *psOutputCam, ITSMsgCodecErr *psOutputErr);
 static int32_t cam_mngr_msg_decode(uint8_t *pun8RxPayload, int32_t n32RxPayloadLength, btp_handler_recv_indicator_t *psBtpRecvStatus, bool bSspCheck, CAM *psOutputCam, ITSMsgCodecErr *psOutputErr);
 
@@ -129,7 +129,7 @@ int32_t cam_mngr_init() {
     return n32Result;
 }
 
-int32_t cam_mngr_process_tx(SITSStationInfo *psStationInfo, fix_data_t *psPotiFixData, CAM *psOutputCam) {
+int32_t cam_mngr_process_tx(SStationInfo *psStationInfo, fix_data_t *psPotiFixData, CAM *psOutputCam) {
 
     int32_t n32Result = PROCEDURE_SUCCESSFULL;
 
@@ -184,6 +184,8 @@ int32_t cam_mngr_process_rx(CAM *psOutputCam) {
         return PROCEDURE_INVALID_SERVICE_RX_ERROR;
     }
 
+    //printf("Processing received CAM\n");
+
     if(true == IS_DECAP_FAIL(m_sBtpCamRecvStatus.security.status)) {
 
         printf("\tSecurity status: decapsulation error (%d), the payload content is untrustworthy\n", m_sBtpCamRecvStatus.security.status);
@@ -229,45 +231,13 @@ int32_t cam_mngr_release() {
     return PROCEDURE_SUCCESSFULL;
 }
 
-void cam_mngr_printf_cam(CAM *psCam) {
-
-    int32_t n32SentenceSize = 0;
-    char achSentence[MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES];
-
-    memset(achSentence, 0, MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES);
-
-    n32SentenceSize += snprintf(
-                achSentence + n32SentenceSize,
-                MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
-                "T%d,",
-                psCam->header.stationID);
-
-    SNmeaRmcData sRmcData;
-    memset(&sRmcData, 0, sizeof(sRmcData));
-
-    nmea_get_rmc_Data(&sRmcData);
-
-    sRmcData.m_dLatitude = psCam->cam.camParameters.basicContainer.referencePosition.latitude;
-    sRmcData.m_dLatitude = sRmcData.m_dLatitude / 10000000.0;
-    sRmcData.m_dLatitude = geodesic_convert_decimal_degress_to_degrees_minutes(sRmcData.m_dLatitude);
-
-    sRmcData.m_dLongitude = psCam->cam.camParameters.basicContainer.referencePosition.longitude;
-    sRmcData.m_dLongitude = sRmcData.m_dLongitude / 10000000.0;
-    sRmcData.m_dLongitude = geodesic_convert_decimal_degress_to_degrees_minutes(sRmcData.m_dLongitude);
-
-    sRmcData.m_dVelcoityInKnots = psCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.speed.speedValue * 1.944;
-
-    n32SentenceSize += nmea_build_rmc_msg(&sRmcData, achSentence + n32SentenceSize);
-    g_fp_write_to_boundary(achSentence, n32SentenceSize, psCam->header.stationID);
-}
-
 /*
  *******************************************************************************
  * Private functions
  *******************************************************************************
  */
 
-static int32_t cam_mngr_msg_init(SITSStationInfo *psStationInfo, CAM *psOutputCam) {
+static int32_t cam_mngr_msg_init(SStationInfo *psStationInfo, CAM *psOutputCam) {
 
     // Set header info.
 
@@ -278,7 +248,7 @@ static int32_t cam_mngr_msg_init(SITSStationInfo *psStationInfo, CAM *psOutputCa
 
     /* This DE provides the station type information of the originating ITS-S. */
     psOutputCam->cam.camParameters.basicContainer.stationType = psStationInfo->m_n32StationType;
-    psOutputCam->cam.camParameters.lowFrequencyContainer.u.basicVehicleContainerLowFrequency.vehicleRole = psStationInfo->m_n32SubStationType;
+    //psOutputCam->cam.camParameters.lowFrequencyContainer.u.basicVehicleContainerLowFrequency.vehicleRole = psStationInfo->m_n32SubStationType; // TODO
 
     return PROCEDURE_SUCCESSFULL;
 }
@@ -325,6 +295,7 @@ int32_t cam_mngr_msg_encode(uint8_t **p2un8CamPayload, fix_data_t *psPotiFixData
      * The mandatory high frequency container of CAM.
      */
 
+    if(GN_ITS_STATION_ROAD_SIDE_UNIT != g_sLocalStationInfo.m_n32StationType) { // TODO DEBUG
     /* Heading. */
     psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.heading.headingValue = (int32_t)(psPotiFixData->course_over_ground * 10.0); /* Convert to 0.1 degree from North. */
     psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.heading.headingConfidence = cam_mngr_set_heading_confidence(psPotiFixData->err_course_over_ground); /* Convert to 1 ~ 127 enumeration. */
@@ -380,7 +351,7 @@ int32_t cam_mngr_msg_encode(uint8_t **p2un8CamPayload, fix_data_t *psPotiFixData
     //cam_tx_encode_fmt.cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.performanceClass =
     psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.cenDsrcTollingZone_option = FALSE;
     //cam_tx_encode_fmt.cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.cenDsrcTollingZone =
-
+}
     /*
     *   If stationType is set to specialVehicles(10)
     *       LowFrequencyContainer shall be set to BasicVehicleContainerLowFrequency

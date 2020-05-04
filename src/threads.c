@@ -107,7 +107,7 @@ void *cam_receiver_active(void *p_param __attribute__((unused))) {
  */
 void *denm_receiver_active(void *p_param __attribute__((unused))) {
 
-        printf("Starting DENM receiver\n");
+    printf("Starting DENM receiver\n");
 
     while(true == m_bIsThreadsActive) {
 

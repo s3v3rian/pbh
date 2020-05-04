@@ -30,6 +30,7 @@ INCLUDEPATH += threads.h \
 SOURCES = startup.c \
     threads.c \
     boundary/serial_ouput.c \
+    common/sa_database.c \
     common/ring_buffers.c \
     common/file/csv_infra.c \
     common/file/ini_infra.c \
@@ -47,8 +48,8 @@ SOURCES = startup.c \
     sa/processors/its_msg_processor.c \
     sa/processors/its_msg_processor_rsu.c \
     sa/processors/its_msg_processor_commercial.c \
+    sa/processors/its_msg_processor_passenger.c \
     sa/algs/alg_haversine.c \
-    sa/sa_database.c \
     sa/sa_mngr.c \
     sim/processors/sim_processor_rsu.c \
     sim/processors/sim_processor_commercial.c \

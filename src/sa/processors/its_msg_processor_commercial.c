@@ -47,7 +47,7 @@ static bool m_bIsDoingGeneralStatusUpdate;
  *******************************************************************************
  */
 
-int32_t its_msg_processor_cm_init() {
+int32_t its_msg_processor_commercial_init() {
 
     int32_t n32ProcedureResult = PROCEDURE_SUCCESSFULL;
 
@@ -59,18 +59,23 @@ int32_t its_msg_processor_cm_init() {
     return n32ProcedureResult;
 }
 
-int32_t its_msg_processor_cm_process_poti(fix_data_t *psPotiFixData) {
+int32_t its_msg_processor_commercial_process_tx(fix_data_t *psPotiFixData) {
+
+    its_msg_processor_process_tx_pending_denms(psPotiFixData);
 
     m_bIsDoingGeneralStatusUpdate = false;
 
+    its_msg_processor_process_tx_cam(psPotiFixData);
+
+    // TODO Get procedure reuslt from above procedures.
     return PROCEDURE_SUCCESSFULL;
 }
 
-int32_t its_msg_processor_cm_process_rx_cam(CAM *psCam, SITSStationFusionData *psLocalStationData, SITSStationFusionData *psRemoteStationData) {
+int32_t its_msg_processor_commercial_process_rx_cam(CAM *psCam, SStationFullFusionData *psLocalFusionData, SStationFullFusionData *psRemoteFusionData) {
 
     int32_t n32ProcedureResult = PROCEDURE_SUCCESSFULL;
 
-    if(GN_ITS_STATION_ROAD_SIDE_UNIT == psRemoteStationData->m_n32StationType) {
+    if(GN_ITS_STATION_ROAD_SIDE_UNIT == psRemoteFusionData->m_n32StationType) {
 
         //printf("Preparing status update for road side unit\n");
 
@@ -83,19 +88,19 @@ int32_t its_msg_processor_cm_process_rx_cam(CAM *psCam, SITSStationFusionData *p
             DENM *psDenm = NULL;
             DENM *psDenm2 = NULL;
 
-            if(PROCEDURE_SUCCESSFULL != its_msg_processor_get_tx_cam_msg(&psCam)) {
+            if(PROCEDURE_SUCCESSFULL != its_msg_processor_allocate_tx_cam_msg(&psCam)) {
 
                 printf("Failed to allocate from ring buffer, denm status update failed\n");
                 n32ProcedureResult = PROCEDURE_BUFFER_ERROR;
             }
 
-            if(PROCEDURE_SUCCESSFULL != its_msg_processor_get_tx_denm_msg(&psDenm)) {
+            if(PROCEDURE_SUCCESSFULL != its_msg_processor_allocate_tx_denm_msg(&psDenm)) {
 
                 printf("Failed to allocate from ring buffer, denm status update failed\n");
                 n32ProcedureResult = PROCEDURE_BUFFER_ERROR;
             }
 
-            if(PROCEDURE_SUCCESSFULL != its_msg_processor_get_tx_denm_msg(&psDenm2)) {
+            if(PROCEDURE_SUCCESSFULL != its_msg_processor_allocate_tx_denm_msg(&psDenm2)) {
 
                 printf("Failed to allocate from ring buffer, denm status update failed\n");
                 n32ProcedureResult = PROCEDURE_BUFFER_ERROR;
@@ -186,16 +191,16 @@ int32_t its_msg_processor_cm_process_rx_cam(CAM *psCam, SITSStationFusionData *p
 
             //printf("Pushing its messages\n");
 
-            its_msg_processor_push_cam_msg(psCam);
-            its_msg_processor_push_denm_msg(psDenm);
-            its_msg_processor_push_denm_msg(psDenm2);
+            its_msg_processor_push_tx_cam_msg(psCam);
+            its_msg_processor_push_tx_denm_msg(psDenm);
+            its_msg_processor_push_tx_denm_msg(psDenm2);
         }
     }
 
     return n32ProcedureResult;
 }
 
-int32_t its_msg_processor_cm_process_rx_denm(DENM *psDenm, SITSStationFusionData *psLocalStationData, SITSStationFusionData *psRemoteStationData) {
+int32_t its_msg_processor_commercial_process_rx_denm(DENM *psDenm, SStationFullFusionData *psLocalFusionData, SStationFullFusionData *psRemoteFusionData) {
 
     return PROCEDURE_SUCCESSFULL;
 }

@@ -8,6 +8,9 @@
 #include "common/containers/ring_buffer.h"
 #include "common/utils/geo_utils.h"
 #include "common/utils/print_utils.h"
+#include "common/sa_database.h"
+
+#include "boundary/boundary_writer.h"
 
 #include "services/gps/gps_poti.h"
 
@@ -84,6 +87,13 @@ int32_t sa_mngr_init() {
     return PROCEDURE_SUCCESSFULL;
 }
 
+void sa_mngr_release() {
+
+    gps_poti_release();
+    cam_mngr_release();
+    denm_mngr_release();
+}
+
 void sa_mngr_process_fusion() {
 
     int32_t n32MsgId = INVALID_CONTAINER_ELEMENT_ID;
@@ -91,7 +101,7 @@ void sa_mngr_process_fusion() {
 
     //printf("Trying to pop data for fusion\n");
 
-    usleep(1000); // TODO Make this by event.
+    usleep(1000);
 
     spsc_array_queue_container_pop(m_n32FusionThreadQueueId, &n32MsgId, &pchMsgData);
 
@@ -104,6 +114,10 @@ void sa_mngr_process_fusion() {
 
     //printf("------------ Handling new data for fusion ------------\n");
 
+    // Read latest data from the boundary controller.
+    g_fp_access_host_controller();
+
+    // Process new message.
     switch(n32MsgId) {
 
         case POTI_id:
@@ -147,11 +161,11 @@ void sa_mngr_process_poti() {
 
 #ifdef __EN_SIMULATOR_FEATURE__
 
-    sim_mngr_gps_sim_update_fix_data(psPotiFixData);
+    sim_mngr_process_fix_data(psPotiFixData);
 
 #endif
 
-    gps_poti_mngr_printf_poti(psPotiFixData); // TODO think.
+    g_fp_write_to_boundary_poti(psPotiFixData);
 
     //printf("Pushing new POTI data to SA\n");
 
@@ -164,7 +178,7 @@ void sa_mngr_process_cam() {
 
     CAM *psOutputCam = NULL;
 
-    if(PROCEDURE_SUCCESSFULL != its_msg_processor_get_rx_cam_msg(&psOutputCam)) {
+    if(PROCEDURE_SUCCESSFULL != its_msg_processor_allocate_rx_cam_msg(&psOutputCam)) {
 
         printf("Failed to allocate rx cam resources\n");
         return;
@@ -172,21 +186,22 @@ void sa_mngr_process_cam() {
 
     if(PROCEDURE_SUCCESSFULL != cam_mngr_process_rx(psOutputCam)) {
 
+        printf("Failed to process received cam\n");
         return;
     }
 
-    cam_mngr_printf_cam(psOutputCam);
+    g_fp_write_to_boundary_cam(psOutputCam);
 
-    if(GN_ITS_STATION_HEAVY_TRUCK == g_sLocalStationInfo.m_n32StationType) {
-        spsc_array_queue_container_push(m_n32FusionThreadQueueId, CAM_Id, (char*)psOutputCam);
-    }
+    //printf("Inserting new CAM for rx processing\n");
+
+    spsc_array_queue_container_push(m_n32FusionThreadQueueId, CAM_Id, (char*)psOutputCam);
 }
 
 void sa_mngr_process_denm() {
 
     DENM *psOutputDenm = NULL;
 
-    if(PROCEDURE_SUCCESSFULL != its_msg_processor_get_rx_denm_msg(&psOutputDenm)) {
+    if(PROCEDURE_SUCCESSFULL != its_msg_processor_allocate_rx_denm_msg(&psOutputDenm)) {
 
         printf("Failed to allocate rx denm resources\n");
         return;
@@ -195,21 +210,15 @@ void sa_mngr_process_denm() {
 
     if(PROCEDURE_SUCCESSFULL != denm_mngr_process_rx(psOutputDenm)) {
 
+        printf("Failed to process received denm\n");
         return;
     }
 
-    denm_mngr_printf_denm(psOutputDenm);
+    g_fp_write_to_boundary_denm(psOutputDenm);
 
-    if(GN_ITS_STATION_HEAVY_TRUCK == g_sLocalStationInfo.m_n32StationType) {
-        spsc_array_queue_container_push(m_n32FusionThreadQueueId, DENM_Id, (char*)psOutputDenm);
-    }
-}
+    //printf("Inserting new DENM for rx processing\n");
 
-void sa_mngr_release() {
-
-    gps_poti_release();
-    cam_mngr_release();
-    denm_mngr_release();
+    spsc_array_queue_container_push(m_n32FusionThreadQueueId, DENM_Id, (char*)psOutputDenm);
 }
 
 static void sa_mngr_handle_msg(int32_t n32MsgId, char *pchMsgData) {
@@ -235,28 +244,30 @@ static void sa_mngr_handle_msg(int32_t n32MsgId, char *pchMsgData) {
 
 static void sa_mngr_handle_cam(CAM *psCam) {
 
-    SITSStationFusionData *psLocalStationData = sa_database_get_station_data(g_sLocalStationInfo.m_un32StationId);
+    //printf("Handling received CAM message from %d\n", psCam->header.stationID);
 
-    if(NULL == psLocalStationData) {
+    SStationFullFusionData *psLocalFusionData = sa_database_get_station_data(g_sLocalStationInfo.m_un32StationId);
+
+    if(NULL == psLocalFusionData) {
 
         printf("SA_MNGR - Failed to find local station id for computing haversine\n");
         return;
     }
 
-    SITSStationFusionData *psRemoteStationData = sa_database_get_station_data(psCam->header.stationID);
+    SStationFullFusionData *psRemoteFusionData = sa_database_get_station_data(psCam->header.stationID);
 
-    if(NULL == psRemoteStationData) {
+    if(NULL == psRemoteFusionData) {
 
-        psRemoteStationData = sa_database_add_station_data(psCam->header.stationID);
+        psRemoteFusionData = sa_database_add_station_data(psCam->header.stationID);
 
-        if(NULL == psRemoteStationData) {
+        if(NULL == psRemoteFusionData) {
 
             printf("SA_MNGR - Failed to find station %d fusion info\n", psCam->header.stationID);
             return;
         }
 
         // Update additional station info.
-        psRemoteStationData->m_n32StationType = psCam->cam.camParameters.basicContainer.stationType;
+        psRemoteFusionData->m_n32StationType = psCam->cam.camParameters.basicContainer.stationType;
     }
 
     //printf("Found station data of station %d\n", psCam->header.stationID);
@@ -266,52 +277,54 @@ static void sa_mngr_handle_cam(CAM *psCam) {
     // --------------------------------------------------
 
     // Update remote station LLA.
-    psRemoteStationData->m_sCurrentLLAData.m_dLongitude = psCam->cam.camParameters.basicContainer.referencePosition.longitude / 10000000.0;
-    psRemoteStationData->m_sCurrentLLAData.m_dLatitude = psCam->cam.camParameters.basicContainer.referencePosition.latitude / 10000000.0;
+    psRemoteFusionData->m_sDistanceData.m_dLongitude = psCam->cam.camParameters.basicContainer.referencePosition.longitude / 10000000.0;
+    psRemoteFusionData->m_sDistanceData.m_dLatitude = psCam->cam.camParameters.basicContainer.referencePosition.latitude / 10000000.0;
 
     // Update remote station ka.
-    psRemoteStationData->m_dLastPotiTAI = psLocalStationData->m_dLastPotiTAI;
+    psRemoteFusionData->m_dLastPotiTAI = psLocalFusionData->m_dLastPotiTAI;
 
     // --------------------------------------------------
     // -------------- Compute Distance ------------------
     // --------------------------------------------------
 
     // Compute distance to target.
-    psRemoteStationData->m_sCurrentDynamicData.m_dCurrentHaversine = alg_haversine_compute(&psLocalStationData->m_sCurrentLLAData, &psRemoteStationData->m_sCurrentLLAData);
+    psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters = alg_haversine_compute(&psLocalFusionData->m_sDistanceData, &psRemoteFusionData->m_sDistanceData);
 
-    //printf("Computed haversine value %f from station %d to station %d\n", psRemoteStationData->m_sCurrentDynamicData.m_dCurrentHaversine, g_sLocalStationInfo.m_un32StationId, psCam->header.stationID);
+    //printf("Computed haversine value %f from station %d to station %d\n", psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters, g_sLocalStationInfo.m_un32StationId, psCam->header.stationID);
 
     // --------------------------------------------------
     // ------------- Make Event Decision ----------------
     // --------------------------------------------------
 
-    g_fp_its_processor_proccess_cam(psCam, psLocalStationData, psRemoteStationData);
+    g_fp_its_processor_proccess_cam(psCam, psLocalFusionData, psRemoteFusionData);
 }
 
 static void sa_mngr_handle_denm(DENM *psDenm) {
 
-    SITSStationFusionData *psLocalStationData = sa_database_get_station_data(g_sLocalStationInfo.m_un32StationId);
+    //printf("Handling received DENM message from %d\n", psDenm->header.stationID);
 
-    if(NULL == psLocalStationData) {
+    SStationFullFusionData *psLocalFusionData = sa_database_get_station_data(g_sLocalStationInfo.m_un32StationId);
+
+    if(NULL == psLocalFusionData) {
 
         printf("SA_MNGR - Failed to find local station id for computing haversine\n");
         return;
     }
 
-    SITSStationFusionData *psRemoteStationData = sa_database_get_station_data(psDenm->header.stationID);
+    SStationFullFusionData *psRemoteFusionData = sa_database_get_station_data(psDenm->header.stationID);
 
-    if(NULL == psRemoteStationData) {
+    if(NULL == psRemoteFusionData) {
 
-        psRemoteStationData = sa_database_add_station_data(psDenm->header.stationID);
+        psRemoteFusionData = sa_database_add_station_data(psDenm->header.stationID);
 
-        if(NULL == psRemoteStationData) {
+        if(NULL == psRemoteFusionData) {
 
             printf("SA_MNGR - Failed to find station %d fusion info\n", psDenm->header.stationID);
             return;
         }
 
         // Update additional station info.
-        psRemoteStationData->m_n32StationType = psDenm->denm.management.stationType;
+        psRemoteFusionData->m_n32StationType = psDenm->denm.management.stationType;
     }
 
     //printf("SA_MNGR - Found station data of station %d\n", psDenm->header.stationID);
@@ -320,12 +333,12 @@ static void sa_mngr_handle_denm(DENM *psDenm) {
     // ------------- Make Event Decision ----------------
     // --------------------------------------------------
 
-    g_fp_its_processor_proccess_denm(psDenm, psLocalStationData, psRemoteStationData);
+    g_fp_its_processor_proccess_denm(psDenm, psLocalFusionData, psRemoteFusionData);
 }
 
 static void sa_mngr_handle_publish(fix_data_t *psPotiFixData) {
 
-    SITSStationFusionData *psStationData = sa_database_get_station_data(g_sLocalStationInfo.m_un32StationId);
+    SStationFullFusionData *psStationData = sa_database_get_station_data(g_sLocalStationInfo.m_un32StationId);
 
     if(NULL == psStationData) {
 
@@ -343,8 +356,8 @@ static void sa_mngr_handle_publish(fix_data_t *psPotiFixData) {
     // --------------------------------------------------
 
     // Save Local LLA.
-    psStationData->m_sCurrentLLAData.m_dLongitude = psPotiFixData->longitude;
-    psStationData->m_sCurrentLLAData.m_dLatitude = psPotiFixData->latitude;
+    psStationData->m_sDistanceData.m_dLongitude = psPotiFixData->longitude;
+    psStationData->m_sDistanceData.m_dLatitude = psPotiFixData->latitude;
 
     // Save timestamp.
     psStationData->m_dLastPotiTAI = psPotiFixData->time.tai_since_2004;
@@ -355,37 +368,5 @@ static void sa_mngr_handle_publish(fix_data_t *psPotiFixData) {
     // ---------- Get New Data From Processor ---------
     // ------------------------------------------------
 
-    CAM *psOutputCam = NULL;
-    DENM *psOutputDenm = NULL;
-
-    its_msg_processor_get_tx_cam_msg(&psOutputCam);
-    its_msg_processor_get_tx_denm_msg(&psOutputDenm);
-
-    if(NULL == psOutputCam
-        || NULL == psOutputDenm) {
-
-        printf("SA_MNGR - Failed to allocate tx resources\n");
-        return;
-    }
-
-    // ------------------------------------------------
-    // ---------------- Publish Situation -------------
-    // ------------------------------------------------
-
-    //printf("Sending ITS messages\n");
-
-    cam_mngr_process_tx(&g_sLocalStationInfo, psPotiFixData, psOutputCam);
-    denm_mngr_process_tx(&g_sLocalStationInfo, psPotiFixData, psOutputDenm);
-
-    if(CauseCodeType_commercialVehicleSituation == psOutputDenm->denm.situation.eventType.causeCode) {
-
-        psOutputCam = NULL;
-        its_msg_processor_get_tx_denm_msg(&psOutputDenm);
-        denm_mngr_process_tx(&g_sLocalStationInfo, psPotiFixData, psOutputDenm);
-    }
-
-    // ----------------------------------------------------
-    // ---------------- Post Processing -------------------
-    // ----------------------------------------------------
-
+    g_fp_its_processor_process_tx(psPotiFixData);
 }

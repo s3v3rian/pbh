@@ -12,7 +12,7 @@
  *******************************************************************************
  */
 
-static int32_t mapem_mngr_msg_init(SITSStationInfo *psStationInfo, MAPEM *psOutputMapem);
+static int32_t mapem_mngr_msg_init(SStationInfo *psStationInfo, MAPEM *psOutputMapem);
 static int32_t mapem_mngr_msg_encode(uint8_t **p2un8CamPayload, fix_data_t *psPotiFixData, MAPEM *psOutputMapem, ITSMsgCodecErr *psOutputErr);
 static int32_t mapem_mngr_msg_decode(uint8_t *pun8RxPayload, int32_t n32RxPayloadLength, btp_handler_recv_indicator_t *psBtpRecvStatus, bool bSspCheck, MAPEM *psOutputMapem, ITSMsgCodecErr *psOutputErr);
 
@@ -121,7 +121,7 @@ int32_t mapem_mngr_init() {
     return n32Result;
 }
 
-int32_t mapem_mngr_process_tx(SITSStationInfo *psStationInfo, fix_data_t *psPotiFixData, CAM *psOutputCam) {
+int32_t mapem_mngr_process_tx(SStationInfo *psStationInfo, fix_data_t *psPotiFixData, CAM *psOutputCam) {
 
     int32_t n32Result = PROCEDURE_SUCCESSFULL;
 
@@ -223,7 +223,7 @@ int32_t mapem_mngr_release() {
  *******************************************************************************
  */
 
-static int32_t mapem_mngr_msg_init(SITSStationInfo *psStationInfo, CAM *psOutputCam) {
+static int32_t mapem_mngr_msg_init(SStationInfo *psStationInfo, CAM *psOutputCam) {
 
     /* Make sure we reset the data structure at least once. */
     memset(psOutputCam, 0, sizeof(CAM));

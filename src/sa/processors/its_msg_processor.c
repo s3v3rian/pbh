@@ -76,14 +76,67 @@ int32_t its_msg_processor_init() {
     return PROCEDURE_SUCCESSFULL;
 }
 
-int32_t its_msg_processor_get_tx_cam_msg(CAM **p2sCam) {
+int32_t its_msg_processor_process_tx_pending_denms(fix_data_t *psPotiFixData) {
 
-    its_msg_processor_pop_cam_msg(p2sCam);
+    while(true == its_msg_processor_is_tx_denm_pending()) {
 
-    if(NULL != *p2sCam) {
-
-        return PROCEDURE_SUCCESSFULL;
+        its_msg_processor_process_tx_denm(psPotiFixData);
     }
+
+    // TODO Add getting results.
+    return PROCEDURE_SUCCESSFULL;
+}
+
+int32_t its_msg_processor_process_tx_cam(fix_data_t *psPotiFixData) {
+
+    CAM *psCam = NULL;
+
+    if(false == its_msg_processor_pop_tx_cam_msg(&psCam)) {
+
+        its_msg_processor_allocate_tx_cam_msg(&psCam);
+    }
+
+    if(NULL == psCam) {
+
+        printf("Failed to allocate tx cam resources\n");
+        return PROCEDURE_BUFFER_ERROR;
+    }
+
+    // ------------------------------------------------
+    // ---------------- Publish Situation -------------
+    // ------------------------------------------------
+
+    //printf("Processing outgoing CAM message\n");
+
+    return cam_mngr_process_tx(&g_sLocalStationInfo, psPotiFixData, psCam);
+}
+
+int32_t its_msg_processor_process_tx_denm(fix_data_t *psPotiFixData) {
+
+    DENM *psDenm = NULL;
+
+    if(false == its_msg_processor_pop_tx_denm_msg(&psDenm)) {
+
+        printf("Pushing default DENM\n");
+        its_msg_processor_allocate_tx_denm_msg(&psDenm);
+    }
+
+    if(NULL == psDenm) {
+
+        printf("Failed to allocate denm tx resources\n");
+        return PROCEDURE_BUFFER_ERROR;
+    }
+
+    // ------------------------------------------------
+    // ---------------- Publish Situation -------------
+    // ------------------------------------------------
+
+    //printf("Processing outgoing DENM message\n");
+
+    return denm_mngr_process_tx(&g_sLocalStationInfo, psPotiFixData, psDenm);
+}
+
+int32_t its_msg_processor_allocate_tx_cam_msg(CAM **p2sCam) {
 
     *p2sCam = &m_asCamTxRingBuffer[m_n32CamTxRingBufferIndex++];
     m_n32CamTxRingBufferIndex = m_n32CamTxRingBufferIndex % MAX_NUMBER_OF_CONTAINERS_ELEMENTS;
@@ -93,7 +146,7 @@ int32_t its_msg_processor_get_tx_cam_msg(CAM **p2sCam) {
     return PROCEDURE_SUCCESSFULL;
 }
 
-int32_t its_msg_processor_get_rx_cam_msg(CAM **p2sCam) {
+int32_t its_msg_processor_allocate_rx_cam_msg(CAM **p2sCam) {
 
     *p2sCam = &m_asCamRxRingBuffer[m_n32CamRxRingBufferIndex++];
     m_n32CamRxRingBufferIndex = m_n32CamRxRingBufferIndex % MAX_NUMBER_OF_CONTAINERS_ELEMENTS;
@@ -103,14 +156,7 @@ int32_t its_msg_processor_get_rx_cam_msg(CAM **p2sCam) {
     return PROCEDURE_SUCCESSFULL;
 }
 
-int32_t its_msg_processor_get_tx_denm_msg(DENM **p2sDenm) {
-
-    its_msg_processor_pop_denm_msg(p2sDenm);
-
-    if(NULL != *p2sDenm) {
-
-        return PROCEDURE_SUCCESSFULL;
-    }
+int32_t its_msg_processor_allocate_tx_denm_msg(DENM **p2sDenm) {
 
     *p2sDenm = &m_asDenmTxRingBuffer[m_n32DenmTxRingBufferIndex++];
     m_n32DenmTxRingBufferIndex = m_n32DenmTxRingBufferIndex % MAX_NUMBER_OF_CONTAINERS_ELEMENTS;
@@ -120,7 +166,7 @@ int32_t its_msg_processor_get_tx_denm_msg(DENM **p2sDenm) {
     return PROCEDURE_SUCCESSFULL;
 }
 
-int32_t its_msg_processor_get_rx_denm_msg(DENM **p2sDenm) {
+int32_t its_msg_processor_allocate_rx_denm_msg(DENM **p2sDenm) {
 
     *p2sDenm = &m_asDenmRxRingBuffer[m_n32DenmRxRingBufferIndex++];
     m_n32DenmRxRingBufferIndex = m_n32DenmRxRingBufferIndex % MAX_NUMBER_OF_CONTAINERS_ELEMENTS;
@@ -130,26 +176,40 @@ int32_t its_msg_processor_get_rx_denm_msg(DENM **p2sDenm) {
     return PROCEDURE_SUCCESSFULL;
 }
 
-void its_msg_processor_push_cam_msg(CAM *psCam) {
+bool its_msg_processor_push_tx_cam_msg(CAM *psCam) {
 
-    array_queue_container_push(m_n32CamQueueId, 0, (char*)psCam);
+    return (PROCEDURE_SUCCESSFULL == array_queue_container_push(m_n32CamQueueId, 0, (char*)psCam)) ? true : false;
 }
 
-void its_msg_processor_pop_cam_msg(CAM **p2sCam) {
+bool its_msg_processor_pop_tx_cam_msg(CAM **p2sCam) {
 
     int32_t n32ElementId = 0;
     array_queue_container_pop(m_n32CamQueueId, &n32ElementId, (char**)p2sCam);
+
+    return (*p2sCam == NULL) ? false : true;
 }
 
-void its_msg_processor_push_denm_msg(DENM *psDenm) {
+bool its_msg_processor_push_tx_denm_msg(DENM *psDenm) {
 
-    array_queue_container_push(m_n32DenmQueueId, 0, (char*)psDenm);
+    return (PROCEDURE_SUCCESSFULL == array_queue_container_push(m_n32DenmQueueId, 0, (char*)psDenm)) ? true : false;
 }
 
-void its_msg_processor_pop_denm_msg(DENM **p2sDenm) {
+bool its_msg_processor_pop_tx_denm_msg(DENM **p2sDenm) {
 
     int32_t n32ElementId = 0;
     array_queue_container_pop(m_n32DenmQueueId, &n32ElementId, (char**)p2sDenm);
+
+    return (*p2sDenm == NULL) ? false : true;
+}
+
+bool its_msg_processor_is_tx_cam_pending() {
+
+    return (true == array_queue_is_container_empty(m_n32CamQueueId)) ? false : true;
+}
+
+bool its_msg_processor_is_tx_denm_pending() {
+
+    return (array_queue_is_container_empty(m_n32DenmQueueId)) ? false : true;
 }
 
 /*

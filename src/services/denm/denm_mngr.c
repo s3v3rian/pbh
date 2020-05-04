@@ -6,13 +6,15 @@
 
 #include "lib/inc/error_code_user.h"
 
+#include "boundary/boundary_writer.h"
+
 /*
  *******************************************************************************
  * Private function signatures
  *******************************************************************************
  */
 
-static int32_t denm_mngr_msg_init(SITSStationInfo *psStationInfo, DENM *psOutputDenm);
+static int32_t denm_mngr_msg_init(SStationInfo *psStationInfo, DENM *psOutputDenm);
 static int32_t denm_mngr_msg_encode(uint8_t **p2un8DenmPayload, fix_data_t *psPotiFixData, DENM *psOutputDenm, ITSMsgCodecErr *psOutputErr);
 static int32_t denm_mngr_msg_decode(uint8_t *pun8RxPayload, int32_t n32RxPayloadLength, btp_handler_recv_indicator_t *psBtpRecvStatus, bool bSspCheck, DENM *psOutputDenm, ITSMsgCodecErr *psOutputErr);
 static int32_t denm_mngr_check_msg_permissions(DENM *psOutputDenm, uint8_t *pun8Ssp, uint32_t un32SspLength);
@@ -121,7 +123,7 @@ int32_t denm_mngr_init() {
     return n32Result;
 }
 
-int32_t denm_mngr_process_tx(SITSStationInfo *psStationInfo, fix_data_t *psPotiFixData, DENM *psOutputDenm) {
+int32_t denm_mngr_process_tx(SStationInfo *psStationInfo, fix_data_t *psPotiFixData, DENM *psOutputDenm) {
 
     int32_t n32Result = PROCEDURE_SUCCESSFULL;
 
@@ -156,6 +158,8 @@ int32_t denm_mngr_process_tx(SITSStationInfo *psStationInfo, fix_data_t *psPotiF
 
     //printf("Setting special DENM parameters\n");
 
+    g_fp_write_to_boundary_denm(psOutputDenm);
+
     /* BTP send packet default configuration (GBC/BTP-B). */
     BTP_SEND_CONFIG_INIT(&m_sBtpDenmSendConfig);
 
@@ -172,7 +176,7 @@ int32_t denm_mngr_process_tx(SITSStationInfo *psStationInfo, fix_data_t *psPotiF
     m_sBtpDenmSendConfig.gn_optional.dest_area.distance_b = 100; /* Distance b of the geometric shape, meters. */
     m_sBtpDenmSendConfig.gn_optional.dest_area.angle = 0; /* Angle of the geometric shape, degrees from North. */
 
-    //printf("Sending DENM message\n");
+    printf("Sending DENM message - Size: %d\n", n32TxPayloadSize);
 
     /* Broadcast the DENM message (BTP-B, SHB). */
     n32Result = btp_send(m_pBtpDenmHandler, &m_sBtpDenmSendConfig, pun8TxPayload, n32TxPayloadSize);
@@ -194,13 +198,16 @@ int32_t denm_mngr_process_rx(DENM *psOutputDenm) {
 
     int32_t n32Result = PROCEDURE_SUCCESSFULL;
 
-    /* Listen the CAM BTP port. */
+    /* Listen the DENM BTP port. */
     n32Result = btp_recv(m_pBtpDenmHandler, &m_sBtpDenmRecvStatus, m_aun8DenmRxPayload, sizeof(m_aun8DenmRxPayload), BTP_RECV_WAIT_FOREVER);
 
     if(0 > n32Result > 0) {
 
+        printf("Received from DENM port something stinky... Error: %d", n32Result);
         return PROCEDURE_INVALID_SERVICE_RX_ERROR;
     }
+
+    printf("Processing received DENM\n");
 
     if(true == IS_DECAP_FAIL(m_sBtpDenmRecvStatus.security.status)) {
 
@@ -240,138 +247,13 @@ int32_t denm_mngr_release() {
     return PROCEDURE_SUCCESSFULL;
 }
 
-void denm_mngr_printf_denm(DENM *psDenm) {
-
-    int32_t n32SentenceSize = 0;
-    char achSentence[MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES];
-
-    memset(achSentence, 0, MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES);
-
-    // Always write station id first.
-    n32SentenceSize += snprintf(
-                achSentence + n32SentenceSize,
-                MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
-                "T%d",
-                psDenm->header.stationID);
-
-    // Write to boundary current situation event.
-    if(TRUE == psDenm->denm.situation_option) {
-
-        switch(psDenm->denm.situation.eventType.causeCode) {
-
-            case CauseCodeType_commercialVehicleSituation:
-
-                n32SentenceSize += snprintf(
-                            achSentence + n32SentenceSize,
-                            MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
-                            ",Event,commercial_vehicle_status");
-                break;
-
-            case CauseCodeType_signalViolation:
-
-                if(SignalViolation_trafficLightViolation == psDenm->denm.situation.eventType.subCauseCode) {
-
-                    n32SentenceSize += snprintf(
-                                achSentence + n32SentenceSize,
-                                MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
-                                ",Event,signal_violation");
-                }
-                break;
-
-        case CauseCodeType_slowVehicle:
-
-                n32SentenceSize += snprintf(
-                            achSentence + n32SentenceSize,
-                            MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
-                            ",Event,slow_vehicle");
-                break;
-
-            default:
-
-                n32SentenceSize += snprintf(
-                            achSentence + n32SentenceSize,
-                            MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
-                            ",Event,%d", psDenm->denm.situation.eventType.causeCode);
-                break;
-        }
-
-    } else {
-
-        n32SentenceSize += snprintf(
-                    achSentence + n32SentenceSize,
-                    MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
-                    ",No event");
-    }
-
-    // Write to boundary alacarte container stuff.
-    if(TRUE == psDenm->denm.alacarte_option) {
-
-        n32SentenceSize += snprintf(
-            achSentence + n32SentenceSize,
-            MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
-            ",Alacarte");
-
-        // Write to boundary stationary vehicle stuff.
-        if(TRUE == psDenm->denm.alacarte.stationaryVehicle_option) {
-
-            // Write to boundary vehicle identification stuff.
-            if(TRUE == psDenm->denm.alacarte.stationaryVehicle.vehicleIdentification_option) {
-
-                if(TRUE == psDenm->denm.alacarte.stationaryVehicle.vehicleIdentification.vDS_option) {
-
-                    n32SentenceSize += snprintf(
-                                achSentence + n32SentenceSize,
-                                MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
-                                ",VDS,%s",
-                                psDenm->denm.alacarte.stationaryVehicle.vehicleIdentification.vDS.buf);
-                }
-
-                if(TRUE == psDenm->denm.alacarte.stationaryVehicle.vehicleIdentification.wMInumber_option) {
-
-                    n32SentenceSize += snprintf(
-                                achSentence + n32SentenceSize,
-                                MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
-                                ",wMInumber,%s",
-                                psDenm->denm.alacarte.stationaryVehicle.vehicleIdentification.wMInumber.buf);
-                }
-            }
-        }
-
-        if(TRUE == psDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods_option) {
-
-            n32SentenceSize += snprintf(
-                        achSentence + n32SentenceSize,
-                        MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
-                        ",IsCarryDangerous,true,Type,%d,CompanyName,%s",
-                        psDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods.dangerousGoodsType,
-                        psDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods.companyName.buf);
-
-        } else {
-
-            n32SentenceSize += snprintf(
-                        achSentence + n32SentenceSize,
-                        MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
-                        ",IsCarryDangerous,false");
-        }
-    }
-
-    n32SentenceSize += snprintf(
-                achSentence + n32SentenceSize,
-                MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES - n32SentenceSize,
-                ",Lat,%d,Lon,%d\n",
-                psDenm->denm.management.eventPosition.latitude,
-                psDenm->denm.management.eventPosition.longitude);
-
-    g_fp_write_to_boundary(achSentence, n32SentenceSize, psDenm->header.stationID);
-}
-
 /*
  *******************************************************************************
  * Private functions
  *******************************************************************************
  */
 
-static int32_t denm_mngr_msg_init(SITSStationInfo *psStationInfo, DENM *psOutputDenm) {
+static int32_t denm_mngr_msg_init(SStationInfo *psStationInfo, DENM *psOutputDenm) {
 
     // Set header info.
 
@@ -430,7 +312,7 @@ int32_t denm_mngr_msg_encode(uint8_t **p2un8DenmPayload, fix_data_t *psPotiFixDa
     psOutputDenm->denm.management.validityDuration = DENM_VALIDITY_DURATION_DEF; /* ValidityDuration (0..86400) */
 
 //    /* Time interval for DENM transmission as defined by the originating ITS-S. */
-    psOutputDenm->denm.management.transmissionInterval_option = FALSE;
+    //psOutputDenm->denm.management.transmissionInterval_option = FALSE;
 //    //psOutputDenm->denm.management.transmissionInterval = /* TransmissionInterval (1..10000) */
 
 //    // ---------------------------------------------------------
@@ -440,11 +322,6 @@ int32_t denm_mngr_msg_encode(uint8_t **p2un8DenmPayload, fix_data_t *psPotiFixDa
 //    /*
 //     *  The situation container includes information that describes the detected event.
 //     */
-//    psOutputDenm->denm.situation_option = TRUE; // TRUE; TODO DEBUG
-//    psOutputDenm->denm.situation.informationQuality = 0; /* InformationQuality (0..7), If the information is unknown, the DE shall be set to 0. */
-//    psOutputDenm->denm.situation.eventType.causeCode = 0; //CauseCodeType_redLight; //TODO DEUBG
-//    psOutputDenm->denm.situation.eventType.subCauseCode = 0; // WrongWayDrivingSubCauseCode_unavailable; // TODO DEBUG
-
 //    psOutputDenm->denm.situation.linkedCause_option = FALSE;
 //    //psOutputDenm->denm.situation.linkedCause =
 //    psOutputDenm->denm.situation.eventHistory_option = FALSE;

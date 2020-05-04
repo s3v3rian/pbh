@@ -36,8 +36,6 @@ int32_t gps_sim_init(const char *pchScenarioName, const char *pchParticipantId) 
     // Set global variables.
     m_bIsPausingFixData = false;
 
-    printf("Loading GPS Simulator - Using scenario %s, Participant ID: %s, Sync Station: %d\n", pchScenarioName, pchParticipantId, g_sLocalScenarioInfo.m_un32GpSimSyncId);
-
     // Init internal variables.
     m_bIsSimulatorEnabled = true;
 
@@ -91,9 +89,32 @@ int32_t gps_sim_init(const char *pchScenarioName, const char *pchParticipantId) 
         n32Result = PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
-    printf("Longitude array size: %d, Latitude array size: %d\n", m_n32LatitudeArraySize, m_n32LongitudeArraySize);
+    printf("Longitude array size: %d, Latitude array size: %d, Altitude array size: %d\n", m_n32LatitudeArraySize, m_n32LongitudeArraySize, m_n32AltitudeArraySize);
 
     return n32Result;
+}
+
+void gps_sim_release() {
+
+    if(0 != m_n32LatitudeArraySize) {
+
+        free(m_pdLatitudeArray);
+        m_n32LatitudeArraySize = 0;
+    }
+
+    if(0 != m_n32LongitudeArraySize) {
+
+        free(m_pdLongitudeArray);
+        m_n32LongitudeArraySize = 0;
+    }
+
+    if(0 != m_n32AltitudeArraySize) {
+
+        free(m_pdAltitudeArray);
+        m_n32AltitudeArraySize = 0;
+    }
+
+    m_bIsSimulatorEnabled = false;
 }
 
 void gps_sim_update_fix_data(fix_data_t *psPotiFixData) {
@@ -119,7 +140,7 @@ void gps_sim_update_fix_data(fix_data_t *psPotiFixData) {
     m_n32LongitudeArrayIndex = (m_n32LongitudeArrayIndex + 1) % m_n32LongitudeArraySize;
 }
 
-void gps_sim_pause_fix_data(bool bIsPaused) {
+void gps_sim_set_is_pause_fix_data(bool bIsPaused) {
 
     m_bIsPausingFixData = bIsPaused;
 
@@ -133,30 +154,12 @@ void gps_sim_pause_fix_data(bool bIsPaused) {
     }
 }
 
-bool gps_sim_is_paused() {
+bool gps_sim_get_is_pause_fix_data() {
 
     return m_bIsPausingFixData;
 }
 
-void gps_sim_release() {
+bool gps_sim_get_is_scenario_fix_data_starting_now() {
 
-    if(0 != m_n32LatitudeArraySize) {
-
-        free(m_pdLatitudeArray);
-        m_n32LatitudeArraySize = 0;
-    }
-
-    if(0 != m_n32LongitudeArraySize) {
-
-        free(m_pdLongitudeArray);
-        m_n32LongitudeArraySize = 0;
-    }
-
-    if(0 != m_n32AltitudeArraySize) {
-
-        free(m_pdAltitudeArray);
-        m_n32AltitudeArraySize = 0;
-    }
-
-    m_bIsSimulatorEnabled = false;
+    return (0 == m_n32LatitudeArrayIndex);
 }

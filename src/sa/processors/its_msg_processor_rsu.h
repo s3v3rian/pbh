@@ -38,9 +38,9 @@
  */
 
 int32_t its_msg_processor_rsu_init();
-int32_t its_msg_processor_rsu_process_poti(fix_data_t *psPotiFixData);
-int32_t its_msg_processor_rsu_process_rx_cam(CAM *psCam, SITSStationFusionData *psLocalStationData, SITSStationFusionData *psRemoteStationData);
-int32_t its_msg_processor_rsu_process_rx_denm(DENM *psDenm, SITSStationFusionData *psLocalStationData, SITSStationFusionData *psRemoteStationData);
+int32_t its_msg_processor_rsu_process_tx(fix_data_t *psPotiFixData);
+int32_t its_msg_processor_rsu_process_rx_cam(CAM *psCam, SStationFullFusionData *psLocalFusionData, SStationFullFusionData *psRemoteFusionData);
+int32_t its_msg_processor_rsu_process_rx_denm(DENM *psDenm, SStationFullFusionData *psLocalFusionData, SStationFullFusionData *psRemoteFusionData);
 
 #endif
 

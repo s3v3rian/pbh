@@ -32,7 +32,7 @@
  *******************************************************************************
  */
 
-double alg_haversine_compute(SStationLLAData *psLocalLLAData, SStationLLAData *psRemoteLLAData) {
+double alg_haversine_compute(SDistanceData *psLocalLLAData, SDistanceData *psRemoteLLAData) {
 
     double pi = 3.141592653589793;
     int R = 6371e3; //Radius of the Earth

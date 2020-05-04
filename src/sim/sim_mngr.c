@@ -3,8 +3,7 @@
 #include "lib/inc/gn_public.h"
 
 #include "common/file/ini_infra.h"
-
-#include "sa/sa_database.h"
+#include "common/sa_database.h"
 
 #include "sim/gps_sim.h"
 
@@ -54,62 +53,60 @@ int32_t sim_mngr_init() {
 
     sprintf(achFilePath, "%s/scenario_parameters.ini", g_pchConfigurationFileDirectoryPath);
     ini_parse(achFilePath, sim_mngr_ini_loader, CONFIGURATION_FILE_SCENARIO_PARAMS_USER);
+    sprintf(achFilePath, "%s/simulator/%s/%s/station_info.ini", g_pchConfigurationFileDirectoryPath, g_sLocalScenarioInfo.m_achScenarioName, g_sLocalScenarioInfo.m_achParticipantId);
+    ini_parse(achFilePath, sim_mngr_ini_loader, CONFIGURATION_FILE_STATION_INFO_USER);
 
     // Initialize GPS simulator.
     if(true == g_sLocalScenarioInfo.m_bIsScenarioEnabled) {
 
-        if(PROCEDURE_SUCCESSFULL != gps_sim_init(g_sLocalScenarioInfo.m_achName, g_sLocalScenarioInfo.m_achParticipantId)) {
+        if(PROCEDURE_SUCCESSFULL != gps_sim_init(g_sLocalScenarioInfo.m_achScenarioName, g_sLocalScenarioInfo.m_achParticipantId)) {
 
             printf("Cannot initialize gps simulator\n");
             return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
 
         } else {
 
-            gps_sim_pause_fix_data(true);
-
-            if(0 == g_sLocalScenarioInfo.m_un32GpSimSyncId
-                || g_sLocalScenarioInfo.m_un32GpSimSyncId == g_sLocalStationInfo.m_un32StationId) {
-
-                gps_sim_pause_fix_data(false);
-            }
+            gps_sim_set_is_pause_fix_data(true);
         }
     }
 
-    return g_fp_sim_processor_init();
-}
-
-void sim_mngr_gps_sim_update_fix_data(fix_data_t *psPotiFixData) {
-
-    gps_sim_update_fix_data(psPotiFixData);
-
-    if(true == g_sLocalScenarioInfo.m_bIsGpsSimEnabled
-            && 0 != g_sLocalScenarioInfo.m_un32GpSimSyncId) {
-
-        if(true == gps_sim_is_paused()) {
-
-            SITSStationFusionData *psStationData = sa_database_get_station_data(g_sLocalScenarioInfo.m_un32GpSimSyncId);
-
-            if(NULL != psStationData) {
-
-                gps_sim_pause_fix_data(false);
-            }
-        }
-    }
-}
-
-void sim_mngr_gps_sim_pause_fix_data(bool bIsPaused) {
-
-    gps_sim_pause_fix_data(bIsPaused);
-}
-
-bool sim_mngr_gps_sim_is_paused() {
-
-    return gps_sim_is_paused();
+    return PROCEDURE_SUCCESSFULL;
 }
 
 void sim_mngr_release() {
 
     gps_sim_release();
+}
+
+void sim_mngr_process_fusion() {
+
+    g_fp_sim_processor_do_fusion();
+}
+
+void sim_mngr_process_fix_data(fix_data_t *psPotiFixData) {
+
+    gps_sim_update_fix_data(psPotiFixData);
+
+    if(true == gps_sim_get_is_pause_fix_data()) {
+
+        if(0 != g_sLocalScenarioInfo.m_un32GpSimSyncId
+                && g_sLocalScenarioInfo.m_un32GpSimSyncId != g_sLocalStationInfo.m_un32StationId) {
+
+            SStationFullFusionData *psFusionData = sa_database_get_station_data(g_sLocalScenarioInfo.m_un32GpSimSyncId);
+
+            if(NULL != psFusionData) {
+
+                printf("Received data from sync station id %d, unpausing the gps simulator\n", g_sLocalScenarioInfo.m_un32GpSimSyncId);
+
+                gps_sim_set_is_pause_fix_data(false);
+            }
+
+        } else {
+
+            gps_sim_set_is_pause_fix_data(false);
+        }
+
+    }
 }
 
 /*
@@ -140,22 +137,32 @@ int32_t sim_mngr_ini_loader(void* pchUser, const char* pchSection, const char* p
 
                     if(0 == strcmp("scenario_name", pchName)) {
 
-                        memcpy(g_sLocalScenarioInfo.m_achName, pchValue, strlen(pchValue) + 1);
+                        memcpy(g_sLocalScenarioInfo.m_achScenarioName, pchValue, strlen(pchValue) + 1);
 
-                    } else if(0 == strcmp("scenario_gps_sim_en", pchName)) {
-
-                        g_sLocalScenarioInfo.m_bIsGpsSimEnabled = strtol(pchValue, &pchError, 10);
-
-                    } else if(0 == strcmp("scenario_gps_sim_id", pchName)) {
+                    } else if(0 == strcmp("scenario_participant_id", pchName)) {
 
                         memcpy(g_sLocalScenarioInfo.m_achParticipantId, pchValue, strlen(pchValue) + 1);
-
-                    } else if(0 == strcmp("scenario_gps_sim_sync_id", pchName)) {
-
-                        g_sLocalScenarioInfo.m_un32GpSimSyncId = strtol(pchValue, &pchError, 10);
                         m_bIsScenarioLoaded = true;
                     }
                 }
+            }
+        }
+
+    } else if(0 == strcmp(CONFIGURATION_FILE_STATION_INFO_USER, pchUser)) {
+
+        if(0 == strcmp("station_info", pchSection)) {
+
+            if(0 == strcmp("station_id", pchName)) {
+
+                g_sLocalStationInfo.m_un32StationId = strtol(pchValue, &pchError, 10);
+
+            } else if(0 == strcmp("station_type", pchName)) {
+
+                g_sLocalStationInfo.m_n32StationType = strtol(pchValue, &pchError, 10);
+
+            } else if(0 == strcmp("sub_station_type", pchName)) {
+
+                g_sLocalStationInfo.m_n32SubStationType = strtol(pchValue, &pchError, 10);
             }
         }
     }

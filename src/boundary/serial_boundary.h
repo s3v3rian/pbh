@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "boundary_writer.h"
+
 /*
  *******************************************************************************
  * Constant value definition
@@ -33,7 +35,11 @@
  *******************************************************************************
  */
 
-int32_t serial_boundary_write(char *pchSentence, int32_t n32SentenceSize, uint32_t un32StationId);
+int32_t serial_boundary_write_sentence(char *pchSentence, int32_t n32SentenceSize);
+int32_t serial_boundary_write_event(int32_t n32EventId);
+int32_t serial_boundary_write_poti(fix_data_t *psPotiFixData);
+int32_t serial_boundary_write_cam(CAM *psCam);
+int32_t serial_boundary_write_denm(DENM *psDenm);
 
 /*
  *******************************************************************************

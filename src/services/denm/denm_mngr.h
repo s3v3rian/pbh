@@ -94,11 +94,9 @@
  */
 
 int32_t denm_mngr_init();
-int32_t denm_mngr_process_tx(SITSStationInfo *psStationInfo, fix_data_t *psPotiFixData, DENM *psOutputDenm);
+int32_t denm_mngr_process_tx(SStationInfo *psStationInfo, fix_data_t *psPotiFixData, DENM *psOutputDenm);
 int32_t denm_mngr_process_rx(DENM *psOutputDenm);
 int32_t denm_mngr_release();
-
-void denm_mngr_printf_denm(DENM *psDENM);
 
 #endif
 

@@ -49,20 +49,22 @@ int32_t blocked_array_queue_init() {
 
     m_un32CurrentContainerInitIndex = 0;
 
-    for(uint32_t un32Index = 0; un32Index < MAX_NUMBER_OF_CONTAINERS; un32Index++) {
+    for(int32_t n32Index = 0; n32Index < MAX_NUMBER_OF_CONTAINERS; n32Index++) {
 
-        m_asContainers[un32Index].m_bIsInUse = false;
-        m_asContainers[un32Index].m_n32CurrentPushIndex = 0;
-        m_asContainers[un32Index].m_n32CurrentPopIndex = 0;
+        m_asContainers[n32Index].m_bIsInUse = false;
+        m_asContainers[n32Index].m_n32CurrentPushIndex = 0;
+        m_asContainers[n32Index].m_n32CurrentPopIndex = 0;
+        pthread_mutex_init(&m_asContainers[n32Index].m_Mutex, NULL);
+        pthread_cond_init(&m_asContainers[n32Index].m_ConditionEmpty, NULL);
     }
 
     // Create queue elements array.
     m_psContainerArray = calloc(MAX_NUMBER_OF_CONTAINERS * MAX_NUMBER_OF_CONTAINERS_ELEMENTS, sizeof(SDataContainerElement));
 
-    for(uint32_t un32Index = 0; un32Index < MAX_NUMBER_OF_CONTAINERS * MAX_NUMBER_OF_CONTAINERS_ELEMENTS; un32Index++) {
+    for(int32_t n32Index = 0; n32Index < MAX_NUMBER_OF_CONTAINERS * MAX_NUMBER_OF_CONTAINERS_ELEMENTS; n32Index++) {
 
-        m_psContainerArray[un32Index].m_n32Data = INVALID_CONTAINER_ELEMENT_ID;
-        m_psContainerArray[un32Index].m_pchData = NULL;
+        m_psContainerArray[n32Index].m_n32Data = INVALID_CONTAINER_ELEMENT_ID;
+        m_psContainerArray[n32Index].m_pchData = NULL;
     }
 
     return PROCEDURE_SUCCESSFULL;
@@ -79,14 +81,6 @@ int32_t blocked_array_queue_container_init(const char *pchName) {
 
             m_asContainers[n32Index].m_bIsInUse = true;
             n32QueueIndex= n32Index;
-
-            pthread_mutex_init(&m_asContainers[n32Index].m_Mutex, NULL);
-            pthread_cond_init(&m_asContainers[n32Index].m_ConditionEmpty, NULL);
-
-           // m_asContainers[n32Index].m_pSemEmpty = sem_open("/empty", O_CREAT, 0644, 10);
-            //m_asContainers[n32Index].m_pSemFull = sem_open("/full", O_CREAT, 0644, 0);
-            //m_asContainers[n32Index].m_pSemMutex = sem_open("/mutex", O_CREAT, 0644, 1);
-
             break;
         }
     }
@@ -98,38 +92,29 @@ int32_t blocked_array_queue_container_push(int32_t n32ContainerId, int32_t n32El
     if(0 > n32ContainerId
             || MAX_NUMBER_OF_CONTAINERS <= n32ContainerId) {
 
-        printf("array push operation, invalid container id\n");
+        printf("blocked_array_queue push operation, invalid container id\n");
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
-    SQueueDescriptor *psQueueDescriptor = &m_asContainers[n32ContainerId];
+    if(false == m_asContainers[n32ContainerId].m_bIsInUse) {
 
-    if(false == psQueueDescriptor->m_bIsInUse) {
-
-        printf("array push operation failed, container %d is not in use\n", n32ContainerId);
+        printf("blocked_array_queue push operation failed, container %d is not in use\n", n32ContainerId);
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
-    printf("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO\n");
-
-    //sem_wait(psQueueDescriptor->m_pSemEmpty);
-    //sem_wait(psQueueDescriptor->m_pSemMutex);
-
-    pthread_mutex_lock(&psQueueDescriptor->m_Mutex);
+    printf("--------> Requesting to push! Push idx - %d, Pop idx - %d\n", m_asContainers[n32ContainerId].m_n32CurrentPushIndex, m_asContainers[n32ContainerId].m_n32CurrentPopIndex);
+    pthread_mutex_lock(&m_asContainers[n32ContainerId].m_Mutex);
 
     printf("Locked and loaded\n");
 
-    SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_n32CurrentPushIndex);
+    SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + m_asContainers[n32ContainerId].m_n32CurrentPushIndex);
     psQueueElement->m_n32Data = n32ElementId;
     psQueueElement->m_pchData = pchElement;
-    psQueueDescriptor->m_n32CurrentPushIndex = ((psQueueDescriptor->m_n32CurrentPushIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
+    m_asContainers[n32ContainerId].m_n32CurrentPushIndex = ((m_asContainers[n32ContainerId].m_n32CurrentPushIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
 
-    //sem_post(psQueueDescriptor->m_pSemMutex);
-    //sem_post(psQueueDescriptor->m_pSemFull);
-
-    pthread_cond_broadcast(&psQueueDescriptor->m_ConditionEmpty);
+    pthread_cond_broadcast(&m_asContainers[n32ContainerId].m_ConditionEmpty);
     printf("Finishing 2....\n");
-    pthread_mutex_unlock(&psQueueDescriptor->m_Mutex);
+    pthread_mutex_unlock(&m_asContainers[n32ContainerId].m_Mutex);
 
     printf("Finishing....\n");
 
@@ -141,43 +126,45 @@ int32_t blocked_array_queue_container_pop(int32_t n32ContainerId, int32_t *pn32E
     if(0 > n32ContainerId
             || MAX_NUMBER_OF_CONTAINERS <= n32ContainerId) {
 
-        printf("array pop operation, invalid container id\n");
+        printf("blocked_array_queue pop operation failed, invalid container id\n");
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
-    SQueueDescriptor *psQueueDescriptor = &m_asContainers[n32ContainerId];
+    if(false == m_asContainers[n32ContainerId].m_bIsInUse) {
 
-    if(false == psQueueDescriptor->m_bIsInUse) {
-
-        printf("array pop operation failed, container %d is not in use\n", n32ContainerId);
+        printf("blocked_array_queue pop operation failed, container %d is not in use\n", n32ContainerId);
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
-    //sem_wait(psQueueDescriptor->m_pSemFull);
-    //sem_wait(psQueueDescriptor->m_pSemMutex);
-    pthread_mutex_lock(&psQueueDescriptor->m_Mutex);
-    pthread_cond_wait(&psQueueDescriptor->m_ConditionEmpty, &psQueueDescriptor->m_Mutex);
+    printf("--------> Requesting to pop! Push idx - %d, Pop idx - %d\n", m_asContainers[n32ContainerId].m_n32CurrentPushIndex, m_asContainers[n32ContainerId].m_n32CurrentPopIndex);
+    pthread_mutex_lock(&m_asContainers[n32ContainerId].m_Mutex);
+
+    while(0 == (m_asContainers[n32ContainerId].m_n32CurrentPopIndex - m_asContainers[n32ContainerId].m_n32CurrentPushIndex)) {
+
+        printf("-------> Starting to wait!\n");
+        pthread_cond_wait(&m_asContainers[n32ContainerId].m_ConditionEmpty, &m_asContainers[n32ContainerId].m_Mutex);
+    }
 
     printf("Popping an item\n");
 
-    void *pvQueueElement = m_psContainerArray + ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_n32CurrentPopIndex);
+    void *pvQueueElement = m_psContainerArray + ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + m_asContainers[n32ContainerId].m_n32CurrentPopIndex);
 
     if(NULL != pvQueueElement) {
 
-        SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_n32CurrentPopIndex);
+        SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + m_asContainers[n32ContainerId].m_n32CurrentPopIndex);
         *pn32ElementId = psQueueElement->m_n32Data;
         *p2chElement = psQueueElement->m_pchData;
 
         psQueueElement->m_n32Data = INVALID_CONTAINER_ELEMENT_ID;
         psQueueElement->m_pchData = NULL;
 
-        psQueueDescriptor->m_n32CurrentPopIndex = ((psQueueDescriptor->m_n32CurrentPopIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
+        m_asContainers[n32ContainerId].m_n32CurrentPopIndex = ((m_asContainers[n32ContainerId].m_n32CurrentPopIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
     }
 
-   // sem_post(psQueueDescriptor->m_pSemMutex);
-   // sem_post(psQueueDescriptor->m_pSemEmpty);
+   // sem_post(m_asContainers[n32ContainerId].m_pSemMutex);
+   // sem_post(m_asContainers[n32ContainerId].m_pSemEmpty);
 
-    pthread_mutex_unlock(&psQueueDescriptor->m_Mutex);
+    pthread_mutex_unlock(&m_asContainers[n32ContainerId].m_Mutex);
 
     return PROCEDURE_SUCCESSFULL;
 }

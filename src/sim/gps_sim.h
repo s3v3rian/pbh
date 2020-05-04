@@ -35,10 +35,11 @@
  */
 
 int32_t gps_sim_init(const char *pchScenarioName, const char *pchParticipantId);
-void gps_sim_update_fix_data(fix_data_t *psPotiFixData);
-void gps_sim_pause_fix_data(bool bIsPaused);
-bool gps_sim_is_paused();
 void gps_sim_release();
+void gps_sim_update_fix_data(fix_data_t *psPotiFixData);
+void gps_sim_set_is_pause_fix_data(bool bIsPaused);
+bool gps_sim_get_is_pause_fix_data();
+bool gps_sim_get_is_scenario_fix_data_starting_now();
 
 /*
  *******************************************************************************
