@@ -13,9 +13,9 @@
 
 poti_service_t *m_pPotiHandler;
 
-fix_data_t m_asPotiRingBuffer[MAX_NUMBER_OF_CONTAINERS_ELEMENTS];
+static fix_data_t m_asPotiRingBuffer[MAX_NUMBER_OF_CONTAINERS_ELEMENTS];
 
-int32_t m_n32PotiRingBufferIndex = 0;
+static int32_t m_n32PotiRingBufferIndex = 0;
 
 /*
  *******************************************************************************
@@ -25,29 +25,20 @@ int32_t m_n32PotiRingBufferIndex = 0;
 
 int32_t gps_poti_init() {
 
-    int32_t n32ProcedureResult = PROCEDURE_SUCCESSFULL;
-
     // Initialize POTI service.
-    n32ProcedureResult = IS_SUCCESS(poti_create_service(&m_pPotiHandler, NULL));
+    int n32ProcedureResult = poti_create_service(&m_pPotiHandler, NULL);
 
     if(FALSE == IS_SUCCESS(n32ProcedureResult)) {
 
         return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
     }
 
-    return n32ProcedureResult;
+    m_n32PotiRingBufferIndex = 0;
 
+    return n32ProcedureResult;
 }
 
 int32_t gps_poti_get_fix_data(fix_data_t **p2sPotiFixData) {
-
-    fix_data_t *psPotiFixData = &m_asPotiRingBuffer[m_n32PotiRingBufferIndex++];
-    m_n32PotiRingBufferIndex = (m_n32PotiRingBufferIndex % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
-
-    if(NULL == psPotiFixData) {
-
-        return PROCEDURE_INVALID_PARAMETERS_ERROR;
-    }
 
     int32_t n32ProcedureResult = PROCEDURE_SUCCESSFULL;
 
@@ -60,16 +51,17 @@ int32_t gps_poti_get_fix_data(fix_data_t **p2sPotiFixData) {
         return PROCEDURE_INVALID_SERVICE_RX_ERROR;
     }
 
+    *p2sPotiFixData = &m_asPotiRingBuffer[m_n32PotiRingBufferIndex];
+    m_n32PotiRingBufferIndex = (m_n32PotiRingBufferIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS;
+
     // Get fix data.
-    n32ProcedureResult = poti_get_fix_data(m_pPotiHandler, psPotiFixData);
+    n32ProcedureResult = poti_get_fix_data(m_pPotiHandler, *p2sPotiFixData);
 
     if(false == IS_SUCCESS(n32ProcedureResult)) {
 
         printf("Cannot get GNSS fix data: %s\n", ERROR_MSG(n32ProcedureResult));
         return PROCEDURE_INVALID_SERVICE_RX_ERROR;
     }
-
-    *p2sPotiFixData = psPotiFixData;
 
     return n32ProcedureResult;
 }

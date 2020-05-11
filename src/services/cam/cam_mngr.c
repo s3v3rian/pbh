@@ -177,10 +177,16 @@ int32_t cam_mngr_process_rx(CAM *psOutputCam) {
     int32_t n32Result = PROCEDURE_SUCCESSFULL;
 
     /* Listen the CAM BTP port. */
-    int32_t n32CamDataSize = btp_recv(m_pBtpCamHandler, &m_sBtpCamRecvStatus, m_aun8CamRxPayload, sizeof(m_aun8CamRxPayload), BTP_RECV_WAIT_FOREVER);
+    int32_t n32CamDataSize = btp_recv(
+                m_pBtpCamHandler,
+                &m_sBtpCamRecvStatus,
+                m_aun8CamRxPayload,
+                sizeof(m_aun8CamRxPayload),
+                BTP_RECV_WAIT_FOREVER);
 
     if(0 > n32CamDataSize > 0) {
 
+        printf("Received from CAM port something stinky... Error: %d", n32Result);
         return PROCEDURE_INVALID_SERVICE_RX_ERROR;
     }
 
@@ -192,9 +198,13 @@ int32_t cam_mngr_process_rx(CAM *psOutputCam) {
         return PROCEDURE_SECURITY_ERROR;
     }
 
-    if(ITS_SEC_SUCCESS == m_sBtpCamRecvStatus.security.status) {
+    if(ITS_SEC_SUCCESS == m_sBtpCamRecvStatus.security.status
+            || ITS_SEC_NA == m_sBtpCamRecvStatus.security.status) {
 
-        bSspCheck = true;
+        if(ITS_SEC_SUCCESS == m_sBtpCamRecvStatus.security.status) {
+
+            bSspCheck = true;
+        }
 
         /* Try to decode the received message. */
         n32Result = cam_mngr_msg_decode(
@@ -205,13 +215,9 @@ int32_t cam_mngr_process_rx(CAM *psOutputCam) {
                     psOutputCam,
                     &m_sDecodeCamErr);
 
-    } else if(m_sBtpCamRecvStatus.security.status == ITS_SEC_NA) {
+    } else if(m_sBtpCamRecvStatus.security.status == ITS_SEC_FAIL) {
 
-        printf("\tSecurity status: no security protection\n");
-
-    } else {
-
-        printf("\tSecurity status: other (%d)\n", m_sBtpCamRecvStatus.security.status);
+        printf("\tSecurity status failure (%d)\n", m_sBtpCamRecvStatus.security.status);
     }
 
     if(0 > n32Result) {
@@ -253,7 +259,7 @@ static int32_t cam_mngr_msg_init(SStationInfo *psStationInfo, CAM *psOutputCam) 
     return PROCEDURE_SUCCESSFULL;
 }
 
-int32_t cam_mngr_msg_encode(uint8_t **p2un8CamPayload, fix_data_t *psPotiFixData, CAM *psOutputCam, ITSMsgCodecErr *psOutputErr) {
+static int32_t cam_mngr_msg_encode(uint8_t **p2un8CamPayload, fix_data_t *psPotiFixData, CAM *psOutputCam, ITSMsgCodecErr *psOutputErr) {
 
     int buf_len = 0;
 
@@ -415,7 +421,7 @@ int32_t cam_mngr_msg_encode(uint8_t **p2un8CamPayload, fix_data_t *psPotiFixData
     return buf_len;
 }
 
-int32_t cam_mngr_msg_decode(uint8_t *pun8RxPayload, int32_t n32RxPayloadLength, btp_handler_recv_indicator_t *psBtpRecvStatus, bool bSspCheck, CAM *psOutputCam, ITSMsgCodecErr *psOutputErr) {
+static int32_t cam_mngr_msg_decode(uint8_t *pun8RxPayload, int32_t n32RxPayloadLength, btp_handler_recv_indicator_t *psBtpRecvStatus, bool bSspCheck, CAM *psOutputCam, ITSMsgCodecErr *psOutputErr) {
 
     ItsPduHeader *psItsHeader = NULL;
     int32_t n32Result = PROCEDURE_SUCCESSFULL;
@@ -435,9 +441,11 @@ int32_t cam_mngr_msg_decode(uint8_t *pun8RxPayload, int32_t n32RxPayloadLength, 
         /* Check whether this is a ITS CAM message. */
         if(psItsHeader->messageID == CAM_Id) {
 
+            memcpy(psOutputCam, psItsHeader, sizeof(CAM));
+            n32Result = PROCEDURE_SUCCESSFULL;
+            /* TODO DEBUG
             if(TRUE == bSspCheck) {
 
-                /* Check CAM msg permission */
                 n32Result = cam_mngr_check_msg_permissions(psOutputCam, psBtpRecvStatus->security.ssp, psBtpRecvStatus->security.ssp_len);
                 if(FALSE == IS_SUCCESS(n32Result)) {
 
@@ -450,6 +458,7 @@ int32_t cam_mngr_msg_decode(uint8_t *pun8RxPayload, int32_t n32RxPayloadLength, 
                     n32Result = PROCEDURE_SUCCESSFULL;
                 }
             }
+            */
 
         } else {
 

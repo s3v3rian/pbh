@@ -108,8 +108,6 @@ int32_t sim_processor_ini_loader(void* pchUser, const char* pchSection, const ch
         } else if(0 == strcmp("vehicle_collision_warning_threshold_in_meters", pchName)) {
 
             g_sLocalStationInfo.m_sVehicleInfo.m_dCollisionWarningThresholdInMeters = strtol(pchValue, NULL, 10);
-
-            printf("-------------------------------->VALUE = %f\n", g_sLocalStationInfo.m_sVehicleInfo.m_dCollisionWarningThresholdInMeters);
         }
     }
 }

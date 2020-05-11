@@ -6,6 +6,8 @@
 
 #include "lib/inc/error_code_user.h"
 
+#include "common/utils/geo_utils.h"
+
 #include "boundary/boundary_writer.h"
 
 /*
@@ -137,7 +139,7 @@ int32_t denm_mngr_process_tx(SStationInfo *psStationInfo, fix_data_t *psPotiFixD
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
-    //printf("Preparing DENM message\n");
+    printf("Preparing DENM message\n");
 
     // Init denm message.
     denm_mngr_msg_init(psStationInfo, psOutputDenm);
@@ -158,8 +160,6 @@ int32_t denm_mngr_process_tx(SStationInfo *psStationInfo, fix_data_t *psPotiFixD
 
     //printf("Setting special DENM parameters\n");
 
-    g_fp_write_to_boundary_denm(psOutputDenm);
-
     /* BTP send packet default configuration (GBC/BTP-B). */
     BTP_SEND_CONFIG_INIT(&m_sBtpDenmSendConfig);
 
@@ -170,16 +170,18 @@ int32_t denm_mngr_process_tx(SStationInfo *psStationInfo, fix_data_t *psPotiFixD
     /* Setup destination area according to current position. */
     GN_ENABLE_OPTIONAL_CONFIG(m_sBtpDenmSendConfig.gn_optional.bitmask, GN_OPTION_DEST_AREA_BIT);
     m_sBtpDenmSendConfig.gn_optional.dest_area.area_type = GN_AREA_TYPE_RECT; /* GN_AREA_TYPE_CIRCLE, GN_AREA_TYPE_RECT, GN_AREA_TYPE_ELIP. */
-    m_sBtpDenmSendConfig.gn_optional.dest_area.pos_latitude = (int32_t)(psPotiFixData->latitude * 10000000.0); /* WGS84, 1/10 micros degrees. */
-    m_sBtpDenmSendConfig.gn_optional.dest_area.pos_longitude = (int32_t)(psPotiFixData->longitude * 10000000.0); /* WGS84, 1/10 micros degrees. */
+    //m_sBtpDenmSendConfig.gn_optional.dest_area.pos_latitude = (int32_t)(geodesic_convert_decimal_degrees_to_1_10_th_micro_degree(psPotiFixData->latitude)); /* WGS84, 1/10 micros degrees. */
+    //m_sBtpDenmSendConfig.gn_optional.dest_area.pos_longitude = (int32_t)(geodesic_convert_decimal_degrees_to_1_10_th_micro_degree(psPotiFixData->longitude)); /* WGS84, 1/10 micros degrees. */
+    m_sBtpDenmSendConfig.gn_optional.dest_area.pos_latitude = (int32_t)(geodesic_convert_decimal_degrees_to_1_10_th_micro_degree(33.014678)); /* WGS84, 1/10 micros degrees. */
+    m_sBtpDenmSendConfig.gn_optional.dest_area.pos_longitude = (int32_t)(geodesic_convert_decimal_degrees_to_1_10_th_micro_degree(35.291035)); /* WGS84, 1/10 micros degrees. */ // TODO UNDERSTAND THIS SHIT
     m_sBtpDenmSendConfig.gn_optional.dest_area.distance_a = 100; /* Distance a of the geometric shape, meters. */
     m_sBtpDenmSendConfig.gn_optional.dest_area.distance_b = 100; /* Distance b of the geometric shape, meters. */
     m_sBtpDenmSendConfig.gn_optional.dest_area.angle = 0; /* Angle of the geometric shape, degrees from North. */
 
-    printf("Sending DENM message - Size: %d\n", n32TxPayloadSize);
-
     /* Broadcast the DENM message (BTP-B, SHB). */
     n32Result = btp_send(m_pBtpDenmHandler, &m_sBtpDenmSendConfig, pun8TxPayload, n32TxPayloadSize);
+
+    printf("Sending DENM message - Size: %d\n", n32Result);
 
     if(0 >= n32Result) {
 
@@ -199,7 +201,12 @@ int32_t denm_mngr_process_rx(DENM *psOutputDenm) {
     int32_t n32Result = PROCEDURE_SUCCESSFULL;
 
     /* Listen the DENM BTP port. */
-    n32Result = btp_recv(m_pBtpDenmHandler, &m_sBtpDenmRecvStatus, m_aun8DenmRxPayload, sizeof(m_aun8DenmRxPayload), BTP_RECV_WAIT_FOREVER);
+    n32Result = btp_recv(
+                m_pBtpDenmHandler,
+                &m_sBtpDenmRecvStatus,
+                m_aun8DenmRxPayload,
+                sizeof(m_aun8DenmRxPayload),
+                BTP_RECV_WAIT_FOREVER);
 
     if(0 > n32Result > 0) {
 
@@ -207,7 +214,7 @@ int32_t denm_mngr_process_rx(DENM *psOutputDenm) {
         return PROCEDURE_INVALID_SERVICE_RX_ERROR;
     }
 
-    printf("Processing received DENM\n");
+    //printf("Processing received DENM\n");
 
     if(true == IS_DECAP_FAIL(m_sBtpDenmRecvStatus.security.status)) {
 
@@ -215,9 +222,13 @@ int32_t denm_mngr_process_rx(DENM *psOutputDenm) {
         return PROCEDURE_SECURITY_ERROR;
     }
 
-    if(ITS_SEC_SUCCESS == m_sBtpDenmRecvStatus.security.status) {
+    if(ITS_SEC_SUCCESS == m_sBtpDenmRecvStatus.security.status
+            || ITS_SEC_NA == m_sBtpDenmRecvStatus.security.status) {
 
-        bSspCheck = true;
+        if(ITS_SEC_SUCCESS == m_sBtpDenmRecvStatus.security.status) {
+
+            bSspCheck = true;
+        }
 
         /* Try to decode the received message. */
         denm_mngr_msg_decode(
@@ -228,13 +239,9 @@ int32_t denm_mngr_process_rx(DENM *psOutputDenm) {
                     psOutputDenm,
                     &m_sDecodeDenmErr);
 
-    } else if(m_sBtpDenmRecvStatus.security.status == ITS_SEC_NA) {
+    } else if(m_sBtpDenmRecvStatus.security.status == ITS_SEC_FAIL) {
 
-        printf("\tSecurity status: no security protection\n");
-
-    } else {
-
-        printf("\tSecurity status: other (%d)\n", m_sBtpDenmRecvStatus.security.status);
+        printf("\tSecurity status failure (%d)\n", m_sBtpDenmRecvStatus.security.status);
     }
 
     return PROCEDURE_SUCCESSFULL;
@@ -272,7 +279,7 @@ static int32_t denm_mngr_msg_init(SStationInfo *psStationInfo, DENM *psOutputDen
     return PROCEDURE_SUCCESSFULL;
 }
 
-int32_t denm_mngr_msg_encode(uint8_t **p2un8DenmPayload, fix_data_t *psPotiFixData, DENM *psOutputDenm, ITSMsgCodecErr *psOutputErr) {
+static int32_t denm_mngr_msg_encode(uint8_t **p2un8DenmPayload, fix_data_t *psPotiFixData, DENM *psOutputDenm, ITSMsgCodecErr *psOutputErr) {
 
     int32_t n32EncodedBufferLength = 0;
 
@@ -312,7 +319,7 @@ int32_t denm_mngr_msg_encode(uint8_t **p2un8DenmPayload, fix_data_t *psPotiFixDa
     psOutputDenm->denm.management.validityDuration = DENM_VALIDITY_DURATION_DEF; /* ValidityDuration (0..86400) */
 
 //    /* Time interval for DENM transmission as defined by the originating ITS-S. */
-    //psOutputDenm->denm.management.transmissionInterval_option = FALSE;
+    psOutputDenm->denm.management.transmissionInterval_option = FALSE;
 //    //psOutputDenm->denm.management.transmissionInterval = /* TransmissionInterval (1..10000) */
 
 //    // ---------------------------------------------------------
@@ -331,71 +338,45 @@ int32_t denm_mngr_msg_encode(uint8_t **p2un8DenmPayload, fix_data_t *psPotiFixDa
 //    // ---------------- Set Location Options -------------------
 //    // ---------------------------------------------------------
 
+    // Set LLA data.
+    /*
+    psOutputDenm->denm.management.eventPosition.latitude = geodesic_convert_decimal_degrees_to_1_10_th_micro_degree(psPotiFixData->latitude);
+    psOutputDenm->denm.management.eventPosition.longitude = geodesic_convert_decimal_degrees_to_1_10_th_micro_degree(psPotiFixData->longitude);
+    psOutputDenm->denm.management.eventPosition.positionConfidenceEllipse.semiMajorConfidence = 4094;
+    psOutputDenm->denm.management.eventPosition.positionConfidenceEllipse.semiMinorConfidence = 4094;
+    psOutputDenm->denm.management.eventPosition.positionConfidenceEllipse.semiMajorOrientation = 0;
+    psOutputDenm->denm.management.eventPosition.altitude.altitudeValue = 0;
+    psOutputDenm->denm.management.eventPosition.altitude.altitudeConfidence = AltitudeConfidence_alt_000_05;
+
+    */
 //    /*
 //     * The location container describes the location of the detected event.
 //     */
-//    psOutputDenm->denm.location_option = TRUE;
-//    psOutputDenm->denm.location.eventSpeed_option = TRUE;
-//    psOutputDenm->denm.location.eventSpeed.speedValue = SpeedValue_unavailable; /* 0,01 m/s */
-//    psOutputDenm->denm.location.eventSpeed.speedConfidence = SpeedConfidence_equalOrWithinOneMeterPerSec;
-//    psOutputDenm->denm.location.eventPositionHeading_option = FALSE;
-//    //psOutputDenm->denm.location.eventPositionHeading =
+    /*
+    psOutputDenm->denm.location_option = TRUE;
+    psOutputDenm->denm.location.eventSpeed_option = TRUE;
+    psOutputDenm->denm.location.eventSpeed.speedValue = SpeedValue_unavailable;
+    psOutputDenm->denm.location.eventSpeed.speedConfidence = SpeedConfidence_equalOrWithinOneMeterPerSec;
+    psOutputDenm->denm.location.eventPositionHeading_option = FALSE;
+    //psOutputDenm->denm.location.eventPositionHeading =
+    */
 
 //    /* Allocate and initialize each entries and paths. */
-//    psOutputDenm->denm.location.traces.count = 1;
-//    psOutputDenm->denm.location.traces.tab = (PathHistory_ITS *)calloc(sizeof(PathHistory_ITS), psOutputDenm->denm.location.traces.count);
-//    psOutputDenm->denm.location.traces.tab[0].count = 2;
-//    psOutputDenm->denm.location.traces.tab[0].tab = (PathPoint *)calloc(sizeof(PathPoint), psOutputDenm->denm.location.traces.tab[0].count);
-//    psOutputDenm->denm.location.traces.tab[0].tab[0].pathPosition.deltaLatitude = -123010;
-//    psOutputDenm->denm.location.traces.tab[0].tab[0].pathPosition.deltaLongitude = -131068;
-//    psOutputDenm->denm.location.traces.tab[0].tab[0].pathPosition.deltaAltitude = -12693;
-//    psOutputDenm->denm.location.traces.tab[0].tab[1].pathPosition.deltaLatitude = -131058;
-//    psOutputDenm->denm.location.traces.tab[0].tab[1].pathPosition.deltaLongitude = -131055;
-//    psOutputDenm->denm.location.traces.tab[0].tab[1].pathPosition.deltaAltitude = -11769;
-//    psOutputDenm->denm.location.traces.tab[0].tab[1].pathDeltaTime_option = TRUE;
-//    psOutputDenm->denm.location.traces.tab[0].tab[1].pathDeltaTime = -151310;
-
-//    psOutputDenm->denm.location.roadType_option = FALSE;
-//    //psOutputDenm->denm.location.roadType
-
-//    // ---------------------------------------------------------
-//    // ---------------- Set ALACARTE Options -------------------
-//    // ---------------------------------------------------------
-
-//    /*
-//     * The a la carte container contains additional information that is not provided by other containers.
-//     */
-//    psOutputDenm->denm.alacarte_option = TRUE;
-//    psOutputDenm->denm.alacarte.stationaryVehicle_option = TRUE;
-//    psOutputDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods_option = TRUE;
-//    psOutputDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods.companyName_option = TRUE;
-//    psOutputDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods.companyName.buf = (uint8_t*)g_sScenarioInfo.m_achParticipantName;
-//    psOutputDenm->denm.alacarte.stationaryVehicle.carryingDangerousGoods.companyName.len = strlen(g_sScenarioInfo.m_achParticipantName) + 1;
-//    /*
-//    psOutputDenm->denm.alacarte_option = TRUE;
-//    psOutputDenm->denm.alacarte.impactReduction_option = TRUE;
-//    psOutputDenm->denm.alacarte.impactReduction.heightLonCarrLeft = 1;
-//    psOutputDenm->denm.alacarte.impactReduction.heightLonCarrRight = 1;
-//    psOutputDenm->denm.alacarte.impactReduction.posLonCarrLeft = 1;
-//    psOutputDenm->denm.alacarte.impactReduction.posLonCarrRight = 1;
-//    psOutputDenm->denm.alacarte.impactReduction.posCentMass = 1;
-//    psOutputDenm->denm.alacarte.impactReduction.wheelBaseVehicle = 1;
-//    psOutputDenm->denm.alacarte.impactReduction.turningRadius = 1;
-//    psOutputDenm->denm.alacarte.impactReduction.posFrontAx = 1;
-//    psOutputDenm->denm.alacarte.impactReduction.positionOfOccupants. = 20;
-//    psOutputDenm->denm.alacarte.impactReduction.vehicleMass = 16;
-//    */
-//    //psOutputDenm->denm.alacarte.lanePosition_option =
-//    //psOutputDenm->denm.alacarte.lanePosition =
-//    //psOutputDenm->denm.alacarte.impactReduction_option =
-//    //psOutputDenm->denm.alacarte.externalTemperature_option =
-//    //psOutputDenm->denm.alacarte.externalTemperature =
-//    //psOutputDenm->denm.alacarte.roadWorks_option =
-//    //psOutputDenm->denm.alacarte.roadWorks =
-//    //psOutputDenm->denm.alacarte.positioningSolution_option =
-//    //psOutputDenm->denm.alacarte.positioningSolution =
-//    //psOutputDenm->denm.alacarte.stationaryVehicle_option =
-//    //psOutputDenm->denm.alacarte.stationaryVehicle =
+    /*
+    psOutputDenm->denm.location.traces.count = 1;
+    psOutputDenm->denm.location.traces.tab = (PathHistory_ITS *)calloc(sizeof(PathHistory_ITS), psOutputDenm->denm.location.traces.count);
+    psOutputDenm->denm.location.traces.tab[0].count = 2;
+    psOutputDenm->denm.location.traces.tab[0].tab = (PathPoint *)calloc(sizeof(PathPoint), psOutputDenm->denm.location.traces.tab[0].count);
+    psOutputDenm->denm.location.traces.tab[0].tab[0].pathPosition.deltaLatitude = -123010;
+    psOutputDenm->denm.location.traces.tab[0].tab[0].pathPosition.deltaLongitude = -131068;
+    psOutputDenm->denm.location.traces.tab[0].tab[0].pathPosition.deltaAltitude = -12693;
+    psOutputDenm->denm.location.traces.tab[0].tab[1].pathPosition.deltaLatitude = -131058;
+    psOutputDenm->denm.location.traces.tab[0].tab[1].pathPosition.deltaLongitude = -131055;
+    psOutputDenm->denm.location.traces.tab[0].tab[1].pathPosition.deltaAltitude = -11769;
+    psOutputDenm->denm.location.traces.tab[0].tab[1].pathDeltaTime_option = TRUE;
+    psOutputDenm->denm.location.traces.tab[0].tab[1].pathDeltaTime = -151310;
+*/
+    psOutputDenm->denm.alacarte_option = FALSE;
 
     // ---------------------------------------------------------
     // ----------------- Encode ITS Message --------------------
@@ -404,15 +385,15 @@ int32_t denm_mngr_msg_encode(uint8_t **p2un8DenmPayload, fix_data_t *psPotiFixDa
     n32EncodedBufferLength = itsmsg_encode(p2un8DenmPayload, (ItsPduHeader *)psOutputDenm, psOutputErr);
 
     // Release allocated memory.
-//    free(psOutputDenm->denm.location.traces.tab[0].tab);
-//    free(psOutputDenm->denm.location.traces.tab);
+  //  free(psOutputDenm->denm.location.traces.tab[0].tab);
+  //  free(psOutputDenm->denm.location.traces.tab);
     asn1_free_integer(&psOutputDenm->denm.management.detectionTime);
     asn1_free_integer(&psOutputDenm->denm.management.referenceTime);
 
     return n32EncodedBufferLength;
 }
 
-int32_t denm_mngr_msg_decode(uint8_t *pun8RxPayload, int32_t n32RxPayloadLength, btp_handler_recv_indicator_t *psBtpRecvStatus, bool bSspCheck, DENM *psOutputDenm, ITSMsgCodecErr *psOutputErr) {
+static int32_t denm_mngr_msg_decode(uint8_t *pun8RxPayload, int32_t n32RxPayloadLength, btp_handler_recv_indicator_t *psBtpRecvStatus, bool bSspCheck, DENM *psOutputDenm, ITSMsgCodecErr *psOutputErr) {
 
     ItsPduHeader *psItsHeader = NULL;
     uint64_t un64DetectionTime;
@@ -425,6 +406,7 @@ int32_t denm_mngr_msg_decode(uint8_t *pun8RxPayload, int32_t n32RxPayloadLength,
             || NULL == psOutputDenm
             || NULL == psOutputErr) {
 
+        printf("Failed to decode DENM, invalid parameters\n");
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
@@ -434,9 +416,14 @@ int32_t denm_mngr_msg_decode(uint8_t *pun8RxPayload, int32_t n32RxPayloadLength,
         /* Check whether this is a ITS CAM message. */
         if(DENM_Id == psItsHeader->messageID) {
 
+            memcpy(psOutputDenm, psItsHeader, sizeof(DENM));
+
+            asn1_get_integer_si64_ov(&psOutputDenm->denm.management.detectionTime, (int64_t *)&un64DetectionTime);
+            asn1_get_integer_si64_ov(&psOutputDenm->denm.management.referenceTime, (int64_t *)&un64ReferenceTime);
+
+            /*
             if(TRUE == bSspCheck) {
 
-                /* Check CAM msg permission */
                 n32Result = denm_mngr_check_msg_permissions(
                             psOutputDenm,
                             psBtpRecvStatus->security.ssp,
@@ -455,6 +442,7 @@ int32_t denm_mngr_msg_decode(uint8_t *pun8RxPayload, int32_t n32RxPayloadLength,
                     asn1_get_integer_si64_ov(&psOutputDenm->denm.management.referenceTime, (int64_t *)&un64ReferenceTime);
                 }
             }
+        */
 
         } else {
 

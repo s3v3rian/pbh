@@ -96,6 +96,7 @@ typedef struct SDistanceData {
     double m_dLatitude;
     double m_dAltitude;
     double m_dDistanceToLocalInMeters;
+    double m_dBearingToLocalInDegrees;
 
 } SDistanceData;
 

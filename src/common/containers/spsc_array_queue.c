@@ -123,7 +123,7 @@ int32_t spsc_array_queue_container_push(int32_t n32ContainerId, int32_t n32Eleme
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
-    SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_n32aCurrentPushIndex);
+    SDataContainerElement *psQueueElement = m_psContainerArray + ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_n32aCurrentPushIndex);
 
     if(NULL != psQueueElement->m_pchData) {
 
@@ -159,7 +159,7 @@ int32_t spsc_array_queue_container_pop(int32_t n32ContainerId, int32_t *pn32Elem
         return PROCEDURE_SUCCESSFULL;
     }
 
-    SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_n32aCurrentPopIndex);
+    SDataContainerElement *psQueueElement = m_psContainerArray + ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_n32aCurrentPopIndex);
     *pn32ElementId = psQueueElement->m_n32Data;
     *p2chElement = psQueueElement->m_pchData;
 

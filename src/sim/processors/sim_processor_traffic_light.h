@@ -1,7 +1,7 @@
-#ifndef BOUNDARY_ETHERNET_BOUNDARY_H_
-#define BOUNDARY_ETHERNET_BOUNDARY_H_
+#ifndef SIM_PROCESSORS_SIM_PROCESSOR_RSU_H_
+#define SIM_PROCESSORS_SIM_PROCESSOR_RSU_H_
 
-#include <stdint.h>
+#include "common/globals.h"
 
 /*
  *******************************************************************************
@@ -33,13 +33,8 @@
  *******************************************************************************
  */
 
-int32_t ethernet_boundary_write(char *pchSentence, int32_t n32SentenceSize, uint32_t un32StationId);
-
-/*
- *******************************************************************************
- * Private functions
- *******************************************************************************
- */
+int32_t sim_processor_traffic_light_init();
+void sim_processor_traffic_light_do_fusion();
 
 #endif
 

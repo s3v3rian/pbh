@@ -3,10 +3,10 @@ CONFIG =
 
 LIBS += -L/home/s3v3rian/V2X/pbh/src/lib/ -lpthread -lrt -lm -litsg5_protocol -ltomcrypt -ltommath
 
-DEFINES += __EN_SECURITY_FEATURE__=1
+DEFINES += __EN_SECURITY_FEATURE__=0
 DEFINES += __EN_SIMULATOR_FEATURE__=1
 DEFINES += __EN_DEBUG_PRINTING_FEATURE__=1
-DEFINES += __EN_SERIAL_OUTPUT_FEATURE__=1
+DEFINES += __EN_SERIAL_OUTPUT_FEATURE__=0
 
 INCLUDEPATH += threads.h \
     boundary/ \
@@ -28,8 +28,11 @@ INCLUDEPATH += threads.h \
     lib/inc/ \
 
 SOURCES = startup.c \
+    boundary/ethernet_boundary_writer.c \
+    boundary/serial_boundary_writer.c \
+    sa/processors/its_msg_processor_traffic_light.c \
+    sim/processors/sim_processor_traffic_light.c \
     threads.c \
-    boundary/serial_ouput.c \
     common/sa_database.c \
     common/ring_buffers.c \
     common/file/csv_infra.c \
@@ -46,12 +49,10 @@ SOURCES = startup.c \
     services/gps/gps_poti.c \
     services/gps/nmea_infra. \
     sa/processors/its_msg_processor.c \
-    sa/processors/its_msg_processor_rsu.c \
     sa/processors/its_msg_processor_commercial.c \
     sa/processors/its_msg_processor_passenger.c \
     sa/algs/alg_haversine.c \
     sa/sa_mngr.c \
-    sim/processors/sim_processor_rsu.c \
     sim/processors/sim_processor_commercial.c \
     sim/sim_mngr.c \
     sim/gps_sim.c \

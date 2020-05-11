@@ -107,7 +107,7 @@ int32_t blocked_array_queue_container_push(int32_t n32ContainerId, int32_t n32El
 
     printf("Locked and loaded\n");
 
-    SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + m_asContainers[n32ContainerId].m_n32CurrentPushIndex);
+    SDataContainerElement *psQueueElement = m_psContainerArray + ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + m_asContainers[n32ContainerId].m_n32CurrentPushIndex);
     psQueueElement->m_n32Data = n32ElementId;
     psQueueElement->m_pchData = pchElement;
     m_asContainers[n32ContainerId].m_n32CurrentPushIndex = ((m_asContainers[n32ContainerId].m_n32CurrentPushIndex + 1) % MAX_NUMBER_OF_CONTAINERS_ELEMENTS);
@@ -151,7 +151,7 @@ int32_t blocked_array_queue_container_pop(int32_t n32ContainerId, int32_t *pn32E
 
     if(NULL != pvQueueElement) {
 
-        SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + m_asContainers[n32ContainerId].m_n32CurrentPopIndex);
+        SDataContainerElement *psQueueElement = m_psContainerArray + ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + m_asContainers[n32ContainerId].m_n32CurrentPopIndex);
         *pn32ElementId = psQueueElement->m_n32Data;
         *p2chElement = psQueueElement->m_pchData;
 

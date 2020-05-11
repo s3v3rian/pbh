@@ -124,10 +124,11 @@ int32_t array_queue_container_push(int32_t n32ContainerId, int32_t n32ElementId,
         return PROCEDURE_INVALID_PARAMETERS_ERROR;
     }
 
-    SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_n32CurrentPushIndex);
+    SDataContainerElement *psQueueElement = m_psContainerArray + ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_n32CurrentPushIndex);
 
     if(NULL != psQueueElement->m_pchData) {
 
+        printf("array push operation failed, container %d is full\n", n32ContainerId);
         return PROCEDURE_BUFFER_ERROR;
     }
 
@@ -160,7 +161,7 @@ int32_t array_queue_container_pop(int32_t n32ContainerId, int32_t *pn32ElementId
         return PROCEDURE_SUCCESSFULL;
     }
 
-    SDataContainerElement *psQueueElement = m_psContainerArray + sizeof(SDataContainerElement) * ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_n32CurrentPopIndex);
+    SDataContainerElement *psQueueElement = m_psContainerArray + ((n32ContainerId * MAX_NUMBER_OF_CONTAINERS_ELEMENTS) + psQueueDescriptor->m_n32CurrentPopIndex);
     *pn32ElementId = psQueueElement->m_n32Data;
     *p2chElement = psQueueElement->m_pchData;
 

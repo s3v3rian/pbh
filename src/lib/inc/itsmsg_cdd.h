@@ -172,7 +172,6 @@ enum { /* Pre-defined values of CauseCodeType */
        CauseCodeType_signalViolation = 98,
        CauseCodeType_dangerousSituation = 99,
        CauseCodeType_commercialVehicleSituation = 100,
-       CauseCodeType_simulationRestart		= 254,
 };
 
 typedef struct CauseCode {

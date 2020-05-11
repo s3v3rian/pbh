@@ -1,4 +1,4 @@
-#include "sim_processor_rsu.h"
+#include "sim_processor_traffic_light.h"
 
 #include "common/file/ini_infra.h"
 
@@ -44,7 +44,7 @@ bool m_bIsLightChangeDone;
  *******************************************************************************
  */
 
-int32_t sim_processor_rsu_init() {
+int32_t sim_processor_traffic_light_init() {
 
     printf("Initializing RSU simulator processor\n");
 
@@ -58,7 +58,7 @@ int32_t sim_processor_rsu_init() {
     return PROCEDURE_SUCCESSFULL;
 }
 
-void sim_processor_rsu_do_fusion() {
+void sim_processor_traffic_light_do_fusion() {
 
     if(true == gps_sim_get_is_pause_fix_data()) {
 

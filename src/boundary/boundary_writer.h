@@ -24,6 +24,7 @@
  */
 
 // Host boundary callback definitions.
+typedef int32_t (*host_boundary_write_init)(char *pchHostInfo);
 typedef int32_t (*host_boundary_write_sentence)(char *pchSentence, int32_t n32SentenceSize);
 typedef int32_t (*host_boundary_write_event)(int32_t n32EventId);
 typedef int32_t (*host_boundary_write_poti)(fix_data_t *psPotiFixData);
@@ -37,6 +38,7 @@ typedef int32_t (*host_boundary_write_denm)(DENM *psDenm);
  */
 
 // Host boundary callbacks.
+host_boundary_write_init g_fp_write_to_boundary_init;
 host_boundary_write_sentence g_fp_write_to_boundary_sentence;
 host_boundary_write_event g_fp_write_to_boundary_event;
 host_boundary_write_poti g_fp_write_to_boundary_poti;

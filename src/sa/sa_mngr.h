@@ -27,10 +27,10 @@
 // ----- ITS MSG PROCESSOR CALLBACKS -----
 // ---------------------------------------
 
-typedef int32_t (*its_processor_init)();
-typedef int32_t (*its_processor_process_tx)(fix_data_t *psPotiFixData);
-typedef int32_t (*its_processor_process_rx_cam)(CAM *psCam, SStationFullFusionData *psLocalStationData, SStationFullFusionData *psRemoteStationData);
-typedef int32_t (*its_processor_process_rx_denm)(DENM *psDenm, SStationFullFusionData *psLocalStationData, SStationFullFusionData *psRemoteStationData);
+typedef bool (*its_processor_init)();
+typedef bool (*its_processor_process_tx)(fix_data_t *psPotiFixData);
+typedef bool (*its_processor_process_rx_cam)(CAM *psCam, SStationFullFusionData *psLocalStationData, SStationFullFusionData *psRemoteStationData);
+typedef bool (*its_processor_process_rx_denm)(DENM *psDenm, SStationFullFusionData *psLocalStationData, SStationFullFusionData *psRemoteStationData);
 
 /*
  *******************************************************************************

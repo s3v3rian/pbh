@@ -1,11 +1,9 @@
-#ifndef SA_PROCESSORS_ITS_MSG_PROCESSOR_RSU_H_
-#define SA_PROCESSORS_ITS_MSG_PROCESSOR_RSU_H_
+#ifndef BOUNDARY_SERIAL_BOUNDARY_H_
+#define BOUNDARY_SERIAL_BOUNDARY_H_
 
-#include "lib/inc/poti_service.h"
-#include "lib/inc/itsmsg_cam.h"
-#include "lib/inc/itsmsg_denm.h"
+#include <stdint.h>
 
-#include "globals.h"
+#include "boundary_writer.h"
 
 /*
  *******************************************************************************
@@ -36,11 +34,18 @@
  * Public functions
  *******************************************************************************
  */
+int32_t serial_boundary_init(char *pchDevice);
+int32_t serial_boundary_write_sentence(char *pchSentence, int32_t n32SentenceSize);
+int32_t serial_boundary_write_event(int32_t n32EventId);
+int32_t serial_boundary_write_poti(fix_data_t *psPotiFixData);
+int32_t serial_boundary_write_cam(CAM *psCam);
+int32_t serial_boundary_write_denm(DENM *psDenm);
 
-int32_t its_msg_processor_rsu_init();
-int32_t its_msg_processor_rsu_process_tx(fix_data_t *psPotiFixData);
-int32_t its_msg_processor_rsu_process_rx_cam(CAM *psCam, SStationFullFusionData *psLocalFusionData, SStationFullFusionData *psRemoteFusionData);
-int32_t its_msg_processor_rsu_process_rx_denm(DENM *psDenm, SStationFullFusionData *psLocalFusionData, SStationFullFusionData *psRemoteFusionData);
+/*
+ *******************************************************************************
+ * Private functions
+ *******************************************************************************
+ */
 
 #endif
 

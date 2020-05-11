@@ -1,13 +1,17 @@
-#ifndef SIM_PROCESSORS_SIM_PROCESSOR_RSU_H_
-#define SIM_PROCESSORS_SIM_PROCESSOR_RSU_H_
+#ifndef BOUNDARY_ETHERNET_BOUNDARY_H_
+#define BOUNDARY_ETHERNET_BOUNDARY_H_
 
-#include "common/globals.h"
+#include <stdint.h>
+
+#include "boundary_writer.h"
 
 /*
  *******************************************************************************
  * Constant value definition
  *******************************************************************************
  */
+
+#define ETHERNET_BOUNDARY_HOST_PORT			12355
 
 /*
  *******************************************************************************
@@ -33,8 +37,18 @@
  *******************************************************************************
  */
 
-int32_t sim_processor_rsu_init();
-void sim_processor_rsu_do_fusion();
+int32_t ethernet_boundary_init(char *pchHostIpAddress);
+int32_t ethernet_boundary_write_sentence(char *pchSentence, int32_t n32SentenceSize);
+int32_t ethernet_boundary_write_event(int32_t n32EventId);
+int32_t ethernet_boundary_write_poti(fix_data_t *psPotiFixData);
+int32_t ethernet_boundary_write_cam(CAM *psCam);
+int32_t ethernet_boundary_write_denm(DENM *psDenm);
+
+/*
+ *******************************************************************************
+ * Private functions
+ *******************************************************************************
+ */
 
 #endif
 

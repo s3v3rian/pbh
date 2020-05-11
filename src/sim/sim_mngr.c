@@ -105,7 +105,6 @@ void sim_mngr_process_fix_data(fix_data_t *psPotiFixData) {
 
             gps_sim_set_is_pause_fix_data(false);
         }
-
     }
 }
 

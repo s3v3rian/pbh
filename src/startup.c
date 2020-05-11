@@ -11,17 +11,17 @@
 #include "common/containers/ring_buffer.h"
 
 #include "boundary/boundary_writer.h"
-#include "boundary/serial_boundary.h"
-#include "boundary/ethernet_boundary.h"
+#include "boundary/serial_boundary_writer.h"
+#include "boundary/ethernet_boundary_writer.h"
 
 #include "sa/processors/its_msg_processor_passenger.h"
 #include "sa/processors/its_msg_processor_commercial.h"
-#include "sa/processors/its_msg_processor_rsu.h"
+#include "sa/processors/its_msg_processor_traffic_light.h"
 #include "sa/sa_mngr.h"
 
 #include "sim/processors/sim_processor_passenger.h"
 #include "sim/processors/sim_processor_commercial.h"
-#include "sim/processors/sim_processor_rsu.h"
+#include "sim/processors/sim_processor_traffic_light.h"
 
 #include "sim/sim_mngr.h"
 
@@ -124,7 +124,7 @@ int32_t main(int argc, char **argv) {
     }
 
     // Set global variables.
-    g_pchConfigurationFileDirectoryPath = argv[1];
+    g_pchConfigurationFileDirectoryPath = "/home/root/ext-fs/home/unex/v2x/bin/config/";
 
     print_program_arguments();
 
@@ -181,7 +181,7 @@ int32_t main(int argc, char **argv) {
 
     printf("Successfully loaded configuration files\n");
 
-#ifdef __EN_SIMULATOR_FEATURE__
+#if (__EN_SIMULATOR_FEATURE__)
 
     printf("Initializing simulator\n");
 
@@ -210,8 +210,8 @@ int32_t main(int argc, char **argv) {
 
         case GN_ITS_STATION_ROAD_SIDE_UNIT:
 
-            g_fp_sim_processor_init = sim_processor_rsu_init;
-            g_fp_sim_processor_do_fusion = sim_processor_rsu_do_fusion;
+            g_fp_sim_processor_init = sim_processor_traffic_light_init;
+            g_fp_sim_processor_do_fusion = sim_processor_traffic_light_do_fusion;
             break;
 
         default:
@@ -234,9 +234,10 @@ int32_t main(int argc, char **argv) {
     // -------------- Initialize Services --------------
     // -------------------------------------------------
 
-#ifdef __EN_SERIAL_OUTPUT_FEATURE__
+#if (__EN_SERIAL_OUTPUT_FEATURE__)
 
     printf("Set boundary writer to serial interface\n");
+    g_fp_write_to_boundary_init = serial_boundary_init;
     g_fp_write_to_boundary_sentence = serial_boundary_write_sentence;
     g_fp_write_to_boundary_event = serial_boundary_write_event;
     g_fp_write_to_boundary_poti = serial_boundary_write_poti;
@@ -246,9 +247,22 @@ int32_t main(int argc, char **argv) {
 #else
 
     printf("Set boundary writer to ethernet interface\n");
-    //g_fpBoundaryWriter = ethernet_boundary_write;
+    g_fp_write_to_boundary_init = ethernet_boundary_init;
+    g_fp_write_to_boundary_sentence = ethernet_boundary_write_sentence;
+    g_fp_write_to_boundary_event = ethernet_boundary_write_event;
+    g_fp_write_to_boundary_poti = ethernet_boundary_write_poti;
+    g_fp_write_to_boundary_cam = ethernet_boundary_write_cam;
+    g_fp_write_to_boundary_denm = ethernet_boundary_write_denm;
 
 #endif
+
+    n32ProcedureResult = g_fp_write_to_boundary_init(argv[1]);
+
+    if(PROCEDURE_SUCCESSFULL != n32ProcedureResult) {
+
+        printf("Cannot init boundary writer\n");
+        return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
+    }
 
     printf("Initializing containers\n");
 
@@ -292,10 +306,10 @@ int32_t main(int argc, char **argv) {
 
         case GN_ITS_STATION_ROAD_SIDE_UNIT:
 
-            g_fp_its_processor_init = its_msg_processor_rsu_init;
-            g_fp_its_processor_process_tx = its_msg_processor_rsu_process_tx;
-            g_fp_its_processor_proccess_cam = its_msg_processor_rsu_process_rx_cam;
-            g_fp_its_processor_proccess_denm = its_msg_processor_rsu_process_rx_denm;
+            g_fp_its_processor_init = its_msg_processor_traffic_light_init;
+            g_fp_its_processor_process_tx = its_msg_processor_traffic_light_process_tx;
+            g_fp_its_processor_proccess_cam = its_msg_processor_traffic_light_process_rx_cam;
+            g_fp_its_processor_proccess_denm = its_msg_processor_traffic_light_process_rx_denm;
             break;
 
         default:
@@ -335,7 +349,7 @@ int32_t main(int argc, char **argv) {
 
     printf("Releasing all resources...\n");
 
-#ifdef __EN_SIMULATOR_FEATURE__
+#if (__EN_SIMULATOR_FEATURE__)
 
     sim_mngr_release();
 

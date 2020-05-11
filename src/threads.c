@@ -57,6 +57,14 @@ void *poti_receiver_active(void *p_param __attribute__((unused))) {
 
     printf("Starting POTI receiver\n");
 
+    pthread_t tThisThread = pthread_self();
+
+    struct sched_param sSchedParams;
+
+    sSchedParams.sched_priority = 9;
+    sched_setparam(tThisThread, &sSchedParams);
+    sched_setscheduler(tThisThread, SCHED_FIFO, &sSchedParams);
+
     // -------------------------------------------------
     // --------------- Start POTI Loop -----------------
     // -------------------------------------------------
@@ -85,9 +93,15 @@ void *poti_receiver_active(void *p_param __attribute__((unused))) {
  */
 void *cam_receiver_active(void *p_param __attribute__((unused))) {
 
-    //pBtpCamHandler_ptr pBtpCamHandler; // TODO Why?
-
     printf("Starting CAM receiver\n");
+
+    pthread_t tThisThread = pthread_self();
+
+    struct sched_param sSchedParams;
+
+    sSchedParams.sched_priority = 7;
+    sched_setparam(tThisThread, &sSchedParams);
+    sched_setscheduler(tThisThread, SCHED_FIFO, &sSchedParams);
 
     while(true == m_bIsThreadsActive) {
 
@@ -109,6 +123,14 @@ void *denm_receiver_active(void *p_param __attribute__((unused))) {
 
     printf("Starting DENM receiver\n");
 
+    pthread_t tThisThread = pthread_self();
+
+    struct sched_param sSchedParams;
+
+    sSchedParams.sched_priority = 7;
+    sched_setparam(tThisThread, &sSchedParams);
+    sched_setscheduler(tThisThread, SCHED_FIFO, &sSchedParams);
+
     while(true == m_bIsThreadsActive) {
 
         sa_mngr_process_denm();
@@ -128,6 +150,14 @@ void *denm_receiver_active(void *p_param __attribute__((unused))) {
 void *sa_processor_active(void *p_param __attribute__((unused))) {
 
     printf("Starting SA processor\n");
+
+    pthread_t tThisThread = pthread_self();
+
+    struct sched_param sSchedParams;
+
+    sSchedParams.sched_priority = 8;
+    sched_setparam(tThisThread, &sSchedParams);
+    sched_setscheduler(tThisThread, SCHED_FIFO, &sSchedParams);
 
     while(true == m_bIsThreadsActive) {
 

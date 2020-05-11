@@ -32,6 +32,8 @@
  */
 
 double geodesic_convert_decimal_degress_to_degrees_minutes(double dValue);
+double geodesic_convert_decimal_degrees_to_1_10_th_micro_degree(double dValue);
+double geodesic_calculate_bearing(double dLatitudeA, double dLongitudeA, double dLatitudeB, double dLongitudeB);
 
 /*
  *******************************************************************************

@@ -37,10 +37,10 @@
  *******************************************************************************
  */
 
-int32_t its_msg_processor_passenger_init();
-int32_t its_msg_processor_passenger_process_tx(fix_data_t *psPotiFixData);
-int32_t its_msg_processor_passenger_process_rx_cam(CAM *psCam, SStationFullFusionData *psLocalFusionData, SStationFullFusionData *psRemoteFusionData);
-int32_t its_msg_processor_passenger_process_rx_denm(DENM *psDenm, SStationFullFusionData *psLocalFusionData, SStationFullFusionData *psRemoteFusionData);
+bool its_msg_processor_passenger_init();
+bool its_msg_processor_passenger_process_tx(fix_data_t *psPotiFixData);
+bool its_msg_processor_passenger_process_rx_cam(CAM *psCam, SStationFullFusionData *psLocalFusionData, SStationFullFusionData *psRemoteFusionData);
+bool its_msg_processor_passenger_process_rx_denm(DENM *psDenm, SStationFullFusionData *psLocalFusionData, SStationFullFusionData *psRemoteFusionData);
 
 #endif
 

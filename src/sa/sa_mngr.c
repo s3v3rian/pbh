@@ -53,32 +53,32 @@ int32_t sa_mngr_init() {
 
     n32ProcedureResult = gps_poti_init();
 
-    if(FALSE == IS_SUCCESS(n32ProcedureResult)) {
+    if(PROCEDURE_SUCCESSFULL != n32ProcedureResult) {
 
-        printf("Cannot create POTI service: %s\n", ERROR_MSG(n32ProcedureResult));
+        printf("Cannot create POTI service\n");
         return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
     }
 
-    cam_mngr_init();
+    n32ProcedureResult = cam_mngr_init();
 
-    if(FALSE == IS_SUCCESS(n32ProcedureResult)) {
+    if(PROCEDURE_SUCCESSFULL != n32ProcedureResult) {
 
-        printf("Cannot init cam manager: %s\n", ERROR_MSG(n32ProcedureResult));
+        printf("Cannot init cam manager\n");
         return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
     }
 
-    denm_mngr_init();
+    n32ProcedureResult = denm_mngr_init();
 
-    if(FALSE == IS_SUCCESS(n32ProcedureResult)) {
+    if(PROCEDURE_SUCCESSFULL != n32ProcedureResult) {
 
-        printf("Cannot init denm manager: %s\n", ERROR_MSG(n32ProcedureResult));
+        printf("Cannot init denm manager\n");
         return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
     }
 
     m_n32FusionThreadQueueId = spsc_array_queue_container_init("sa_fusion_queue");
 
     // Initialize station processor.
-    if(PROCEDURE_SUCCESSFULL != g_fp_its_processor_init()) {
+    if(false == g_fp_its_processor_init()) {
 
         printf("Cannot init station sa processor\n");
         return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
@@ -157,13 +157,35 @@ void sa_mngr_process_poti() {
                 || psPotiFixData->mode == FIX_MODE_NO_FIX) {
 
         printf("Navigation information is invalid\n");
+        return;
     }
 
-#ifdef __EN_SIMULATOR_FEATURE__
+#if (__EN_SIMULATOR_FEATURE__)
+
+    //printf("Before Simulator GPS fix data update - TAI: %f, LAT: %f, LON: %f, ALT: %f\n", psPotiFixData->time.tai_since_2004, psPotiFixData->latitude, psPotiFixData->longitude, psPotiFixData->altitude);
 
     sim_mngr_process_fix_data(psPotiFixData);
 
+    //printf("After Simulator GPS fix data update - TAI: %f, LAT: %f, LON: %f, ALT: %f\n", psPotiFixData->time.tai_since_2004,  psPotiFixData->latitude, psPotiFixData->longitude, psPotiFixData->altitude);
+
 #endif
+
+    // ------------------------------------------------
+    // ------------ Process Pending TX ----------------
+    // ------------------------------------------------
+
+    CAM *psCam = NULL;
+    DENM *psDenm = NULL;
+
+    if(true == its_msg_processor_pop_tx_denm_msg(&psDenm)) {
+
+        denm_mngr_process_tx(&g_sLocalStationInfo, psPotiFixData, psDenm);
+    }
+
+    if(true == its_msg_processor_pop_tx_cam_msg(&psCam)) {
+
+        cam_mngr_process_tx(&g_sLocalStationInfo, psPotiFixData, psCam);
+    }
 
     g_fp_write_to_boundary_poti(psPotiFixData);
 
@@ -178,7 +200,7 @@ void sa_mngr_process_cam() {
 
     CAM *psOutputCam = NULL;
 
-    if(PROCEDURE_SUCCESSFULL != its_msg_processor_allocate_rx_cam_msg(&psOutputCam)) {
+    if(false == its_msg_processor_allocate_rx_cam_msg(&psOutputCam)) {
 
         printf("Failed to allocate rx cam resources\n");
         return;
@@ -201,7 +223,7 @@ void sa_mngr_process_denm() {
 
     DENM *psOutputDenm = NULL;
 
-    if(PROCEDURE_SUCCESSFULL != its_msg_processor_allocate_rx_denm_msg(&psOutputDenm)) {
+    if(false == its_msg_processor_allocate_rx_denm_msg(&psOutputDenm)) {
 
         printf("Failed to allocate rx denm resources\n");
         return;
@@ -290,7 +312,11 @@ static void sa_mngr_handle_cam(CAM *psCam) {
     // Compute distance to target.
     psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters = alg_haversine_compute(&psLocalFusionData->m_sDistanceData, &psRemoteFusionData->m_sDistanceData);
 
-    //printf("Computed haversine value %f from station %d to station %d\n", psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters, g_sLocalStationInfo.m_un32StationId, psCam->header.stationID);
+    // Compute bearing.
+    psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees = geodesic_calculate_bearing(psRemoteFusionData->m_sDistanceData.m_dLatitude, psRemoteFusionData->m_sDistanceData.m_dLongitude, psLocalFusionData->m_sDistanceData.m_dLatitude, psLocalFusionData->m_sDistanceData.m_dLongitude);
+
+    printf("Distance %f - station %d to station %d\n", psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters, g_sLocalStationInfo.m_un32StationId, psCam->header.stationID);
+    //printf("Bearing %f - station %d to station %d\n", psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees, g_sLocalStationInfo.m_un32StationId, psCam->header.stationID);
 
     // --------------------------------------------------
     // ------------- Make Event Decision ----------------

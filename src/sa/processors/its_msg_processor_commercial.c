@@ -47,31 +47,29 @@ static bool m_bIsDoingGeneralStatusUpdate;
  *******************************************************************************
  */
 
-int32_t its_msg_processor_commercial_init() {
+bool its_msg_processor_commercial_init() {
 
     int32_t n32ProcedureResult = PROCEDURE_SUCCESSFULL;
-
-    n32ProcedureResult = its_msg_processor_init();
 
     // On first receiving from RSU do a status update.
     m_bIsDoingGeneralStatusUpdate = false;
 
-    return n32ProcedureResult;
+    return its_msg_processor_init();
 }
 
-int32_t its_msg_processor_commercial_process_tx(fix_data_t *psPotiFixData) {
+bool its_msg_processor_commercial_process_tx(fix_data_t *psPotiFixData) {
 
-    its_msg_processor_process_tx_pending_denms(psPotiFixData);
+    //its_msg_processor_process_tx_pending_denms(psPotiFixData);
 
     m_bIsDoingGeneralStatusUpdate = false;
 
-    its_msg_processor_process_tx_cam(psPotiFixData);
+    //its_msg_processor_process_tx_cam(psPotiFixData);
 
     // TODO Get procedure reuslt from above procedures.
-    return PROCEDURE_SUCCESSFULL;
+    return true;
 }
 
-int32_t its_msg_processor_commercial_process_rx_cam(CAM *psCam, SStationFullFusionData *psLocalFusionData, SStationFullFusionData *psRemoteFusionData) {
+bool its_msg_processor_commercial_process_rx_cam(CAM *psCam, SStationFullFusionData *psLocalFusionData, SStationFullFusionData *psRemoteFusionData) {
 
     int32_t n32ProcedureResult = PROCEDURE_SUCCESSFULL;
 
@@ -197,12 +195,12 @@ int32_t its_msg_processor_commercial_process_rx_cam(CAM *psCam, SStationFullFusi
         }
     }
 
-    return n32ProcedureResult;
+    return true;
 }
 
-int32_t its_msg_processor_commercial_process_rx_denm(DENM *psDenm, SStationFullFusionData *psLocalFusionData, SStationFullFusionData *psRemoteFusionData) {
+bool its_msg_processor_commercial_process_rx_denm(DENM *psDenm, SStationFullFusionData *psLocalFusionData, SStationFullFusionData *psRemoteFusionData) {
 
-    return PROCEDURE_SUCCESSFULL;
+    return true;
 }
 
 /*

@@ -1,48 +1,142 @@
-#include "serial_boundary.h"
+#include "ethernet_boundary_writer.h"
 
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 
 #include "common/globals.h"
 #include "common/utils/geo_utils.h"
 
 #include "services/gps/nmea_infra.h"
 
-int32_t serial_boundary_write_sentence(char *pchSentence, int32_t n32SentenceSize) {
+/*
+ *******************************************************************************
+ * Private function signatures
+ *******************************************************************************
+ */
 
-    int32_t n32Fd = open("/dev/ttyAMA2", O_RDWR);
+static uint32_t convert_char_ip_to_integer(const char *pchIpAddress);
 
-    if(0 > n32Fd) {
+/*
+ *******************************************************************************
+ * Private constant value definition
+ *******************************************************************************
+ */
 
-        printf("Failed to open file descriptor for file /dev/ttyAMA2\n");
-        return -1;
+/*
+ *******************************************************************************
+ * Private macros
+ *******************************************************************************
+ */
+
+/*
+ *******************************************************************************
+ * Private/Extern data type definition
+ *******************************************************************************
+ */
+
+/*
+ *******************************************************************************
+ * Private/Extern variables
+ *******************************************************************************
+ */
+
+static int32_t m_n32SocketFd = 0;
+
+static struct sockaddr_in m_sClientAddress;
+
+/*
+ *******************************************************************************
+ * Public functions
+ *******************************************************************************
+ */
+
+int32_t ethernet_boundary_init(char *pchHostIpAddress) {
+
+    struct sockaddr_in sServerAddress;
+
+    // Creating socket file descriptor
+    if(0 > (m_n32SocketFd = socket(AF_INET, SOCK_DGRAM, 0))) {
+
+        perror("socket creation failed");
+        return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
     }
 
-    int8_t n32Result = 0;
+    memset(&sServerAddress, 0, sizeof(sServerAddress));
+    memset(&m_sClientAddress, 0, sizeof(m_sClientAddress));
 
-    if(n32SentenceSize != write(n32Fd, pchSentence, n32SentenceSize)) {
+    // Filling server information
+    sServerAddress.sin_family    = AF_INET; // IPv4
+    sServerAddress.sin_addr.s_addr = INADDR_ANY;
+    sServerAddress.sin_port = htons(ETHERNET_BOUNDARY_HOST_PORT);
 
-        n32Result = -2;
+    // Bind the socket with the server address
+    if(0 > bind(m_n32SocketFd, (const struct sockaddr *)&sServerAddress, sizeof(sServerAddress))) {
+
+        perror("bind failed");
+        return PROCEDURE_INVALID_SERVICE_INIT_ERROR;
     }
 
-    close(n32Fd);
+    m_sClientAddress.sin_family    = AF_INET; // IPv4
+    m_sClientAddress.sin_addr.s_addr = convert_char_ip_to_integer(pchHostIpAddress);
+    m_sClientAddress.sin_port = htons(ETHERNET_BOUNDARY_HOST_PORT);
 
-    return n32Result;
+    printf("Initialized ethernet boundary writer - Host: %s:%d\n", pchHostIpAddress, ETHERNET_BOUNDARY_HOST_PORT);
+
+    return PROCEDURE_SUCCESSFULL;
 }
 
-int32_t serial_boundary_write_event(int32_t n32EventId) {
+int32_t ethernet_boundary_write_sentence(char *pchSentence, int32_t n32SentenceSize) {
+
+    return sendto(
+        m_n32SocketFd,
+        pchSentence,
+        n32SentenceSize,
+        0,
+        (const struct sockaddr *)&m_sClientAddress,
+        sizeof(m_sClientAddress));
+}
+
+int32_t ethernet_boundary_write_event(int32_t n32EventId) {
 
     int32_t n32SentenceSize = 0;
     char achSentence[MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES];
 
-    // TODO add more events.
-    n32SentenceSize += sprintf(achSentence, "T%d,local_event,collision_risk,\n", g_sLocalStationInfo.m_un32StationId);
+    switch(n32EventId) {
 
-    return serial_boundary_write_sentence(achSentence, n32SentenceSize);
+        case CauseCodeType_signalViolation:
+
+            n32SentenceSize += sprintf(
+                achSentence,
+                "T%d,local_event,signal_violation,\n",
+                g_sLocalStationInfo.m_un32StationId);
+            break;
+
+        case CauseCodeType_collisionRisk:
+
+            n32SentenceSize += sprintf(
+                achSentence,
+                "T%d,local_event,collision_risk,\n",
+                g_sLocalStationInfo.m_un32StationId);
+            break;
+
+        default:
+
+            n32SentenceSize += sprintf(
+                achSentence,
+                "T%d,local_event,nothing,\n",
+                g_sLocalStationInfo.m_un32StationId);
+            break;
+    }
+
+    return ethernet_boundary_write_sentence(achSentence, n32SentenceSize);
 }
 
-int32_t serial_boundary_write_poti(fix_data_t *psPotiFixData) {
+int32_t ethernet_boundary_write_poti(fix_data_t *psPotiFixData) {
 
     int32_t n32SentenceSize = 0;
     char achSentence[MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES];
@@ -68,10 +162,10 @@ int32_t serial_boundary_write_poti(fix_data_t *psPotiFixData) {
     // Build and send NMEA sentence.
     n32SentenceSize += nmea_build_rmc_msg(&sRmcData, achSentence + n32SentenceSize);
 
-    serial_boundary_write_sentence(achSentence, n32SentenceSize);
+    return ethernet_boundary_write_sentence(achSentence, n32SentenceSize);
 }
 
-int32_t serial_boundary_write_cam(CAM *psCam) {
+int32_t ethernet_boundary_write_cam(CAM *psCam) {
 
     int32_t n32SentenceSize = 0;
     char achSentence[MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES];
@@ -101,10 +195,10 @@ int32_t serial_boundary_write_cam(CAM *psCam) {
 
     n32SentenceSize += nmea_build_rmc_msg(&sRmcData, achSentence + n32SentenceSize);
 
-    serial_boundary_write_sentence(achSentence, n32SentenceSize);
+    return ethernet_boundary_write_sentence(achSentence, n32SentenceSize);
 }
 
-int32_t serial_boundary_write_denm(DENM *psDenm) {
+int32_t ethernet_boundary_write_denm(DENM *psDenm) {
 
     int32_t n32SentenceSize = 0;
     char achSentence[MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES];
@@ -252,5 +346,55 @@ int32_t serial_boundary_write_denm(DENM *psDenm) {
                 psDenm->denm.management.eventPosition.latitude,
                 psDenm->denm.management.eventPosition.longitude);
 
-    serial_boundary_write_sentence(achSentence, n32SentenceSize);
+    return ethernet_boundary_write_sentence(achSentence, n32SentenceSize);
+}
+
+/*
+ *******************************************************************************
+ * Private functions
+ *******************************************************************************
+ */
+
+static uint32_t convert_char_ip_to_integer(const char *pchIpAddress) {
+
+    /* The return value. */
+    uint32_t un32IpAddress = 0;
+    /* The count of the number of bytes processed. */
+    int32_t n32Counter;
+    /* A pointer to the next digit to process. */
+    const char *pchStart;
+
+    pchStart = pchIpAddress;
+
+    for(n32Counter = 0; n32Counter < 4; n32Counter++) {
+        /* The digit being processed. */
+        char chCurrentDigit;
+        /* The value of this byte. */
+        int32_t n32ByteValue = 0;
+
+        while (true) {
+
+            chCurrentDigit = * pchStart;
+            pchStart++;
+            if (chCurrentDigit >= '0' && chCurrentDigit <= '9') {
+                n32ByteValue *= 10;
+                n32ByteValue += chCurrentDigit - '0';
+            }
+            /* We insist on stopping at "." if we are still parsing
+               the first, second, or third numbers. If we have reached
+               the end of the numbers, we will allow any character. */
+            else if ((n32Counter < 3 && chCurrentDigit == '.') || n32Counter == 3) {
+                break;
+            }
+            else {
+                return 0xFFFFFFFF;
+            }
+        }
+        if (n32ByteValue >= 256) {
+            return 0xFFFFFFFF;
+        }
+        un32IpAddress *= 256;
+        un32IpAddress += n32ByteValue;
+    }
+    return un32IpAddress;
 }

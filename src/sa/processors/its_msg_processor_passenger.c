@@ -47,29 +47,33 @@ static bool m_bIsDoingStatusUpdate;
  *******************************************************************************
  */
 
-int32_t its_msg_processor_passenger_init() {
+bool its_msg_processor_passenger_init() {
 
     printf("Initializing Passenger ITS msg processor\n");
 
-    int32_t n32ProcedureResult = its_msg_processor_init();
-
     m_bIsDoingStatusUpdate = false;
 
-    return n32ProcedureResult;
+    return its_msg_processor_init();
 }
 
-int32_t its_msg_processor_passenger_process_tx(fix_data_t *psPotiFixData) {
+bool its_msg_processor_passenger_process_tx(fix_data_t *psPotiFixData) {
 
-    // Send a CAM.
-    its_msg_processor_process_tx_cam(psPotiFixData);
+    // Prepare a CAM.
+    CAM *psCam = NULL;
+    if(false == its_msg_processor_allocate_tx_cam_msg(&psCam)) {
 
-    // TODO Get procedure reuslt from above procedures.
-    return PROCEDURE_SUCCESSFULL;
+        printf("Failed to allocate from ring buffer, cam status update failed\n");
+        return PROCEDURE_BUFFER_ERROR;
+    }
+
+    // Send the CAM.
+    return its_msg_processor_push_tx_cam_msg(psCam);
 }
 
-int32_t its_msg_processor_passenger_process_rx_cam(CAM *psCam, SStationFullFusionData *psLocalFusionData, SStationFullFusionData *psRemoteFusionData) {
+bool its_msg_processor_passenger_process_rx_cam(CAM *psCam, SStationFullFusionData *psLocalFusionData, SStationFullFusionData *psRemoteFusionData) {
 
-    if(g_sLocalStationInfo.m_sVehicleInfo.m_dCollisionWarningThresholdInMeters > psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters) {
+    if(g_sLocalStationInfo.m_sVehicleInfo.m_dCollisionWarningThresholdInMeters > psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters
+            && psRemoteFusionData->m_n32StationType != GN_ITS_STATION_ROAD_SIDE_UNIT) {
 
         // Tell host shit is going down!
         g_fp_write_to_boundary_event(CauseCodeType_collisionRisk);
@@ -86,14 +90,29 @@ int32_t its_msg_processor_passenger_process_rx_cam(CAM *psCam, SStationFullFusio
 
             its_msg_processor_push_tx_denm_msg(psDenm);
             */
+    } else {
+
+    //    g_fp_write_to_boundary_event(0); TODO
     }
 
-    return PROCEDURE_SUCCESSFULL;
+    return true;
 }
 
-int32_t its_msg_processor_passenger_process_rx_denm(DENM *psDenm, SStationFullFusionData *psLocalFusionData, SStationFullFusionData *psRemoteFusionData) {
+bool its_msg_processor_passenger_process_rx_denm(DENM *psDenm, SStationFullFusionData *psLocalFusionData, SStationFullFusionData *psRemoteFusionData) {
 
-    return PROCEDURE_SUCCESSFULL;
+    if(g_sLocalStationInfo.m_sVehicleInfo.m_dCollisionWarningThresholdInMeters > psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters) {
+
+        if(CauseCodeType_trafficCondition == psDenm->denm.situation.eventType.causeCode
+                && TrafficConditionSubCauseCode_trafficRedLight == psDenm->denm.situation.eventType.subCauseCode) {
+
+            g_fp_write_to_boundary_event(CauseCodeType_signalViolation);
+        }
+    } else {
+
+        g_fp_write_to_boundary_event(0);
+    }
+
+    return true;
 }
 
 /*
