@@ -60,18 +60,18 @@ def read_data_line():
 
                         _icon_style +="""
         <IconStyle>
-            <scale>2</scale>
+            <scale>1</scale>
             <Icon>
-                <href>left_side_%s.png</href>
+                <href>front_end_%s.png</href>
             </Icon>
         </IconStyle>""" % (_event)
 
                     else:
                         _icon_style += """
         <IconStyle>
-            <scale>2</scale>
+            <scale>1</scale>
             <Icon>
-                <href>int_car_%s.jpg</href>
+                <href>bwd_car_%s.jpg</href>
             </Icon>
         </IconStyle>""" % (_target_name)
 
@@ -115,9 +115,9 @@ def read_data_line():
                         # Get icon style previously saved.
                         _icon_style = _dictionary_icon_style.get(_target_name, """
         <IconStyle>
-            <scale>2</scale>
+            <scale>1</scale>
             <Icon>
-                <href>int_car_%s.jpg</href>
+                <href>bwd_car_%s.jpg</href>
             </Icon>
         </IconStyle>""" % (_target_name))
                         _serial_line ="""
@@ -146,9 +146,9 @@ def read_data_line():
             # Always save line back into dictionary.
                         _dictionary_icon_style[_target_name] = """
         <IconStyle>
-            <scale>2</scale>
+            <scale>1</scale>
             <Icon>
-                <href>int_car_%s.jpg</href>
+                <href>bwd_car_%s.jpg</href>
             </Icon>
         </IconStyle>""" % (_target_name)
 #            _dictionary[_target_name] = _serial_line

@@ -71,7 +71,7 @@ def read_data_line():
         <IconStyle>
             <scale>2</scale>
             <Icon>
-                <href>car_%s.jpg</href>
+                <href>int_car_%s.jpg</href>
             </Icon>
         </IconStyle>""" % (_target_name)
 
@@ -117,7 +117,7 @@ def read_data_line():
         <IconStyle>
             <scale>2</scale>
             <Icon>
-                <href>car_%s.jpg</href>
+                <href>int_car_%s.jpg</href>
             </Icon>
         </IconStyle>""" % (_target_name))
                         _serial_line ="""
@@ -148,7 +148,7 @@ def read_data_line():
         <IconStyle>
             <scale>2</scale>
             <Icon>
-                <href>car_%s.jpg</href>
+                <href>int_car_%s.jpg</href>
             </Icon>
         </IconStyle>""" % (_target_name)
 #            _dictionary[_target_name] = _serial_line

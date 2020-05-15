@@ -31,7 +31,7 @@ def read_data_line():
     while True:
 
         _line, _addr = _sock_fd.recvfrom(1024)
-        #print _line
+        print _line
         _data = _line.split(",")
 
         # If this is a valid line of at least 2 then parse this bitch.
@@ -69,7 +69,7 @@ def read_data_line():
         <IconStyle>
             <scale>1</scale>
             <Icon>
-                <href>car_%s.jpg</href>
+                <href>tl_car_%s.jpg</href>
             </Icon>
         </IconStyle>""" % (_target_name)
 
@@ -132,7 +132,7 @@ def read_data_line():
         <IconStyle>
             <scale>1</scale>
             <Icon>
-                <href>car_%s.jpg</href>
+                <href>tl_car_%s.jpg</href>
             </Icon>
         </IconStyle>""" % (_target_name))
                         _serial_line ="""
@@ -163,7 +163,7 @@ def read_data_line():
         <IconStyle>
             <scale>1</scale>
             <Icon>
-                <href>car_%s.jpg</href>
+                <href>tl_car_%s.jpg</href>
             </Icon>
         </IconStyle>""" % (_target_name)
 #            _dictionary[_target_name] = _serial_line
