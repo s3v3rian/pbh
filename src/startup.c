@@ -250,6 +250,7 @@ int32_t main(int argc, char **argv) {
     g_fp_write_to_boundary_init = ethernet_boundary_init;
     g_fp_write_to_boundary_sentence = ethernet_boundary_write_sentence;
     g_fp_write_to_boundary_event = ethernet_boundary_write_event;
+    g_fp_write_to_boundary_remote_event = ethernet_boundary_write_remote_event;
     g_fp_write_to_boundary_poti = ethernet_boundary_write_poti;
     g_fp_write_to_boundary_cam = ethernet_boundary_write_cam;
     g_fp_write_to_boundary_denm = ethernet_boundary_write_denm;

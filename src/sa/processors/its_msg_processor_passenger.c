@@ -40,6 +40,7 @@
  */
 
 static bool m_bIsDoingStatusUpdate;
+static bool m_bIsAboutToCrossTL;
 
 /*
  *******************************************************************************
@@ -52,6 +53,7 @@ bool its_msg_processor_passenger_init() {
     printf("Initializing Passenger ITS msg processor\n");
 
     m_bIsDoingStatusUpdate = false;
+    m_bIsAboutToCrossTL = false;
 
     return its_msg_processor_init();
 }
@@ -65,6 +67,11 @@ bool its_msg_processor_passenger_process_tx(fix_data_t *psPotiFixData) {
         printf("Failed to allocate from ring buffer, cam status update failed\n");
         return PROCEDURE_BUFFER_ERROR;
     }
+
+    //if(true == m_bIsAboutToCrossTL) {
+
+        //psCam->cam.camParameters.specialVehicleContainer_option = TRUE;
+   // }
 
     // Send the CAM.
     return its_msg_processor_push_tx_cam_msg(psCam);
@@ -90,8 +97,32 @@ bool its_msg_processor_passenger_process_rx_cam(CAM *psCam, SStationFullFusionDa
 
             its_msg_processor_push_tx_denm_msg(psDenm);
             */
+    } else if(psRemoteFusionData->m_n32StationType == GN_ITS_STATION_ROAD_SIDE_UNIT) {
+
+        if(TRUE == psCam->cam.camParameters.specialVehicleContainer_option) {
+
+            printf("CauseCode is %d", psCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.incidentIndication.subCauseCode);
+            if(TrafficConditionSubCauseCode_trafficRedLight == psCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.incidentIndication.subCauseCode) {
+
+                g_fp_write_to_boundary_remote_event(CauseCodeType_trafficCondition, psRemoteFusionData->m_un32StationId);
+
+                if(g_sLocalStationInfo.m_sVehicleInfo.m_dCollisionWarningThresholdInMeters > psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters) {
+
+                    g_fp_write_to_boundary_event(CauseCodeType_signalViolation);
+                }
+
+            } else {
+
+                g_fp_write_to_boundary_remote_event(CauseCodeType_humanProblem, psRemoteFusionData->m_un32StationId);
+            }
+        }
+
+        //m_bIsAboutToCrossTL = true;
+        //g_sLocalStationInfo.m_sVehicleInfo.m_dCollisionWarningThresholdInMeters > psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters
+
     } else {
 
+       // m_bIsAboutToCrossTL = false;
     //    g_fp_write_to_boundary_event(0); TODO
     }
 

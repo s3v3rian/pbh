@@ -154,7 +154,7 @@ int32_t cam_mngr_process_tx(SStationInfo *psStationInfo, fix_data_t *psPotiFixDa
         return PROCEDURE_INVALID_SERVICE_TX_ERROR;
     }
 
-    //printf("Sending CAM message\n");
+    printf("Sending CAM message\n");
 
     /* Broadcast the CAM message (BTP-B, SHB). */
     n32Result = btp_send(m_pBtpCamHandler, &m_sBtpCamSendConfig, pun8TxPayload, n32TxPayloadSize);
@@ -190,7 +190,7 @@ int32_t cam_mngr_process_rx(CAM *psOutputCam) {
         return PROCEDURE_INVALID_SERVICE_RX_ERROR;
     }
 
-    //printf("Processing received CAM\n");
+    printf("Processing received CAM\n");
 
     if(true == IS_DECAP_FAIL(m_sBtpCamRecvStatus.security.status)) {
 
@@ -403,6 +403,11 @@ static int32_t cam_mngr_msg_encode(uint8_t **p2un8CamPayload, fix_data_t *psPoti
         //psOutputCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.incidentIndication_option = false;
     }
 
+    if(GN_ITS_STATION_ROAD_SIDE_UNIT == psOutputCam->cam.camParameters.basicContainer.stationType) {
+
+        asn1_bstr_alloc_set_bit(&(psOutputCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.lightBarSirenInUse), LightBarSirenInUse_MAX_BITS, LightBarSirenInUse_sirenActivated);
+    }
+
     /* Encode the CAM message. */
     buf_len = itsmsg_encode(p2un8CamPayload, (ItsPduHeader *)psOutputCam, psOutputErr);
 
@@ -410,7 +415,11 @@ static int32_t cam_mngr_msg_encode(uint8_t **p2un8CamPayload, fix_data_t *psPoti
         printf("itsmsg_encode error: %s\n", psOutputErr->msg);
     }
 
-    if(psOutputCam->cam.camParameters.basicContainer.stationType == GN_ITS_STATION_SPECIAL_VEHICLE) {
+    if(GN_ITS_STATION_ROAD_SIDE_UNIT == psOutputCam->cam.camParameters.basicContainer.stationType) {
+
+        asn1_bstr_free(&(psOutputCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.lightBarSirenInUse));
+
+    } else if(psOutputCam->cam.camParameters.basicContainer.stationType == GN_ITS_STATION_SPECIAL_VEHICLE) {
 
         // free the memory for encoding/
         asn1_bstr_free(&(psOutputCam->cam.camParameters.lowFrequencyContainer.u.basicVehicleContainerLowFrequency.exteriorLights));

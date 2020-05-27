@@ -124,12 +124,78 @@ int32_t ethernet_boundary_write_event(int32_t n32EventId) {
                 g_sLocalStationInfo.m_un32StationId);
             break;
 
+        case CauseCodeType_trafficCondition:
+
+            n32SentenceSize += sprintf(
+                achSentence,
+                "T%d,local_event,red_light,\n",
+                g_sLocalStationInfo.m_un32StationId);
+            break;
+
+        case CauseCodeType_humanProblem:
+
+            n32SentenceSize += sprintf(
+                achSentence,
+                "T%d,local_event,green_light,\n",
+                g_sLocalStationInfo.m_un32StationId);
+        break;
+
         default:
 
             n32SentenceSize += sprintf(
                 achSentence,
                 "T%d,local_event,nothing,\n",
                 g_sLocalStationInfo.m_un32StationId);
+            break;
+    }
+
+    return ethernet_boundary_write_sentence(achSentence, n32SentenceSize);
+}
+int32_t ethernet_boundary_write_remote_event(int32_t n32EventId, uint32_t un32StationId) {
+
+    int32_t n32SentenceSize = 0;
+    char achSentence[MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES];
+
+    switch(n32EventId) {
+
+        case CauseCodeType_signalViolation:
+
+            n32SentenceSize += sprintf(
+                achSentence,
+                "T%d,remote_event,signal_violation,\n",
+                un32StationId);
+            break;
+
+        case CauseCodeType_collisionRisk:
+
+            n32SentenceSize += sprintf(
+                achSentence,
+                "T%d,remote_event,collision_risk,\n",
+                un32StationId);
+            break;
+
+        case CauseCodeType_trafficCondition:
+
+            n32SentenceSize += sprintf(
+                achSentence,
+                "T%d,remote_event,red_light,\n",
+                un32StationId);
+            break;
+
+        case CauseCodeType_humanProblem:
+
+            n32SentenceSize += sprintf(
+                achSentence,
+                "T%d,remote_event,green_light,\n",
+                un32StationId);
+        break;
+
+        default:
+
+            n32SentenceSize += sprintf(
+                achSentence,
+                "T%d,remote_event,nothing,\n",
+                un32StationId);
             break;
     }
 

@@ -170,10 +170,10 @@ int32_t denm_mngr_process_tx(SStationInfo *psStationInfo, fix_data_t *psPotiFixD
     /* Setup destination area according to current position. */
     GN_ENABLE_OPTIONAL_CONFIG(m_sBtpDenmSendConfig.gn_optional.bitmask, GN_OPTION_DEST_AREA_BIT);
     m_sBtpDenmSendConfig.gn_optional.dest_area.area_type = GN_AREA_TYPE_RECT; /* GN_AREA_TYPE_CIRCLE, GN_AREA_TYPE_RECT, GN_AREA_TYPE_ELIP. */
-    //m_sBtpDenmSendConfig.gn_optional.dest_area.pos_latitude = (int32_t)(geodesic_convert_decimal_degrees_to_1_10_th_micro_degree(psPotiFixData->latitude)); /* WGS84, 1/10 micros degrees. */
-    //m_sBtpDenmSendConfig.gn_optional.dest_area.pos_longitude = (int32_t)(geodesic_convert_decimal_degrees_to_1_10_th_micro_degree(psPotiFixData->longitude)); /* WGS84, 1/10 micros degrees. */
-    m_sBtpDenmSendConfig.gn_optional.dest_area.pos_latitude = (int32_t)(geodesic_convert_decimal_degrees_to_1_10_th_micro_degree(33.014678)); /* WGS84, 1/10 micros degrees. */
-    m_sBtpDenmSendConfig.gn_optional.dest_area.pos_longitude = (int32_t)(geodesic_convert_decimal_degrees_to_1_10_th_micro_degree(35.291035)); /* WGS84, 1/10 micros degrees. */ // TODO UNDERSTAND THIS SHIT
+    m_sBtpDenmSendConfig.gn_optional.dest_area.pos_latitude = (int32_t)(geodesic_convert_decimal_degrees_to_1_10_th_micro_degree(psPotiFixData->latitude)); /* WGS84, 1/10 micros degrees. */
+    m_sBtpDenmSendConfig.gn_optional.dest_area.pos_longitude = (int32_t)(geodesic_convert_decimal_degrees_to_1_10_th_micro_degree(psPotiFixData->longitude)); /* WGS84, 1/10 micros degrees. */
+    //m_sBtpDenmSendConfig.gn_optional.dest_area.pos_latitude = (int32_t)(geodesic_convert_decimal_degrees_to_1_10_th_micro_degree(32.902903)); /* WGS84, 1/10 micros degrees. */
+    //m_sBtpDenmSendConfig.gn_optional.dest_area.pos_longitude = (int32_t)(geodesic_convert_decimal_degrees_to_1_10_th_micro_degree(35.235462)); /* WGS84, 1/10 micros degrees. */ // TODO UNDERSTAND THIS SHIT
     m_sBtpDenmSendConfig.gn_optional.dest_area.distance_a = 100; /* Distance a of the geometric shape, meters. */
     m_sBtpDenmSendConfig.gn_optional.dest_area.distance_b = 100; /* Distance b of the geometric shape, meters. */
     m_sBtpDenmSendConfig.gn_optional.dest_area.angle = 0; /* Angle of the geometric shape, degrees from North. */
@@ -214,7 +214,7 @@ int32_t denm_mngr_process_rx(DENM *psOutputDenm) {
         return PROCEDURE_INVALID_SERVICE_RX_ERROR;
     }
 
-    //printf("Processing received DENM\n");
+    printf("Processing received DENM\n");
 
     if(true == IS_DECAP_FAIL(m_sBtpDenmRecvStatus.security.status)) {
 

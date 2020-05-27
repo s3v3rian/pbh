@@ -9,6 +9,8 @@
 
 #include "common/utils/geo_utils.h"
 
+#include "boundary/boundary_writer.h"
+
 #include "sa/processors/its_msg_processor.h"
 
 /*
@@ -77,9 +79,6 @@ bool its_msg_processor_traffic_light_process_tx(fix_data_t *psPotiFixData) {
     psCam->cam.camParameters.lowFrequencyContainer_option = FALSE;
     psCam->cam.camParameters.specialVehicleContainer_option = FALSE;
 
-    // Always send a CAM.
-    its_msg_processor_push_tx_cam_msg(psCam);
-
     // Prepare general status message.
     DENM *psDenm = NULL;
     if(false == its_msg_processor_allocate_tx_denm_msg(&psDenm)) {
@@ -100,18 +99,32 @@ bool its_msg_processor_traffic_light_process_tx(fix_data_t *psPotiFixData) {
         // Set traffic light event data.
         psDenm->denm.situation.eventType.causeCode = CauseCodeType_trafficCondition;
         psDenm->denm.situation.eventType.subCauseCode = TrafficConditionSubCauseCode_trafficRedLight;
+        psCam->cam.camParameters.specialVehicleContainer_option = TRUE;
+        psCam->cam.camParameters.specialVehicleContainer.choice = SpecialVehicleContainer_emergencyContainer;
+        psCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.incidentIndication_option = TRUE;
+        psCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.incidentIndication.causeCode = CauseCodeType_trafficCondition;
+        psCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.incidentIndication.subCauseCode = TrafficConditionSubCauseCode_trafficRedLight;
 
     } else {
 
         // Set traffic light event data.
         psDenm->denm.situation.eventType.causeCode = CauseCodeType_trafficCondition;
         psDenm->denm.situation.eventType.subCauseCode = TrafficConditionSubCauseCode_trafficGreenLight;
+        psCam->cam.camParameters.specialVehicleContainer_option = TRUE;
+        psCam->cam.camParameters.specialVehicleContainer.choice = SpecialVehicleContainer_emergencyContainer;
+        psCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.incidentIndication_option = TRUE;
+        psCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.incidentIndication.causeCode = CauseCodeType_trafficCondition;
+        psCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.incidentIndication.subCauseCode = TrafficConditionSubCauseCode_trafficGreenLight;
     }
+
+
+    // Always send a CAM.
+    its_msg_processor_push_tx_cam_msg(psCam);
 
     //printf("Pushing DENM periodic traffic light status\n");
 
     // Send periodic status.
-    its_msg_processor_push_tx_denm_msg(psDenm);
+    //its_msg_processor_push_tx_denm_msg(psDenm);
 
     // TODO Get procedure reuslt from above procedures.
     return true;
@@ -119,6 +132,14 @@ bool its_msg_processor_traffic_light_process_tx(fix_data_t *psPotiFixData) {
 
 bool its_msg_processor_traffic_light_process_rx_cam(CAM *psCam, SStationFullFusionData *psLocalFusionData, SStationFullFusionData *psRemoteFusionData) {
 
+    if(true == g_sLocalStationInfo.m_sRsuInfo.m_usSpecifics.m_sTrafficLightInfo.m_bIsRedLight) {
+
+        g_fp_write_to_boundary_event(CauseCodeType_trafficCondition);
+
+    } else {
+
+        g_fp_write_to_boundary_event(CauseCodeType_humanProblem);
+    }
     /*
     // If currently red light is on and current distance to target is less then X meters then send signal violation.
     if(true == g_sLocalStationInfo.m_sRsuInfo.m_usSpecifics.m_sTrafficLightInfo.m_bIsRedLight) {

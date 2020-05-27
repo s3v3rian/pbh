@@ -11,14 +11,6 @@ import getopt
 __udp_interface="127.0.0.1"
 __tgt_data_directory="/home/dumbass"
 
-__default_icon_style_car="""
-        <IconStyle>
-            <scale>3</scale>
-            <Icon>
-                <href>car.jpg</href>
-            </Icon>
-        </IconStyle>"""
-
 # --------------------------------------------------
 # ---------------- Declare functions ---------------
 # --------------------------------------------------
@@ -58,24 +50,33 @@ def read_data_line():
                     break
 
                 # Parse local event.
-                if _data[_data_index] == "local_event": #index 1
+                if _data[_data_index] == "local_event" and _target_name == "T666": #index 1
 
                     _data_index += 1
 
                     _event = _data[_data_index]
-                    _icon_style=""
-                    _icon_style +="""
+                    if _event == "signal_violation":
+                        _icon_style +="""
         <IconStyle>
-            <scale>3</scale>
+            <scale>2</scale>
             <Icon>
                 <href>%s.jpg</href>
             </Icon>
         </IconStyle>""" % (_event)
 
+                    elif _event == "nothing":
+                        _icon_style += """
+        <IconStyle>
+            <scale>1.5</scale>
+            <Icon>
+                <href>tl_car_%s.jpg</href>
+            </Icon>
+        </IconStyle>""" % (_target_name)
+
                     _dictionary_icon_style[_target_name] = _icon_style
 
                 # Parse local event.
-                elif _data[_data_index] == "remote_event": #index 1
+                elif _data[_data_index] == "remote_event" and _target_name == "T111": #index 1
 
                     _data_index += 1
 
@@ -83,7 +84,7 @@ def read_data_line():
                     _icon_style=""
                     _icon_style +="""
         <IconStyle>
-            <scale>3</scale>
+            <scale>2</scale>
             <Icon>
                 <href>%s.jpg</href>
             </Icon>
@@ -127,7 +128,13 @@ def read_data_line():
                         
 
                         # Get icon style previously saved.
-                        _icon_style = _dictionary_icon_style.get(_target_name, __default_icon_style_car)
+                        _icon_style = _dictionary_icon_style.get(_target_name, """
+        <IconStyle>
+            <scale>1.5</scale>
+            <Icon>
+                <href>tl_car_%s.jpg</href>
+            </Icon>
+        </IconStyle>""" % (_target_name))
                         _serial_line ="""
 %s
 <Document>
@@ -135,9 +142,24 @@ def read_data_line():
     <Style id="icon_style">
     %s
     </Style>
+    <Style id="Notraffic">
+     <IconStyle>
+        <scale>1</scale>
+        <Icon>
+           <href>Notraffic.jpg</href>
+        </Icon>
+     </IconStyle>
+    </Style>
     <LabelStyle>
-    	<scale>1</scale>
+    	<scale>1.5</scale>
     </LabelStyle>
+    <Placemark>
+      <name>Notraffic</name>
+      <styleUrl>#Notraffic</styleUrl>
+      <Point>
+        <coordinates>13.39229,52.50783,0</coordinates>
+      </Point>
+    </Placemark>
     <Placemark>
         <name>VComm %s</name>
         <description>Live GPS data</description>
@@ -152,7 +174,13 @@ def read_data_line():
                         with open ("/home/s3v3rian/V2X/pbh/target_data/tgt_positional_data_%s.kml" % (_target_name), "w") as pos: pos.write(_serial_line)
             
             # Always save line back into dictionary.
-                        _dictionary_icon_style[_target_name] = __default_icon_style_car
+                        _dictionary_icon_style[_target_name] = """
+        <IconStyle>
+            <scale>1.5</scale>
+            <Icon>
+                <href>tl_car_%s.jpg</href>
+            </Icon>
+        </IconStyle>""" % (_target_name)
 #            _dictionary[_target_name] = _serial_line
 
 
