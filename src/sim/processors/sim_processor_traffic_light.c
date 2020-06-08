@@ -104,4 +104,6 @@ int32_t sim_processor_ini_loader(void* pchUser, const char* pchSection, const ch
             g_sLocalStationInfo.m_sRsuInfo.m_usSpecifics.m_sTrafficLightInfo.m_n32SignalViolationThresholdInMeters - strtol(pchValue, NULL, 10);
         }
     }
+
+    return PROCEDURE_SUCCESSFULL;
 }

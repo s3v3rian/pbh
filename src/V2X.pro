@@ -30,6 +30,7 @@ INCLUDEPATH += threads.h \
 SOURCES = startup.c \
     boundary/ethernet_boundary_writer.c \
     boundary/serial_boundary_writer.c \
+    sa/processors/its_msg_processor_valeran_rsu.c \
     sa/processors/its_msg_processor_traffic_light.c \
     sim/processors/sim_processor_traffic_light.c \
     threads.c \

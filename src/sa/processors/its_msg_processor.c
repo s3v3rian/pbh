@@ -110,6 +110,8 @@ bool its_msg_processor_push_tx_cam_msg(CAM *psCam) {
 
 bool its_msg_processor_pop_tx_cam_msg(CAM **p2sCam) {
 
+    *p2sCam = NULL;
+
     int32_t n32ElementId = 0;
     array_queue_container_pop(m_n32CamQueueId, &n32ElementId, (char**)p2sCam);
 

@@ -132,6 +132,14 @@ int32_t ethernet_boundary_write_event(int32_t n32EventId) {
                 g_sLocalStationInfo.m_un32StationId);
             break;
 
+    case CauseCodeType_stationaryVehicle:
+
+        n32SentenceSize += sprintf(
+            achSentence,
+            "T%d,local_event,stationary_vehicle,\n",
+            g_sLocalStationInfo.m_un32StationId);
+        break;
+
         case CauseCodeType_humanProblem:
 
             n32SentenceSize += sprintf(
@@ -179,6 +187,14 @@ int32_t ethernet_boundary_write_remote_event(int32_t n32EventId, uint32_t un32St
             n32SentenceSize += sprintf(
                 achSentence,
                 "T%d,remote_event,red_light,\n",
+                un32StationId);
+            break;
+
+        case CauseCodeType_stationaryVehicle:
+
+            n32SentenceSize += sprintf(
+                achSentence,
+                "T%d,remote_event,stationary_vehicle,\n",
                 un32StationId);
             break;
 

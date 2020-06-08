@@ -177,14 +177,17 @@ void sa_mngr_process_poti() {
     CAM *psCam = NULL;
     DENM *psDenm = NULL;
 
-    if(true == its_msg_processor_pop_tx_denm_msg(&psDenm)) {
+    /*
+    while(true == its_msg_processor_pop_tx_denm_msg(&psDenm)) {
 
         denm_mngr_process_tx(&g_sLocalStationInfo, psPotiFixData, psDenm);
     }
+    */
 
-    if(true == its_msg_processor_pop_tx_cam_msg(&psCam)) {
+    while(true == its_msg_processor_pop_tx_cam_msg(&psCam)) {
 
         cam_mngr_process_tx(&g_sLocalStationInfo, psPotiFixData, psCam);
+        psCam = NULL;
     }
 
     g_fp_write_to_boundary_poti(psPotiFixData);

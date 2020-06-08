@@ -250,11 +250,18 @@ static int32_t cam_mngr_msg_init(SStationInfo *psStationInfo, CAM *psOutputCam) 
     /* For the present document, the value of the DE protocolVersion shall be set to 1.  */
     psOutputCam->header.protocolVersion = CAM_PROTOCOL_VERSION;
     psOutputCam->header.messageID = CAM_Id;
-    psOutputCam->header.stationID = psStationInfo->m_un32StationId;
 
-    /* This DE provides the station type information of the originating ITS-S. */
-    psOutputCam->cam.camParameters.basicContainer.stationType = psStationInfo->m_n32StationType;
-    //psOutputCam->cam.camParameters.lowFrequencyContainer.u.basicVehicleContainerLowFrequency.vehicleRole = psStationInfo->m_n32SubStationType; // TODO
+    if(0 == psOutputCam->header.stationID) {
+
+        psOutputCam->header.stationID = psStationInfo->m_un32StationId;
+    }
+
+    if(0 == psOutputCam->cam.camParameters.basicContainer.stationType) {
+
+        /* This DE provides the station type information of the originating ITS-S. */
+        psOutputCam->cam.camParameters.basicContainer.stationType = (15 < psStationInfo->m_n32StationType) ? 15 : psStationInfo->m_n32StationType;
+        //psOutputCam->cam.camParameters.lowFrequencyContainer.u.basicVehicleContainerLowFrequency.vehicleRole = psStationInfo->m_n32SubStationType; // TODO
+    }
 
     return PROCEDURE_SUCCESSFULL;
 }
@@ -289,13 +296,17 @@ static int32_t cam_mngr_msg_encode(uint8_t **p2un8CamPayload, fix_data_t *psPoti
      * direction. This definition implies that the semiMajorConfidence might be smaller
      * than the semiMinorConfidence.
      */
-    psOutputCam->cam.camParameters.basicContainer.referencePosition.latitude = (int32_t)(psPotiFixData->latitude * 10000000.0); /* Convert to 1/10 micro degree. */
-    psOutputCam->cam.camParameters.basicContainer.referencePosition.longitude = (int32_t)(psPotiFixData->longitude * 10000000.0); /* Convert to 1/10 micro degree. */
-    psOutputCam->cam.camParameters.basicContainer.referencePosition.positionConfidenceEllipse.semiMajorConfidence = cam_mngr_set_semi_axis_length(psPotiFixData->err_smajor_axis); /* Convert to centimetre. */
-    psOutputCam->cam.camParameters.basicContainer.referencePosition.positionConfidenceEllipse.semiMinorConfidence = cam_mngr_set_semi_axis_length(psPotiFixData->err_sminor_axis); /* Convert to centimetre. */
-    psOutputCam->cam.camParameters.basicContainer.referencePosition.positionConfidenceEllipse.semiMajorOrientation = (int32_t)(psPotiFixData->err_smajor_orientation * 10.0); /* Convert to 0.1 degree from North. */
-    psOutputCam->cam.camParameters.basicContainer.referencePosition.altitude.altitudeValue = (int32_t)(psPotiFixData->altitude * 100.0); /* Convert to 0.01 metre. */
-    psOutputCam->cam.camParameters.basicContainer.referencePosition.altitude.altitudeConfidence = cam_mngr_set_altitude_confidence(psPotiFixData->err_altitude);
+    if(0 == psOutputCam->cam.camParameters.basicContainer.referencePosition.latitude
+            || 0 == psOutputCam->cam.camParameters.basicContainer.referencePosition.longitude) {
+
+            psOutputCam->cam.camParameters.basicContainer.referencePosition.latitude = (int32_t)(psPotiFixData->latitude * 10000000.0); /* Convert to 1/10 micro degree. */
+            psOutputCam->cam.camParameters.basicContainer.referencePosition.longitude = (int32_t)(psPotiFixData->longitude * 10000000.0); /* Convert to 1/10 micro degree. */
+            psOutputCam->cam.camParameters.basicContainer.referencePosition.positionConfidenceEllipse.semiMajorConfidence = cam_mngr_set_semi_axis_length(psPotiFixData->err_smajor_axis); /* Convert to centimetre. */
+            psOutputCam->cam.camParameters.basicContainer.referencePosition.positionConfidenceEllipse.semiMinorConfidence = cam_mngr_set_semi_axis_length(psPotiFixData->err_sminor_axis); /* Convert to centimetre. */
+            psOutputCam->cam.camParameters.basicContainer.referencePosition.positionConfidenceEllipse.semiMajorOrientation = (int32_t)(psPotiFixData->err_smajor_orientation * 10.0); /* Convert to 0.1 degree from North. */
+            psOutputCam->cam.camParameters.basicContainer.referencePosition.altitude.altitudeValue = (int32_t)(psPotiFixData->altitude * 100.0); /* Convert to 0.01 metre. */
+            psOutputCam->cam.camParameters.basicContainer.referencePosition.altitude.altitudeConfidence = cam_mngr_set_altitude_confidence(psPotiFixData->err_altitude);
+    }
 
     /*
      * The mandatory high frequency container of CAM.
@@ -403,7 +414,7 @@ static int32_t cam_mngr_msg_encode(uint8_t **p2un8CamPayload, fix_data_t *psPoti
         //psOutputCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.incidentIndication_option = false;
     }
 
-    if(GN_ITS_STATION_ROAD_SIDE_UNIT == psOutputCam->cam.camParameters.basicContainer.stationType) {
+    if(TRUE == psOutputCam->cam.camParameters.specialVehicleContainer_option) {
 
         asn1_bstr_alloc_set_bit(&(psOutputCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.lightBarSirenInUse), LightBarSirenInUse_MAX_BITS, LightBarSirenInUse_sirenActivated);
     }

@@ -4,12 +4,16 @@ import socket
 import sys
 import getopt
 
+from gtts import gTTS
+import os
+
 # --------------------------------------------------
 # ---------------- Declare variables ---------------
 # --------------------------------------------------
 
 __udp_interface="127.0.0.1"
 __tgt_data_directory="/home/dumbass"
+__text_to_say="roadside warning"
 
 # --------------------------------------------------
 # ---------------- Declare functions ---------------
@@ -50,30 +54,72 @@ def read_data_line():
                     break
 
                 # Parse local event.
-                if _data[_data_index] == "local_event": #index 1
+                if _data[_data_index] == "remote_event" and _target_name == "T444": #index 1
+
+                    _data_index += 1
+
+                    _event = _data[_data_index]
+                    if _event == "stationary_vehicle":
+                        _icon_style +="""
+        <IconStyle>
+            <scale>2</scale>
+            <Icon>
+                <href>%s.jpg</href>
+            </Icon>
+        </IconStyle>""" % (_event)
+   
+#                        os.system("mpg321 text.mp3")
+                      
+                    elif _event == "nothing":
+                        _icon_style += """
+        <IconStyle>
+            <scale>1.5</scale>
+            <Icon>
+                <href>%s.jpg</href>
+            </Icon>
+        </IconStyle>""" % (_target_name)
+
+                    _dictionary_icon_style[_target_name] = _icon_style
+
+                # Parse local event.
+                elif _data[_data_index] == "remote_event" and _target_name == "T111": #index 1
 
                     _data_index += 1
 
                     _event = _data[_data_index]
                     _icon_style=""
-                    if _event == "collision_risk":
-			
+                    _icon_style +="""
+        <IconStyle>
+            <scale>2</scale>
+            <Icon>
+                <href>%s.jpg</href>
+            </Icon>
+        </IconStyle>""" % (_event)
+
+                    _dictionary_icon_style[_target_name] = _icon_style
+
+                elif _data[_data_index] == "remote_event" and _target_name == "T666": #index 1
+
+                    _data_index += 1
+
+                    _event = _data[_data_index]
+                    if _event == "green_light":
                         _icon_style +="""
         <IconStyle>
             <scale>2</scale>
             <Icon>
-                <href>right_side_%s.png</href>
+                <href>st_rsu_%s.jpg</href>
             </Icon>
-        </IconStyle>""" % (_event)
+        </IconStyle>""" % (_target_name)
 
                     else:
-                        _icon_style += """
+                        _icon_style +="""
         <IconStyle>
             <scale>2</scale>
             <Icon>
-                <href>int_car_%s.jpg</href>
+                <href>%s.jpg</href>
             </Icon>
-        </IconStyle>""" % (_target_name)
+        </IconStyle>""" % (_event)
 
                     _dictionary_icon_style[_target_name] = _icon_style
 
@@ -115,9 +161,9 @@ def read_data_line():
                         # Get icon style previously saved.
                         _icon_style = _dictionary_icon_style.get(_target_name, """
         <IconStyle>
-            <scale>2</scale>
+            <scale>1.5</scale>
             <Icon>
-                <href>int_car_%s.jpg</href>
+                <href>st_car_%s.jpg</href>
             </Icon>
         </IconStyle>""" % (_target_name))
                         _serial_line ="""
@@ -127,9 +173,6 @@ def read_data_line():
     <Style id="icon_style">
     %s
     </Style>
-    <LabelStyle>
-    	<scale>1</scale>
-    </LabelStyle>
     <Placemark>
         <name>VComm %s</name>
         <description>Live GPS data</description>
@@ -146,9 +189,9 @@ def read_data_line():
             # Always save line back into dictionary.
                         _dictionary_icon_style[_target_name] = """
         <IconStyle>
-            <scale>2</scale>
+            <scale>1.5</scale>
             <Icon>
-                <href>int_car_%s.jpg</href>
+                <href>st_car_%s.jpg</href>
             </Icon>
         </IconStyle>""" % (_target_name)
 #            _dictionary[_target_name] = _serial_line
@@ -191,6 +234,11 @@ def main(argv):
         sys.exit()
 
     print_parameters()
+
+    language='en'
+    speech = gTTS(text = __text_to_say, lang = language, slow = False)
+    speech.save("text.mp3")
+
     read_data_line()
     
 

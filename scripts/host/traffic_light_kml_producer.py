@@ -64,6 +64,8 @@ def read_data_line():
             </Icon>
         </IconStyle>""" % (_event)
 
+   
+                   
                     elif _event == "nothing":
                         _icon_style += """
         <IconStyle>

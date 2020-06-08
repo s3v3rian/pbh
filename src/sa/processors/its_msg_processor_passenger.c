@@ -72,6 +72,10 @@ bool its_msg_processor_passenger_process_tx(fix_data_t *psPotiFixData) {
 
         //psCam->cam.camParameters.specialVehicleContainer_option = TRUE;
    // }
+    psCam->header.stationID = 0;
+    psCam->cam.camParameters.basicContainer.stationType = 0;
+    psCam->cam.camParameters.basicContainer.referencePosition.latitude = 0;
+    psCam->cam.camParameters.basicContainer.referencePosition.longitude = 0;
 
     // Send the CAM.
     return its_msg_processor_push_tx_cam_msg(psCam);
@@ -82,8 +86,18 @@ bool its_msg_processor_passenger_process_rx_cam(CAM *psCam, SStationFullFusionDa
     if(g_sLocalStationInfo.m_sVehicleInfo.m_dCollisionWarningThresholdInMeters > psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters
             && psRemoteFusionData->m_n32StationType != GN_ITS_STATION_ROAD_SIDE_UNIT) {
 
-        // Tell host shit is going down!
-        g_fp_write_to_boundary_event(CauseCodeType_collisionRisk);
+        if(StationaryVehicleSubCauseCode_vehicleBreakdown == psCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.incidentIndication.subCauseCode) {
+
+            if(g_sLocalStationInfo.m_sVehicleInfo.m_dCollisionWarningThresholdInMeters > psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters) {
+
+                g_fp_write_to_boundary_remote_event(CauseCodeType_stationaryVehicle, psRemoteFusionData->m_un32StationId);
+
+            } else {
+
+                // Tell host shit is going down!
+                g_fp_write_to_boundary_event(CauseCodeType_collisionRisk);
+            }
+        }
         /*
             DENM *psDenm = NULL;
             if(PROCEDURE_SUCCESSFULL != its_msg_processor_allocate_tx_denm_msg(&psDenm)) {
@@ -113,6 +127,7 @@ bool its_msg_processor_passenger_process_rx_cam(CAM *psCam, SStationFullFusionDa
 
             } else {
 
+                // If we recceived from an RSU and it is human problem then it is really a green liht.
                 g_fp_write_to_boundary_remote_event(CauseCodeType_humanProblem, psRemoteFusionData->m_un32StationId);
             }
         }

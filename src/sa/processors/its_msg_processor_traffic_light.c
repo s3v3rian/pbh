@@ -74,31 +74,37 @@ bool its_msg_processor_traffic_light_process_tx(fix_data_t *psPotiFixData) {
     }
 
     // Set CAM container options.
+    psCam->header.stationID = 0;
+    psCam->cam.camParameters.basicContainer.stationType = 0;
+    psCam->cam.camParameters.basicContainer.referencePosition.latitude = 0;
+    psCam->cam.camParameters.basicContainer.referencePosition.longitude = 0;
     psCam->cam.camParameters.highFrequencyContainer.choice = HighFrequencyContainer_rsuContainerHighFrequency;
     psCam->cam.camParameters.highFrequencyContainer.u.rsuContainerHighFrequency.protectedCommunicationZonesRSU_option = FALSE;
     psCam->cam.camParameters.lowFrequencyContainer_option = FALSE;
     psCam->cam.camParameters.specialVehicleContainer_option = FALSE;
 
     // Prepare general status message.
+    /*
     DENM *psDenm = NULL;
     if(false == its_msg_processor_allocate_tx_denm_msg(&psDenm)) {
 
         printf("Failed to allocate from tx ring buffer, denm status update failed\n");
         return PROCEDURE_BUFFER_ERROR;
     }
+    */
 
-    psDenm->denm.situation_option = TRUE;
+    //psDenm->denm.situation_option = TRUE;
 
-    psDenm->denm.situation.informationQuality = 0;
-    psDenm->denm.situation.linkedCause_option = FALSE;
-    psDenm->denm.situation.eventHistory_option = FALSE;
+    //psDenm->denm.situation.informationQuality = 0;
+    //psDenm->denm.situation.linkedCause_option = FALSE;
+    //psDenm->denm.situation.eventHistory_option = FALSE;
 
     // If currently red light is on then send traffic condition message.
     if(true == g_sLocalStationInfo.m_sRsuInfo.m_usSpecifics.m_sTrafficLightInfo.m_bIsRedLight) {
 
         // Set traffic light event data.
-        psDenm->denm.situation.eventType.causeCode = CauseCodeType_trafficCondition;
-        psDenm->denm.situation.eventType.subCauseCode = TrafficConditionSubCauseCode_trafficRedLight;
+        //psDenm->denm.situation.eventType.causeCode = CauseCodeType_trafficCondition;
+        //psDenm->denm.situation.eventType.subCauseCode = TrafficConditionSubCauseCode_trafficRedLight;
         psCam->cam.camParameters.specialVehicleContainer_option = TRUE;
         psCam->cam.camParameters.specialVehicleContainer.choice = SpecialVehicleContainer_emergencyContainer;
         psCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.incidentIndication_option = TRUE;
@@ -108,15 +114,14 @@ bool its_msg_processor_traffic_light_process_tx(fix_data_t *psPotiFixData) {
     } else {
 
         // Set traffic light event data.
-        psDenm->denm.situation.eventType.causeCode = CauseCodeType_trafficCondition;
-        psDenm->denm.situation.eventType.subCauseCode = TrafficConditionSubCauseCode_trafficGreenLight;
+        //psDenm->denm.situation.eventType.causeCode = CauseCodeType_trafficCondition;
+        //psDenm->denm.situation.eventType.subCauseCode = TrafficConditionSubCauseCode_trafficGreenLight;
         psCam->cam.camParameters.specialVehicleContainer_option = TRUE;
         psCam->cam.camParameters.specialVehicleContainer.choice = SpecialVehicleContainer_emergencyContainer;
         psCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.incidentIndication_option = TRUE;
         psCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.incidentIndication.causeCode = CauseCodeType_trafficCondition;
         psCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.incidentIndication.subCauseCode = TrafficConditionSubCauseCode_trafficGreenLight;
     }
-
 
     // Always send a CAM.
     its_msg_processor_push_tx_cam_msg(psCam);

@@ -17,6 +17,7 @@
 #include "sa/processors/its_msg_processor_passenger.h"
 #include "sa/processors/its_msg_processor_commercial.h"
 #include "sa/processors/its_msg_processor_traffic_light.h"
+#include "sa/processors/its_msg_processor_valeran_rsu.h"
 #include "sa/sa_mngr.h"
 
 #include "sim/processors/sim_processor_passenger.h"
@@ -206,15 +207,13 @@ int32_t main(int argc, char **argv) {
 
             g_fp_sim_processor_init = sim_processor_commercial_init;
             g_fp_sim_processor_do_fusion = sim_processor_commercial_do_fusion;
-            break;
+        break;
 
         case GN_ITS_STATION_ROAD_SIDE_UNIT:
+        default:
 
             g_fp_sim_processor_init = sim_processor_traffic_light_init;
             g_fp_sim_processor_do_fusion = sim_processor_traffic_light_do_fusion;
-            break;
-
-        default:
             break;
     }
 
@@ -311,6 +310,14 @@ int32_t main(int argc, char **argv) {
             g_fp_its_processor_process_tx = its_msg_processor_traffic_light_process_tx;
             g_fp_its_processor_proccess_cam = its_msg_processor_traffic_light_process_rx_cam;
             g_fp_its_processor_proccess_denm = its_msg_processor_traffic_light_process_rx_denm;
+            break;
+
+        case 16:
+
+            g_fp_its_processor_init = its_msg_processor_valeran_rsu_init;
+            g_fp_its_processor_process_tx = its_msg_processor_valeran_rsu_process_tx;
+            g_fp_its_processor_proccess_cam = its_msg_processor_valeran_rsu_process_rx_cam;
+            g_fp_its_processor_proccess_denm = its_msg_processor_valeran_rsu_process_rx_denm;
             break;
 
         default:
