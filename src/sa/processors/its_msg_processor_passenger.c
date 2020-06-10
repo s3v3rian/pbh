@@ -7,6 +7,8 @@
 #include "common/containers/ring_buffer.h"
 #include "common/containers/array_queue.h"
 
+#include "common/utils/geo_utils.h"
+
 #include "sa/processors/its_msg_processor.h"
 
 /*
@@ -88,15 +90,15 @@ bool its_msg_processor_passenger_process_rx_cam(CAM *psCam, SStationFullFusionDa
 
         if(StationaryVehicleSubCauseCode_vehicleBreakdown == psCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.incidentIndication.subCauseCode) {
 
-            if(g_sLocalStationInfo.m_sVehicleInfo.m_dCollisionWarningThresholdInMeters > psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters) {
+            if(90.0 < geodesic_calculate_bearing(psRemoteFusionData->m_sDistanceData.m_dLatitude, psRemoteFusionData->m_sDistanceData.m_dLongitude, psLocalFusionData->m_sDistanceData.m_dLatitude, psLocalFusionData->m_sDistanceData.m_dLongitude)) {
 
-                g_fp_write_to_boundary_remote_event(CauseCodeType_stationaryVehicle, psRemoteFusionData->m_un32StationId);
-
-            } else {
-
-                // Tell host shit is going down!
-                g_fp_write_to_boundary_event(CauseCodeType_collisionRisk);
+                g_fp_write_to_boundary_event(CauseCodeType_stationaryVehicle);
             }
+
+        } else {
+
+            // Tell host shit is going down!
+            g_fp_write_to_boundary_event(CauseCodeType_collisionRisk);
         }
         /*
             DENM *psDenm = NULL;

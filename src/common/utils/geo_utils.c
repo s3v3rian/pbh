@@ -40,4 +40,18 @@ double geodesic_calculate_bearing(double dLatitudeA, double dLongitudeA, double 
     }
 
     return dBearing;
+
+    /*
+     * Top code - Computes bearing
+     * If you want to use bottom code, you need to put top code in comment.
+     */
+
+    /*
+    double y = sin(differenceLon) * cos(dRemoteLat);
+    double x = cos(dLocalLat) * sin(dRemoteLat) -
+    sin(dLocalLat) * cos(dRemoteLat) * cos(differenceLon);
+    double T = atan2(y, x);
+    double bearing = (T*180/pi + 360);
+    return bearing;
+    */
 }

@@ -1,18 +1,11 @@
 #!/usr/bin/env python
 
-
 import socket
 import sys
 import getopt
-import playsound
 
 from gtts import gTTS
-
-tts = gTTS(text="road side warning", lang='en')
-#tts.save('road_side_warning.mp3')
-
-#playsound.playsound('/home/s3v3rian/V2X/pbh/scripts/host/road_side_warning.mp3', True)
-
+import os
 
 # --------------------------------------------------
 # ---------------- Declare variables ---------------
@@ -20,7 +13,7 @@ tts = gTTS(text="road side warning", lang='en')
 
 __udp_interface="127.0.0.1"
 __tgt_data_directory="/home/dumbass"
-#__text_to_say="roadside warning"
+__text_to_say="roadside warning"
 
 # --------------------------------------------------
 # ---------------- Declare functions ---------------
@@ -68,6 +61,7 @@ def read_data_line():
                     _data_index += 1
 
                     _event = _data[_data_index]
+                    _icon_style=""
                     _icon_style += """
         <IconStyle>
             <scale>1.5</scale>
@@ -80,14 +74,13 @@ def read_data_line():
 
                 # Parse local event.
                 elif _data[_data_index] == "local_event" and _target_name == "T111": #index 1
-		    #playsound.playsound('/home/s3v3rian/V2X/pbh/scripts/host/road_side_warning.mp3', True)
+
                     _data_index += 1
 
                     _event = _data[_data_index]
                     _icon_style=""
-#                    if _event == "stationary_vehicle":
-			
-                    _icon_style +="""
+                    if _event == "stationary_vehicle":
+                        _icon_style +="""
         <IconStyle>
             <scale>2</scale>
             <Icon>
@@ -95,14 +88,14 @@ def read_data_line():
             </Icon>
         </IconStyle>""" % (_event)
    
- #                   else:
-  #                      _icon_style +="""
-   #     <IconStyle>
-    #        <scale>2</scale>
-     #       <Icon>
-      #          <href>%s.jpg</href>
-       #     </Icon>
-       # </IconStyle>""" % (_event)
+                    else:
+                        _icon_style +="""
+        <IconStyle>
+            <scale>2</scale>
+            <Icon>
+                <href>%s.jpg</href>
+            </Icon>
+        </IconStyle>""" % (_event)
 
                     _dictionary_icon_style[_target_name] = _icon_style
 
@@ -244,11 +237,12 @@ def main(argv):
 
     print_parameters()
 
+    language='en'
+    speech = gTTS(text = __text_to_say, lang = language, slow = False)
+    speech.save("text.mp3")
+
     read_data_line()
     
 
 if __name__=="__main__":
     main(sys.argv[1:])
-
-
-
