@@ -16,12 +16,14 @@
 
 #include "sa/processors/its_msg_processor_passenger.h"
 #include "sa/processors/its_msg_processor_commercial.h"
+#include "sa/processors/its_msg_processor_bus.h"
 #include "sa/processors/its_msg_processor_traffic_light.h"
 #include "sa/processors/its_msg_processor_valeran_rsu.h"
 #include "sa/sa_mngr.h"
 
 #include "sim/processors/sim_processor_passenger.h"
 #include "sim/processors/sim_processor_commercial.h"
+#include "sim/processors/sim_processor_bus.h"
 #include "sim/processors/sim_processor_traffic_light.h"
 
 #include "sim/sim_mngr.h"
@@ -197,6 +199,12 @@ int32_t main(int argc, char **argv) {
     // Set station type callbacks.
     switch(g_sLocalStationInfo.m_n32StationType) {
 
+        case GN_ITS_STATION_BUS:
+
+            g_fp_sim_processor_init = sim_processor_bus_init;
+            g_fp_sim_processor_do_fusion = sim_processor_bus_do_fusion;
+            break;
+
         case GN_ITS_STATION_PASSENGER_CAR:
 
             g_fp_sim_processor_init = sim_processor_passenger_init;
@@ -287,6 +295,14 @@ int32_t main(int argc, char **argv) {
     printf("Initializing SA manager...\n");
 
     switch(g_sLocalStationInfo.m_n32StationType) {
+
+        case GN_ITS_STATION_BUS:
+
+            g_fp_its_processor_init = its_msg_processor_bus_init;
+            g_fp_its_processor_process_tx = its_msg_processor_bus_process_tx;
+            g_fp_its_processor_proccess_cam = its_msg_processor_bus_process_rx_cam;
+            g_fp_its_processor_proccess_denm = its_msg_processor_bus_process_rx_denm;
+            break;
 
         case GN_ITS_STATION_PASSENGER_CAR:
 

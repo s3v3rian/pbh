@@ -51,10 +51,12 @@ SOURCES = startup.c \
     services/gps/nmea_infra. \
     sa/processors/its_msg_processor.c \
     sa/processors/its_msg_processor_commercial.c \
+    sa/processors/its_msg_processor_bus.c \
     sa/processors/its_msg_processor_passenger.c \
     sa/algs/alg_haversine.c \
     sa/sa_mngr.c \
     sim/processors/sim_processor_commercial.c \
+    sim/processors/sim_processor_bus.c \
     sim/sim_mngr.c \
     sim/gps_sim.c \
 

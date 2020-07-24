@@ -62,7 +62,7 @@ def read_data_line():
         <IconStyle>
             <scale>2</scale>
             <Icon>
-                <href>left_side_%s.png</href>
+                <href>right_side_%s.png</href>
             </Icon>
         </IconStyle>""" % (_event)
 

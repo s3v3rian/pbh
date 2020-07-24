@@ -139,7 +139,14 @@ bool its_msg_processor_traffic_light_process_rx_cam(CAM *psCam, SStationFullFusi
 
     if(true == g_sLocalStationInfo.m_sRsuInfo.m_usSpecifics.m_sTrafficLightInfo.m_bIsRedLight) {
 
-        g_fp_write_to_boundary_event(CauseCodeType_trafficCondition);
+        if(GN_ITS_STATION_BUS == psRemoteFusionData->m_n32StationType) {
+
+              g_sLocalStationInfo.m_sRsuInfo.m_usSpecifics.m_sTrafficLightInfo.m_bIsRedLight = false;
+
+        } else {
+
+            g_fp_write_to_boundary_event(CauseCodeType_trafficCondition);
+        }
 
     } else {
 

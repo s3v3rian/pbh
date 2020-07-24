@@ -60,9 +60,9 @@ def read_data_line():
 
                         _icon_style +="""
         <IconStyle>
-            <scale>2</scale>
+            <scale>3</scale>
             <Icon>
-                <href>left_side_%s.png</href>
+                <href>right_side_%s.jpg</href>
             </Icon>
         </IconStyle>""" % (_event)
 
