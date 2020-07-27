@@ -143,6 +143,10 @@ bool its_msg_processor_traffic_light_process_rx_cam(CAM *psCam, SStationFullFusi
 
               g_sLocalStationInfo.m_sRsuInfo.m_usSpecifics.m_sTrafficLightInfo.m_bIsRedLight = false;
 
+        } else if(g_sLocalStationInfo.m_sRsuInfo.m_usSpecifics.m_sTrafficLightInfo.m_n32SignalViolationThresholdInMeters > psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters) {
+
+            g_fp_write_to_boundary_event(CauseCodeType_signalViolation);
+
         } else {
 
             g_fp_write_to_boundary_event(CauseCodeType_trafficCondition);
@@ -152,26 +156,6 @@ bool its_msg_processor_traffic_light_process_rx_cam(CAM *psCam, SStationFullFusi
 
         g_fp_write_to_boundary_event(CauseCodeType_humanProblem);
     }
-    /*
-    // If currently red light is on and current distance to target is less then X meters then send signal violation.
-    if(true == g_sLocalStationInfo.m_sRsuInfo.m_usSpecifics.m_sTrafficLightInfo.m_bIsRedLight) {
-
-        if(g_sLocalStationInfo.m_sRsuInfo.m_usSpecifics.m_sTrafficLightInfo.m_n32SignalViolationThresholdInMeters > psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters) {
-
-            DENM *psDenm = NULL;
-            if(PROCEDURE_SUCCESSFULL != its_msg_processor_allocate_tx_denm_msg(&psDenm)) {
-
-                printf("Failed to allocate from ring buffer, denm status update failed\n");
-                return PROCEDURE_BUFFER_ERROR;
-            }
-
-            psDenm->denm.situation_option = TRUE;
-            psDenm->denm.situation.eventType.causeCode = CauseCodeType_signalViolation;
-
-            //its_msg_processor_push_tx_denm_msg(psDenm);
-        }
-    }
-    */
 
     return true;
 }

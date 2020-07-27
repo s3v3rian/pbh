@@ -58,14 +58,12 @@ def read_data_line():
                     if _event == "signal_violation":
                         _icon_style +="""
         <IconStyle>
-            <scale>2</scale>
+            <scale>3</scale>
             <Icon>
                 <href>%s.jpg</href>
             </Icon>
         </IconStyle>""" % (_event)
-
    
-                   
                     elif _event == "nothing":
                         _icon_style += """
         <IconStyle>
@@ -77,16 +75,39 @@ def read_data_line():
 
                     _dictionary_icon_style[_target_name] = _icon_style
 
-                # Parse local event.
-                elif _data[_data_index] == "remote_event" and _target_name == "T111": #index 1
+                elif _data[_data_index] == "local_event" and _target_name == "T111": #index 1
 
                     _data_index += 1
 
                     _event = _data[_data_index]
-                    _icon_style=""
-                    _icon_style +="""
+                    if _event == "signal_violation":
+                        _icon_style +="""
         <IconStyle>
             <scale>3</scale>
+            <Icon>
+                <href>triangle.jpg</href>
+            </Icon>
+        </IconStyle>"""
+
+                    else:
+                        _icon_style += """
+        <IconStyle>
+            <scale>1.5</scale>
+            <Icon>
+                <href>%s.jpg</href>
+            </Icon>
+        </IconStyle>""" % (_event)
+
+                    _dictionary_icon_style[_target_name] = _icon_style
+
+                elif _data[_data_index] == "remote_event":
+
+                    _data_index += 1
+
+                    _event = _data[_data_index]
+                    _icon_style += """
+        <IconStyle>
+            <scale>1.5</scale>
             <Icon>
                 <href>%s.jpg</href>
             </Icon>
@@ -178,7 +199,7 @@ def read_data_line():
             # Always save line back into dictionary.
                         _dictionary_icon_style[_target_name] = """
         <IconStyle>
-            <scale>1.5</scale>
+            <scale>2</scale>
             <Icon>
                 <href>tl_car_%s.jpg</href>
             </Icon>

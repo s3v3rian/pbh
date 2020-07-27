@@ -101,7 +101,7 @@ int32_t sim_processor_ini_loader(void* pchUser, const char* pchSection, const ch
 
         if(0 == strcmp("traffic_light_rsu_signal_violation_distance_in_meters", pchName)) {
 
-            g_sLocalStationInfo.m_sRsuInfo.m_usSpecifics.m_sTrafficLightInfo.m_n32SignalViolationThresholdInMeters - strtol(pchValue, NULL, 10);
+            g_sLocalStationInfo.m_sRsuInfo.m_usSpecifics.m_sTrafficLightInfo.m_n32SignalViolationThresholdInMeters = strtol(pchValue, NULL, 10);
         }
     }
 

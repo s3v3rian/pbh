@@ -85,10 +85,19 @@ bool its_msg_processor_bus_process_rx_cam(CAM *psCam, SStationFullFusionData *ps
 
         if(StationaryVehicleSubCauseCode_vehicleBreakdown == psCam->cam.camParameters.specialVehicleContainer.u.emergencyContainer.incidentIndication.subCauseCode) {
 
-            if(90.0 < geodesic_calculate_bearing(psRemoteFusionData->m_sDistanceData.m_dLatitude, psRemoteFusionData->m_sDistanceData.m_dLongitude, psLocalFusionData->m_sDistanceData.m_dLatitude, psLocalFusionData->m_sDistanceData.m_dLongitude)) {
+            if(0.0 <= psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees
+                    && 90.0 >= psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees) {
 
                 g_fp_write_to_boundary_event(CauseCodeType_stationaryVehicle);
             }
+            //} else if(90.0 < psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees
+//                      && 180.0 >= psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees) {
+
+            // TODO Previous code.
+            //if(90.0 < geodesic_calculate_bearing(psRemoteFusionData->m_sDistanceData.m_dLatitude, psRemoteFusionData->m_sDistanceData.m_dLongitude, psLocalFusionData->m_sDistanceData.m_dLatitude, psLocalFusionData->m_sDistanceData.m_dLongitude)) {
+
+                //g_fp_write_to_boundary_event(CauseCodeType_stationaryVehicle);
+            //}
 
         } else {
 
