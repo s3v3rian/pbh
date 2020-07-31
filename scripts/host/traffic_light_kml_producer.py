@@ -107,7 +107,7 @@ def read_data_line():
                     _event = _data[_data_index]
                     _icon_style += """
         <IconStyle>
-            <scale>1.5</scale>
+            <scale>3</scale>
             <Icon>
                 <href>%s.jpg</href>
             </Icon>

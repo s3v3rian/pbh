@@ -139,13 +139,25 @@ bool its_msg_processor_traffic_light_process_rx_cam(CAM *psCam, SStationFullFusi
 
     if(true == g_sLocalStationInfo.m_sRsuInfo.m_usSpecifics.m_sTrafficLightInfo.m_bIsRedLight) {
 
-        if(GN_ITS_STATION_BUS == psRemoteFusionData->m_n32StationType) {
+        if(g_sLocalStationInfo.m_sRsuInfo.m_usSpecifics.m_sTrafficLightInfo.m_n32SignalViolationThresholdInMeters > psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters) {
 
-              g_sLocalStationInfo.m_sRsuInfo.m_usSpecifics.m_sTrafficLightInfo.m_bIsRedLight = false;
+            if(GN_ITS_STATION_BUS == psRemoteFusionData->m_n32StationType
+                    && 90.0 < psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees
+                    && 180.0 > psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees) {
 
-        } else if(g_sLocalStationInfo.m_sRsuInfo.m_usSpecifics.m_sTrafficLightInfo.m_n32SignalViolationThresholdInMeters > psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters) {
+                g_sLocalStationInfo.m_sRsuInfo.m_usSpecifics.m_sTrafficLightInfo.m_bIsRedLight = false;
+                g_fp_write_to_boundary_event(CauseCodeType_humanProblem);
 
-            g_fp_write_to_boundary_event(CauseCodeType_signalViolation);
+            } else if(GN_ITS_STATION_BUS != psRemoteFusionData->m_n32StationType
+                      && 0.0 <= psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees
+                      && 180.0 >= psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees) {
+
+                g_fp_write_to_boundary_event(CauseCodeType_signalViolation);
+
+            } else {
+
+                g_fp_write_to_boundary_event(CauseCodeType_trafficCondition);
+            }
 
         } else {
 

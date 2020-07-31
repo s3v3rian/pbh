@@ -129,14 +129,16 @@ bool its_msg_processor_passenger_process_rx_cam(CAM *psCam, SStationFullFusionDa
 
                 g_fp_write_to_boundary_remote_event(CauseCodeType_trafficCondition, psRemoteFusionData->m_un32StationId);
 
-                if(g_sLocalStationInfo.m_sVehicleInfo.m_dCollisionWarningThresholdInMeters > psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters) {
+                if(g_sLocalStationInfo.m_sVehicleInfo.m_dCollisionWarningThresholdInMeters > psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters
+                        && 180.0 <= psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees
+                        && 360.0 >= psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees) {
 
                     g_fp_write_to_boundary_event(CauseCodeType_signalViolation);
                 }
 
             } else {
 
-                // If we recceived from an RSU and it is human problem then it is really a green liht.
+                // If we recceived from an RSU and it is human problem then it is really a green light.
                 g_fp_write_to_boundary_remote_event(CauseCodeType_humanProblem, psRemoteFusionData->m_un32StationId);
             }
         }
