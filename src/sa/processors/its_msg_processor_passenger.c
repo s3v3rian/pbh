@@ -43,6 +43,8 @@
 
 static bool m_bIsDoingStatusUpdate;
 static bool m_bIsAboutToCrossTL;
+static bool m_bIsH2CReported;
+static bool m_bIsH2OReported;
 
 /*
  *******************************************************************************
@@ -56,6 +58,8 @@ bool its_msg_processor_passenger_init() {
 
     m_bIsDoingStatusUpdate = false;
     m_bIsAboutToCrossTL = false;
+
+    g_fp_h2_write_to_boundary_init("/dev/ttyAMA2");
 
     return its_msg_processor_init();
 }
@@ -134,6 +138,22 @@ bool its_msg_processor_passenger_process_rx_cam(CAM *psCam, SStationFullFusionDa
                         && 360.0 >= psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees) {
 
                     g_fp_write_to_boundary_event(CauseCodeType_signalViolation);
+
+                    if(false == m_bIsH2OReported) {
+
+                        g_fp_h2_write_to_boundary_sentence("O", 1);
+                        m_bIsH2CReported = false;
+                        m_bIsH2OReported = true;
+                    }
+
+                } else {
+
+                    if(false == m_bIsH2CReported) {
+
+                        g_fp_h2_write_to_boundary_sentence("C", 1);
+                        m_bIsH2CReported = true;
+                        m_bIsH2OReported = false;
+                    }
                 }
 
             } else {

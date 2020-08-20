@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import serial
 import socket
 import sys
 import getopt
@@ -10,6 +11,7 @@ import subprocess
 # --------------------------------------------------
 
 __udp_interface="127.0.0.1"
+__serial_interface="/dev/ttyUSB0"
 __tgt_data_directory="/home/dumbass"
 
 # --------------------------------------------------
@@ -89,6 +91,10 @@ def read_data_line():
                 <href>triangle.jpg</href>
             </Icon>
         </IconStyle>"""
+
+                        _serial_accessor = serial.Serial(__serial_interface, baudrate = 115200)
+                        _serial_accessor.write("O")
+                        _serial_accessor.close()
             
 #                        subprocess.call(["/home/s3v3rian/V2X/pbh/scripts/host/lightON.ps1"])
 
@@ -101,6 +107,10 @@ def read_data_line():
             </Icon>
         </IconStyle>""" % (_event)
 
+                        _serial_accessor = serial.Serial(__serial_interface, baudrate = 115200)
+                        _serial_accessor.write("C")
+                        _serial_accessor.close()
+            
 #                        subprocess.call(["/home/s3v3rian/V2X/pbh/scripts/host/lightOFF.ps1"])
 
                     _dictionary_icon_style[_target_name] = _icon_style

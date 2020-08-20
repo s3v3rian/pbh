@@ -47,6 +47,15 @@ host_boundary_write_poti g_fp_write_to_boundary_poti;
 host_boundary_write_cam g_fp_write_to_boundary_cam;
 host_boundary_write_denm g_fp_write_to_boundary_denm;
 
+// Host 2 boundary callbacks.
+host_boundary_write_init g_fp_h2_write_to_boundary_init;
+host_boundary_write_sentence g_fp_h2_write_to_boundary_sentence;
+host_boundary_write_event g_fp_h2_write_to_boundary_event;
+host_boundary_write_remote_event g_fp_h2_write_to_boundary_remote_event;
+host_boundary_write_poti g_fp_h2_write_to_boundary_poti;
+host_boundary_write_cam g_fp_h2_write_to_boundary_cam;
+host_boundary_write_denm g_fp_h2_write_to_boundary_denm;
+
 /*
  *******************************************************************************
  * Public functions

@@ -304,7 +304,15 @@ int32_t main(int argc, char **argv) {
             g_fp_its_processor_proccess_denm = its_msg_processor_bus_process_rx_denm;
             break;
 
-        case GN_ITS_STATION_PASSENGER_CAR:
+        case GN_ITS_STATION_PASSENGER_CAR: /* SCOOTER */
+
+            printf("Set h2 boundary writer to serial interface\n"); // TODO Move this somewhere else.
+            g_fp_h2_write_to_boundary_init = serial_boundary_init;
+            g_fp_h2_write_to_boundary_sentence = serial_boundary_write_sentence;
+            g_fp_h2_write_to_boundary_event = serial_boundary_write_event;
+            g_fp_h2_write_to_boundary_poti = serial_boundary_write_poti;
+            g_fp_h2_write_to_boundary_cam = serial_boundary_write_cam;
+            g_fp_h2_write_to_boundary_denm = serial_boundary_write_denm;
 
             g_fp_its_processor_init = its_msg_processor_passenger_init;
             g_fp_its_processor_process_tx = its_msg_processor_passenger_process_tx;
