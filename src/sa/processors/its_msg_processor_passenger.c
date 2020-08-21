@@ -158,6 +158,13 @@ bool its_msg_processor_passenger_process_rx_cam(CAM *psCam, SStationFullFusionDa
 
             } else {
 
+                if(false == m_bIsH2CReported) {
+
+                    g_fp_h2_write_to_boundary_sentence("C", 1);
+                    m_bIsH2CReported = true;
+                    m_bIsH2OReported = false;
+                }
+
                 // If we recceived from an RSU and it is human problem then it is really a green light.
                 g_fp_write_to_boundary_remote_event(CauseCodeType_humanProblem, psRemoteFusionData->m_un32StationId);
             }

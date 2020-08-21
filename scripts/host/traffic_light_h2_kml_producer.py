@@ -11,7 +11,6 @@ import subprocess
 # --------------------------------------------------
 
 __udp_interface="127.0.0.1"
-__serial_interface="/dev/ttyUSB0"
 __tgt_data_directory="/home/dumbass"
 
 # --------------------------------------------------
@@ -28,6 +27,10 @@ def read_data_line():
     _did_update_icon_style = 0
     _did_update_dep = 2
 
+    try:
+        _serial_accessor = serial.Serial('/dev/ttyUSB0', 9600)
+    except:
+        print("FAILED TO OPEN USB0")
     _sock_fd = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     _sock_fd.bind((__udp_interface, 12355))
 
@@ -92,10 +95,7 @@ def read_data_line():
             </Icon>
         </IconStyle>"""
 
-                        _serial_accessor = serial.Serial(__serial_interface, baudrate = 115200)
                         _serial_accessor.write("O")
-                        _serial_accessor.close()
-            
 #                        subprocess.call(["/home/s3v3rian/V2X/pbh/scripts/host/lightON.ps1"])
 
                     else:
@@ -107,10 +107,7 @@ def read_data_line():
             </Icon>
         </IconStyle>""" % (_event)
 
-                        _serial_accessor = serial.Serial(__serial_interface, baudrate = 115200)
                         _serial_accessor.write("C")
-                        _serial_accessor.close()
-            
 #                        subprocess.call(["/home/s3v3rian/V2X/pbh/scripts/host/lightOFF.ps1"])
 
                     _dictionary_icon_style[_target_name] = _icon_style
@@ -221,6 +218,7 @@ def read_data_line():
         </IconStyle>""" % (_target_name)
 #            _dictionary[_target_name] = _serial_line
 
+    _serial_accessor.close()
 
 
 def print_parameters():
@@ -260,7 +258,6 @@ def main(argv):
 
     print_parameters()
     read_data_line()
-    
 
 if __name__=="__main__":
     main(sys.argv[1:])

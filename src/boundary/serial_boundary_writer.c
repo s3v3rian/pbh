@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h> // Error integer and strerror() function
+#include <termios.h> // Contains POSIX terminal control definitions
 
 #include "common/globals.h"
 #include "common/utils/geo_utils.h"
@@ -56,7 +58,9 @@ int32_t serial_boundary_init(char *pchDevice) {
 
 int32_t serial_boundary_write_sentence(char *pchSentence, int32_t n32SentenceSize) {
 
-    int32_t n32Fd = open(m_achDevice,/*"/dev/ttyAMA2",*/ O_RDWR);
+    int8_t n32Result = 0;
+
+    int n32Fd = open(m_achDevice,/*"/dev/ttyAMA2",*/ O_RDWR);
 
     if(0 > n32Fd) {
 
@@ -64,14 +68,21 @@ int32_t serial_boundary_write_sentence(char *pchSentence, int32_t n32SentenceSiz
         return -1;
     }
 
-    int8_t n32Result = 0;
+    struct termios tty;
+
+    // Read in existing settings, and handle any error
+    tcgetattr(n32Fd, &tty);
+
+    // Set in/out baud rate to be 9600
+    cfsetispeed(&tty, B9600);
+    cfsetospeed(&tty, B9600);
+
+    tcsetattr(n32Fd, TCSANOW, &tty);
 
     if(n32SentenceSize != write(n32Fd, pchSentence, n32SentenceSize)) {
 
         n32Result = -2;
     }
-
-    close(n32Fd);
 
     return n32Result;
 }
