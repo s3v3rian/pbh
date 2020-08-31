@@ -149,12 +149,17 @@ bool its_msg_processor_traffic_light_process_rx_cam(CAM *psCam, SStationFullFusi
                 g_fp_write_to_boundary_event(CauseCodeType_humanProblem);
 
             } else if(GN_ITS_STATION_BUS != psRemoteFusionData->m_n32StationType
-                      && 0.0 <= psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees
-                      && 180.0 >= psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees) {
+                      && 100.0 >= psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees) {
 
                 g_fp_write_to_boundary_event(CauseCodeType_signalViolation);
 
             } else {
+
+                if(GN_ITS_STATION_BUS != psRemoteFusionData->m_n32StationType
+                      && 267.0 <= psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees) {
+
+                    g_fp_write_to_boundary_remote_event(CauseCodeType_dangerousSituation, psRemoteFusionData->m_un32StationId);
+                }
 
                 g_fp_write_to_boundary_event(CauseCodeType_trafficCondition);
             }

@@ -108,6 +108,14 @@ int32_t ethernet_boundary_write_event(int32_t n32EventId) {
 
     switch(n32EventId) {
 
+        case CauseCodeType_dangerousSituation:
+
+            n32SentenceSize += sprintf(
+                    achSentence,
+                    "T%d,local_event,red_light_crossing,\n",
+                    g_sLocalStationInfo.m_un32StationId);
+            break;
+
         case CauseCodeType_signalViolation:
 
             n32SentenceSize += sprintf(
@@ -165,6 +173,14 @@ int32_t ethernet_boundary_write_remote_event(int32_t n32EventId, uint32_t un32St
     char achSentence[MAX_BOUNDARY_SENTENCE_SIZE_IN_BYTES];
 
     switch(n32EventId) {
+
+        case CauseCodeType_dangerousSituation:
+
+            n32SentenceSize += sprintf(
+                achSentence,
+                "T%d,remote_event,red_light_crossing,\n",
+                un32StationId);
+            break;
 
         case CauseCodeType_signalViolation:
 

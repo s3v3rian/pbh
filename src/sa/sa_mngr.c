@@ -318,11 +318,13 @@ static void sa_mngr_handle_cam(CAM *psCam) {
     // Compute bearing.
     psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees = geodesic_calculate_bearing(psRemoteFusionData->m_sDistanceData.m_dLatitude, psRemoteFusionData->m_sDistanceData.m_dLongitude, psLocalFusionData->m_sDistanceData.m_dLatitude, psLocalFusionData->m_sDistanceData.m_dLongitude);
 
-    printf("Distance %f, Bearing %f - station %d to station %d\n",
+    char achSentence[512];
+    int32_t n32SentenceSize = sprintf(achSentence, "Distance %f, Bearing %f - station %d to station %d\n",
            psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters,
            psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees,
            g_sLocalStationInfo.m_un32StationId,
            psCam->header.stationID);
+    g_fp_write_to_boundary_sentence(achSentence, n32SentenceSize);
     //printf("Bearing %f - station %d to station %d\n", psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees, g_sLocalStationInfo.m_un32StationId, psCam->header.stationID);
 
     // --------------------------------------------------

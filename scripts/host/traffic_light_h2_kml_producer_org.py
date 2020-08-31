@@ -86,13 +86,6 @@ def read_data_line():
                     _data_index += 1
 
                     _event = _data[_data_index]
-                    
-                    if _event == "green_light":   
-		        _serial_accessor.write("C0")
-
-                    elif _event == "red_light":
-                        _serial_accessor.write("C1")
-
                     if _event == "signal_violation":
                         _icon_style +="""
         <IconStyle>
@@ -101,13 +94,10 @@ def read_data_line():
                 <href>triangle.jpg</href>
             </Icon>
         </IconStyle>"""
-		    
+
+                        _serial_accessor.write("C1")
 #                        subprocess.call(["/home/s3v3rian/V2X/pbh/scripts/host/lightON.ps1"])
 
-                    elif _event == "red_light_crossing":
-
-                        print("RECEIVED RED LIGHT CROSSING EVENT")
-        
                     else:
                         _icon_style += """
         <IconStyle>
@@ -116,7 +106,8 @@ def read_data_line():
                 <href>%s.jpg</href>
             </Icon>
         </IconStyle>""" % (_event)
-            
+
+                        _serial_accessor.write("C0")
 #                        subprocess.call(["/home/s3v3rian/V2X/pbh/scripts/host/lightOFF.ps1"])
 
                     _dictionary_icon_style[_target_name] = _icon_style
@@ -126,9 +117,7 @@ def read_data_line():
                     _data_index += 1
 
                     _event = _data[_data_index]
-
-                    if _event != "red_light_crossing":
-                        _icon_style += """
+                    _icon_style += """
         <IconStyle>
             <scale>3</scale>
             <Icon>
