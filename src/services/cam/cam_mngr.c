@@ -314,12 +314,12 @@ static int32_t cam_mngr_msg_encode(uint8_t **p2un8CamPayload, fix_data_t *psPoti
 
     if(GN_ITS_STATION_ROAD_SIDE_UNIT != g_sLocalStationInfo.m_n32StationType) { // TODO DEBUG
     /* Heading. */
-    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.heading.headingValue = (int32_t)(psPotiFixData->course_over_ground * 10.0); /* Convert to 0.1 degree from North. */
-    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.heading.headingConfidence = cam_mngr_set_heading_confidence(psPotiFixData->err_course_over_ground); /* Convert to 1 ~ 127 enumeration. */
+    //psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.heading.headingValue = (int32_t)(psPotiFixData->course_over_ground * 10.0); /* Convert to 0.1 degree from North. */
+    //psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.heading.headingConfidence = cam_mngr_set_heading_confidence(psPotiFixData->err_course_over_ground); /* Convert to 1 ~ 127 enumeration. */
 
     /* Speed, 0.01 m/s */
-    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.speed.speedValue = (int16_t)(psPotiFixData->horizontal_speed * 100.0); /* Convert to 0.01 metre per second. */
-    psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.speed.speedConfidence = cam_mngr_set_speed_confidence(psPotiFixData->err_horizontal_speed);
+    //psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.speed.speedValue = (int16_t)(psPotiFixData->horizontal_speed * 100.0); /* Convert to 0.01 metre per second. */
+    //psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.speed.speedConfidence = cam_mngr_set_speed_confidence(psPotiFixData->err_horizontal_speed);
 
     /* Direction. */
     psOutputCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.driveDirection = CAM_SENSOR_GET_DRIVE_DIRECTION();

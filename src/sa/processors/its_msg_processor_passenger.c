@@ -83,6 +83,11 @@ bool its_msg_processor_passenger_process_tx(fix_data_t *psPotiFixData) {
     psCam->cam.camParameters.basicContainer.referencePosition.latitude = 0;
     psCam->cam.camParameters.basicContainer.referencePosition.longitude = 0;
 
+    psCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.speed.speedValue = 11383;
+    psCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.speed.speedConfidence = 1;
+    psCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.heading.headingValue = 22;
+    psCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.heading.headingConfidence = 1;
+
     // Send the CAM.
     return its_msg_processor_push_tx_cam_msg(psCam);
 }

@@ -169,7 +169,27 @@ bool its_msg_processor_traffic_light_process_rx_cam(CAM *psCam, SStationFullFusi
             g_fp_write_to_boundary_event(CauseCodeType_trafficCondition);
         }
 
+        if(GN_ITS_STATION_PASSENGER_CAR == psRemoteFusionData->m_n32StationType) {
+
+            char achSentence[512];
+            int32_t n32SentenceSize = sprintf(achSentence, "T%u,$VSU,%d%d\n",
+                                      psRemoteFusionData->m_un32StationId,
+                                      psCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.speed.speedValue,
+                                      psCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.heading.headingValue);
+            g_fp_write_to_boundary_sentence(achSentence, n32SentenceSize);
+        }
+
     } else {
+
+        if(GN_ITS_STATION_PASSENGER_CAR == psRemoteFusionData->m_n32StationType) {
+
+            char achSentence[512];
+            int32_t n32SentenceSize = sprintf(achSentence, "T%u,$VSU,%d%d\n",
+                                      psRemoteFusionData->m_un32StationId,
+                                      psCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.speed.speedValue,
+                                      psCam->cam.camParameters.highFrequencyContainer.u.basicVehicleContainerHighFrequency.heading.headingValue);
+            g_fp_write_to_boundary_sentence(achSentence, n32SentenceSize);
+        }
 
         g_fp_write_to_boundary_event(CauseCodeType_humanProblem);
     }

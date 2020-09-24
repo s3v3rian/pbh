@@ -21,12 +21,11 @@ __tgt_data_directory="/home/dumbass"
 def read_data_line():
     
     _dictionary_icon_style = {"tgt_dumbass":"dumbass" }
+    _dictionary_balloon_style = {"tgt_dumbass":"dumbass" }
 
     _prefix = """<kml xmlns="http://www.opengis.net/kml/2.2">"""
     _icon_style = ""
     _balloon_style = ""
-    _did_update_icon_style = 0
-    _did_update_dep = 2
 
     try:
         _serial_accessor = serial.Serial('/dev/ttyUSB0', 9600)
@@ -82,6 +81,26 @@ def read_data_line():
 
                     _dictionary_icon_style[_target_name] = _icon_style
 
+                elif _data[_data_index] == "$VSU":
+
+                    _data_index += 1
+
+                    _license = _data[_data_index]
+                    _balloon_style = """
+        <BalloonStyle>
+     	    <bgColor>fffffffb</bgColor>
+            <text><![CDATA[
+                <b><font color="#CC0000" size="+3">$[name]</font></b>
+                <br/><br/>
+                <font face="Courier" size="+4">$[description]</font>
+                <br/><br/>
+                License Number: %s
+                <br/><br/>
+                ]]></text>
+        </BalloonStyle>""" % (_license)
+    
+                    _dictionary_balloon_style[_target_name] = _balloon_style
+
                 elif _data[_data_index] == "local_event" and _target_name == "T111": #index 1
 
                     _data_index += 1
@@ -133,8 +152,8 @@ def read_data_line():
                     if _event == "red_light_crossing":
 
                         res = mqtt.publish(topic, message)
-			print(res) # expecting 0 result for success
-                        print("RECEIVED RED LIGHT CROSSING EVENT")
+			#print(res) # expecting 0 result for success
+                        print("RSU RECEIVED RED LIGHT CROSSING EVENT")
     			
                     else:
 			
@@ -192,11 +211,18 @@ def read_data_line():
                 <href>tl_car_%s.jpg</href>
             </Icon>
         </IconStyle>""" % (_target_name))
+
+                        # Get balloon style previously saved.
+                        _balloon_style = _dictionary_balloon_style.get(_target_name, """
+        <BalloonStyle>
+        </BalloonStyle>""")
+
                         _serial_line ="""
 %s
 <Document>
     <open>1</open>
     <Style id="icon_style">
+    %s
     %s
     </Style>
     
@@ -209,7 +235,7 @@ def read_data_line():
         </Point>
     </Placemark>
 </Document>
-</kml>""" % (_prefix, _icon_style, _target_name, _lon, _lat)
+</kml>""" % (_prefix, _balloon_style, _icon_style, _target_name, _lon, _lat)
 
                         with open ("/home/s3v3rian/V2X/pbh/target_data/tgt_positional_data_%s.kml" % (_target_name), "w") as pos: pos.write(_serial_line)
             
@@ -221,6 +247,11 @@ def read_data_line():
                 <href>tl_car_%s.jpg</href>
             </Icon>
         </IconStyle>""" % (_target_name)
+
+            # Always save line back into dictionary.
+                        _dictionary_balloon_style[_target_name] = """
+        <BalloonStyle>
+        </BalloonStyle>"""
 #            _dictionary[_target_name] = _serial_line
 
     _serial_accessor.close()

@@ -5,6 +5,7 @@ import socket
 import sys
 import getopt
 import subprocess
+from MqttClient import MqttHttpClient
 
 # --------------------------------------------------
 # ---------------- Declare variables ---------------
@@ -105,7 +106,9 @@ def read_data_line():
 #                        subprocess.call(["/home/s3v3rian/V2X/pbh/scripts/host/lightON.ps1"])
 
                     elif _event == "red_light_crossing":
-
+                        res = mqtt.publish(topic, message)
+			print(res) # expecting 0 result for success
+			sys.exit()
                         print("RECEIVED RED LIGHT CROSSING EVENT")
         
                     else:
@@ -128,7 +131,15 @@ def read_data_line():
                     _event = _data[_data_index]
 
                     if _event != "red_light_crossing":
+                        
+                        res = mqtt.publish(topic, message)
+			#print(res) # expecting 0 result for success
+                        print("RSU RECEIVED RED LIGHT CROSSING EVENT")
+    			
+                    else:
+
                         _icon_style += """
+
         <IconStyle>
             <scale>3</scale>
             <Icon>
@@ -242,7 +253,17 @@ def load_parameters(argv):
 
 def main(argv):
     LOAD_RESULT=load_parameters(argv)
-
+    global mqtt
+    global topic
+    global message
+    topic = "app/events"
+    message = "red_line_crossing"
+    mqtt = MqttHttpClient()
+    #topic = "app/events"
+    #message = "red_line_crossing"
+    #res = mqtt.publish(topic, message)
+    #print(res)
+    #sys.exit()
     if 1 == LOAD_RESULT:
         sys.exit()
 
