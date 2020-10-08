@@ -57,7 +57,10 @@ int32_t sim_mngr_init() {
     ini_parse(achFilePath, sim_mngr_ini_loader, CONFIGURATION_FILE_STATION_INFO_USER);
 
     // Initialize GPS simulator.
-    if(true == g_sLocalScenarioInfo.m_bIsScenarioEnabled) {
+    if(true == g_sLocalScenarioInfo.m_bIsScenarioEnabled
+            && true == g_sLocalScenarioInfo.m_bIsGpsSimEnabled) {
+
+        printf("GPS SIMULATOR IS ENABLED BY CONFIGURATION\n");
 
         if(PROCEDURE_SUCCESSFULL != gps_sim_init(g_sLocalScenarioInfo.m_achScenarioName, g_sLocalScenarioInfo.m_achParticipantId)) {
 
@@ -68,6 +71,10 @@ int32_t sim_mngr_init() {
 
             gps_sim_set_is_pause_fix_data(true);
         }
+
+    } else {
+
+        printf("GPS SIMULATOR IS DISABLED BY CONFIGURATION\n");
     }
 
     return PROCEDURE_SUCCESSFULL;
@@ -143,6 +150,18 @@ int32_t sim_mngr_ini_loader(void* pchUser, const char* pchSection, const char* p
                         memcpy(g_sLocalScenarioInfo.m_achParticipantId, pchValue, strlen(pchValue) + 1);
                         m_bIsScenarioLoaded = true;
                     }
+                }
+            }
+
+        } else if(0 == strcmp("gps_sim", pchSection)) {
+
+            if(0 == strcmp("gps_sim_en", pchName)) {
+
+                g_sLocalScenarioInfo.m_bIsGpsSimEnabled = false;
+
+                if(0 < strtol(pchValue, &pchError, 10)) {
+
+                    g_sLocalScenarioInfo.m_bIsGpsSimEnabled = true;
                 }
             }
         }

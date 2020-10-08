@@ -108,6 +108,22 @@ int32_t sim_processor_ini_loader(void* pchUser, const char* pchSection, const ch
         } else if(0 == strcmp("vehicle_collision_warning_threshold_in_meters", pchName)) {
 
             g_sLocalStationInfo.m_sVehicleInfo.m_dCollisionWarningThresholdInMeters = strtol(pchValue, NULL, 10);
+
+        } else if(0 == strcmp("vehicle_min_signal_violation_bearing", pchName)) {
+
+            g_sLocalStationInfo.m_sVehicleInfo.m_dMinSignalViolationBearing = strtod(pchValue, NULL);
+
+        } else if(0 == strcmp("vehicle_max_signal_violation_bearing", pchName)) {
+
+            g_sLocalStationInfo.m_sVehicleInfo.m_dMaxSignalViolationBearing = strtod(pchValue, NULL);
+
+        } else if(0 == strcmp("vehicle_min_dangerous_situation_bearing", pchName)) {
+
+            g_sLocalStationInfo.m_sVehicleInfo.m_dMinDangerousSituationBearing = strtod(pchValue, NULL);
+
+        } else if(0 == strcmp("vehicle_max_dangerous_situation_bearing", pchName)) {
+
+            g_sLocalStationInfo.m_sVehicleInfo.m_dMaxDangerousSituationBearing = strtod(pchValue, NULL);
         }
     }
 }

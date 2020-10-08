@@ -139,15 +139,15 @@ bool its_msg_processor_passenger_process_rx_cam(CAM *psCam, SStationFullFusionDa
                 g_fp_write_to_boundary_remote_event(CauseCodeType_trafficCondition, psRemoteFusionData->m_un32StationId);
 
                 if(g_sLocalStationInfo.m_sVehicleInfo.m_dCollisionWarningThresholdInMeters > psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters
-                        && 270.0 <= psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees
-                        && 360.0 >= psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees) {
+                        && g_sLocalStationInfo.m_sVehicleInfo.m_dMinDangerousSituationBearing <= psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees
+                        && g_sLocalStationInfo.m_sVehicleInfo.m_dMaxDangerousSituationBearing >= psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees) {
 
                     g_fp_write_to_boundary_event(CauseCodeType_dangerousSituation);
                 }
 
                 if(g_sLocalStationInfo.m_sVehicleInfo.m_dCollisionWarningThresholdInMeters > psRemoteFusionData->m_sDistanceData.m_dDistanceToLocalInMeters
-                        && 180.0 <= psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees
-                        && 360.0 >= psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees) {
+                        && g_sLocalStationInfo.m_sVehicleInfo.m_dMinSignalViolationBearing <= psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees
+                        && g_sLocalStationInfo.m_sVehicleInfo.m_dMaxSignalViolationBearing >= psRemoteFusionData->m_sDistanceData.m_dBearingToLocalInDegrees) {
 
                     g_fp_write_to_boundary_event(CauseCodeType_signalViolation);
 

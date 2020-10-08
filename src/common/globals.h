@@ -131,6 +131,12 @@ typedef struct STrafficLightRsuStationInfo {
 
 typedef struct SRsuStationInfo {
 
+    // Bearing details.
+    double m_dMinSignalViolationBearing;
+    double m_dMaxSignalViolationBearing;
+    double m_dMinDangerousSituationBearing;
+    double m_dMaxDangerousSituationBearing;
+
     union {
 
         STrafficLightRsuStationInfo m_sTrafficLightInfo;
@@ -170,6 +176,12 @@ typedef struct SVehicleStationInfo {
     int32_t m_n32VehicleHeight;
     int32_t m_n32VehicleWeight;
     double m_dVehicleSpeedInKph;
+
+    // Bearing details.
+    double m_dMinSignalViolationBearing;
+    double m_dMaxSignalViolationBearing; // :-)
+    double m_dMinDangerousSituationBearing;
+    double m_dMaxDangerousSituationBearing;
 
     double m_dCollisionWarningThresholdInMeters;
 
@@ -230,6 +242,7 @@ typedef struct SSimulatorScenarioInfo {
 
     // General Scenario info.
     bool m_bIsScenarioEnabled;
+    bool m_bIsGpsSimEnabled;
     char m_achScenarioName[30];
 
     // GPS Simulator info.

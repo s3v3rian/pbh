@@ -93,8 +93,8 @@ def read_data_line():
                 <b><font color="#CC0000" size="+3">$[name]</font></b>
                 <br/><br/>
                 <font face="Courier" size="+4">$[description]</font>
-                <br/><br/>
-                License Number: %s
+		<br/><br/>
+                License Plate Number: %s 
                 <br/><br/>
                 ]]></text>
         </BalloonStyle>""" % (_license)
@@ -228,9 +228,9 @@ def read_data_line():
     
     <Placemark>
         <name>VComm %s</name>
-        <description>Live GPS data</description>
+        <description>eScooter Data</description>
         <styleUrl>#icon_style</styleUrl>
-        <Point>
+	<Point>
             <coordinates>%s,%s,0</coordinates>
         </Point>
     </Placemark>

@@ -97,6 +97,25 @@ int32_t sim_processor_ini_loader(void* pchUser, const char* pchSection, const ch
             g_sLocalScenarioInfo.m_un32GpSimSyncId = strtol(pchValue, NULL, 10);
         }
 
+    } else if(0 == strcmp("rsu_info", pchSection)) {
+
+        if(0 == strcmp("rsu_min_signal_violation_bearing", pchName)) {
+
+            g_sLocalStationInfo.m_sRsuInfo.m_dMinSignalViolationBearing = strtod(pchValue, NULL);
+
+        } else if(0 == strcmp("rsu_max_signal_violation_bearing", pchName)) {
+
+            g_sLocalStationInfo.m_sRsuInfo.m_dMaxSignalViolationBearing = strtod(pchValue, NULL);
+
+        } else if(0 == strcmp("rsu_min_dangerous_situation_bearing", pchName)) {
+
+            g_sLocalStationInfo.m_sRsuInfo.m_dMinDangerousSituationBearing = strtod(pchValue, NULL);
+
+        } else if(0 == strcmp("rsu_max_dangerous_situation_bearing", pchName)) {
+
+            g_sLocalStationInfo.m_sRsuInfo.m_dMaxDangerousSituationBearing = strtod(pchValue, NULL);
+        }
+
     } else if(0 == strcmp("traffic_light_rsu_info", pchSection)) {
 
         if(0 == strcmp("traffic_light_rsu_signal_violation_distance_in_meters", pchName)) {
