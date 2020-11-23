@@ -54,6 +54,12 @@ int32_t sim_processor_commercial_init() {
 
 void sim_processor_commercial_do_fusion() {
 
+    // No implementation.
+}
+
+void sim_processor_commercial_gui() {
+
+    // No implementation.
 }
 
 /*

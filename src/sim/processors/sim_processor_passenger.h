@@ -35,6 +35,7 @@
 
 int32_t sim_processor_passenger_init();
 void sim_processor_passenger_do_fusion();
+void sim_processor_passenger_gui();
 
 #endif
 

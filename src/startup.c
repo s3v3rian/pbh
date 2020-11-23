@@ -203,18 +203,21 @@ int32_t main(int argc, char **argv) {
 
             g_fp_sim_processor_init = sim_processor_bus_init;
             g_fp_sim_processor_do_fusion = sim_processor_bus_do_fusion;
+            g_fp_sim_processor_gui = sim_processor_bus_gui;
             break;
 
         case GN_ITS_STATION_PASSENGER_CAR:
 
             g_fp_sim_processor_init = sim_processor_passenger_init;
             g_fp_sim_processor_do_fusion = sim_processor_passenger_do_fusion;
+            g_fp_sim_processor_gui = sim_processor_passenger_gui;
             break;
 
         case GN_ITS_STATION_HEAVY_TRUCK:
 
             g_fp_sim_processor_init = sim_processor_commercial_init;
             g_fp_sim_processor_do_fusion = sim_processor_commercial_do_fusion;
+            g_fp_sim_processor_gui = sim_processor_commercial_gui;
         break;
 
         case GN_ITS_STATION_ROAD_SIDE_UNIT:
@@ -222,6 +225,7 @@ int32_t main(int argc, char **argv) {
 
             g_fp_sim_processor_init = sim_processor_traffic_light_init;
             g_fp_sim_processor_do_fusion = sim_processor_traffic_light_do_fusion;
+            g_fp_sim_processor_gui = sim_processor_traffic_light_gui;
             break;
     }
 
@@ -368,8 +372,10 @@ int32_t main(int argc, char **argv) {
     pthread_create(&g_asThreads[1], NULL, poti_receiver_active, NULL);
     pthread_create(&g_asThreads[2], NULL, cam_receiver_active, NULL);
     pthread_create(&g_asThreads[3], NULL, denm_receiver_active, NULL);
+    pthread_create(&g_asThreads[4], NULL, gui_active, NULL);
 
     // If threads are done then so is the controller.
+    pthread_join(g_asThreads[4], NULL);
     pthread_join(g_asThreads[3], NULL);
     pthread_join(g_asThreads[2], NULL);
     pthread_join(g_asThreads[1], NULL);

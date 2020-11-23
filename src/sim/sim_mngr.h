@@ -29,6 +29,7 @@
 
 typedef int32_t (*sim_processor_init)();
 typedef void (*sim_processor_do)();
+typedef void (*sim_processor_gui)();
 
 /*
  *******************************************************************************
@@ -41,6 +42,7 @@ typedef void (*sim_processor_do)();
 // ---------------------------------------
 sim_processor_init g_fp_sim_processor_init;
 sim_processor_do g_fp_sim_processor_do_fusion;
+sim_processor_gui g_fp_sim_processor_gui;
 
 /*
  *******************************************************************************

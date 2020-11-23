@@ -115,7 +115,7 @@ void sa_mngr_process_fusion() {
     //printf("------------ Handling new data for fusion ------------\n");
 
     // Read latest data from the boundary controller.
-    g_fp_access_host_controller();
+    //g_fp_access_host_controller();
 
     // Process new message.
     switch(n32MsgId) {
@@ -246,6 +246,11 @@ void sa_mngr_process_denm() {
     spsc_array_queue_container_push(m_n32FusionThreadQueueId, DENM_Id, (char*)psOutputDenm);
 }
 
+void sa_mngr_gui() {
+
+    g_fp_sim_processor_gui();
+}
+
 static void sa_mngr_handle_msg(int32_t n32MsgId, char *pchMsgData) {
 
     switch(n32MsgId) {
@@ -372,6 +377,9 @@ static void sa_mngr_handle_denm(DENM *psDenm) {
 }
 
 static void sa_mngr_handle_publish(fix_data_t *psPotiFixData) {
+
+    // Read latest data from the boundary controller.
+    g_fp_access_host_controller();
 
     SStationFullFusionData *psStationData = sa_database_get_station_data(g_sLocalStationInfo.m_un32StationId);
 

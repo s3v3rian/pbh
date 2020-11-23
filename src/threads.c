@@ -169,3 +169,26 @@ void *sa_processor_active(void *p_param __attribute__((unused))) {
     /* Terminate this thread. */
     pthread_exit(NULL);
 }
+
+void *gui_active(void *p_param __attribute__((unused))) {
+
+    printf("Starting GUI\n");
+
+    pthread_t tThisThread = pthread_self();
+
+    struct sched_param sSchedParams;
+
+    sSchedParams.sched_priority = 8;
+    sched_setparam(tThisThread, &sSchedParams);
+    sched_setscheduler(tThisThread, SCHED_FIFO, &sSchedParams);
+
+    while(true == m_bIsThreadsActive) {
+
+        sa_mngr_gui();
+    }
+
+    printf("Stopping GUI\n");
+
+    /* Terminate this thread. */
+    pthread_exit(NULL);
+}

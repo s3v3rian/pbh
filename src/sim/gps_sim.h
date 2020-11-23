@@ -40,6 +40,7 @@ void gps_sim_update_fix_data(fix_data_t *psPotiFixData);
 void gps_sim_set_is_pause_fix_data(bool bIsPaused);
 bool gps_sim_get_is_pause_fix_data();
 bool gps_sim_get_is_scenario_fix_data_starting_now();
+bool gps_sim_get_is_sim_enabled();
 
 /*
  *******************************************************************************

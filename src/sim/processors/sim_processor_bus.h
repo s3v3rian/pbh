@@ -35,6 +35,7 @@
 
 int32_t sim_processor_bus_init();
 void sim_processor_bus_do_fusion();
+void sim_processor_bus_gui();
 
 #endif
 

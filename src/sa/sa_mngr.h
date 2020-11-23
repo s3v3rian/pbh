@@ -59,6 +59,7 @@ void sa_mngr_process_fusion();
 void sa_mngr_process_poti();
 void sa_mngr_process_cam();
 void sa_mngr_process_denm();
+void sa_mngr_gui();
 
 #endif
 

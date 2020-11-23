@@ -208,3 +208,8 @@ bool gps_sim_get_is_scenario_fix_data_starting_now() {
 
     return (0 == m_n32LatitudeArrayIndex);
 }
+
+bool gps_sim_get_is_sim_enabled() {
+
+    return m_bIsSimulatorEnabled;
+}

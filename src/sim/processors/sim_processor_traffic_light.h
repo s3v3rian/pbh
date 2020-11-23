@@ -35,6 +35,7 @@
 
 int32_t sim_processor_traffic_light_init();
 void sim_processor_traffic_light_do_fusion();
+void sim_processor_traffic_light_gui();
 
 #endif
 

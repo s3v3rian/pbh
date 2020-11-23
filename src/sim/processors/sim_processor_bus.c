@@ -54,6 +54,12 @@ int32_t sim_processor_bus_init() {
 
 void sim_processor_bus_do_fusion() {
 
+    // No implementation.
+}
+
+void sim_processor_bus_gui() {
+
+    // No implementation.
 }
 
 /*

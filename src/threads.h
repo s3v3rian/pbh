@@ -46,6 +46,7 @@ void *poti_receiver_active(void *p_param __attribute__((unused)));
 void *cam_receiver_active(void *p_param __attribute__((unused)));
 void *denm_receiver_active(void *p_param __attribute__((unused)));
 void *sa_processor_active(void *p_param __attribute__((unused)));
+void *gui_active(void *p_param __attribute__((unused)));
 
 /*
  *******************************************************************************
